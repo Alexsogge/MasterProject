@@ -9,21 +9,23 @@ This is one of the key components. It continuously records sensor data and sends
 
 If hand wash event is triggered -> last x sensor data has to be send. 
 
-Requests newest trained model. 
+Requests newest trained model (at startup).  
 
 Furthermore it communicates with the soap dispenser for verifying ground truth data
 
 
 Considerations:
   - Just send data for hand wash events or noise too?
-  - Mark start and end of hand wash? Not that good.
+  - Mark start and end of hand wash?
     - How to recognize start and end in last x data points.
+    - If possible without user interaction.
     - If possible determine on server for higher energy efficiency
   
 
 
 ## Learner
 Receives sensor data, applies them to the model, relearn, publish new model.
+Use python and TensorFlow [1]. 
 
 Considerations:
   - User specific model or global?
@@ -76,10 +78,6 @@ Has to contain event type, time
 
 ---------------------
 Ref:  
-\[1\]: https://www.tensorflow.org/  
-\[2\]: https://www.tensorflow.org/lite/guide/get_started#2_convert_the_model_format  
-\[3\]: https://developer.android.com/training/data-storage  
-\[4\]: https://github.com/amitshekhariitbhu/Android-TensorFlow-Lite-Example/issues/15  
 [1]: https://www.tensorflow.org/  
 [2]: https://www.tensorflow.org/lite/guide/get_started#2_convert_the_model_format  
 [3]: https://developer.android.com/training/data-storage  
