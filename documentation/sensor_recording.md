@@ -27,7 +27,7 @@ Yeah dozing [2][3] is one of our friends in terms of power saving, but can be ve
 No operations -> less power consumption. But what does this mean for our batching?
 
 Fortunately the sensor batching does not hold a wake-lock which allows the AP to enter the suspend mode, which get us to our lovely power savings. Furthermore the FIFO is still capable to store new sensor events (I mean I think so).
-To our bad luck, the acceleration sensor which we use is a __non-wake-up__ sensor. This means it can't enforce the AP to wake up if the report delay is exceeded. Therefore the FIFO will start to override old values if its get full. Again information loss.
+To our bad luck, the acceleration sensor which we use is a __non-wake-up__ sensor. This means it can't enforce the AP to wake up if the report latency is exceeded. Therefore the FIFO will start to override old values if its get full. Again information loss.
 
 We need a mechanism to wake up the AP when our FIFO gets full.
 
@@ -45,14 +45,20 @@ We could try to use other mechanisms like wake-up sensors [7] to detect a possib
 
 #### Regular waking up of the AP
 As shown in section "Sensor batching" we can estimate the time when the FIFO could be full.
-We can use the AlarmManager[8] to trigger specific events at an certain time. But the minimum time gap between two alarms which allows the AP to go sleep is longer than our max report delay.  
+We can use the AlarmManager[8] to trigger specific events at an certain time. But the minimum time gap between two alarms which allows the AP to go sleep is longer than our max report latency.  
 The AlarmManager also provides Scheduled repeating alarms[9] with a flexible minimum time gap. We need to set up some things to enable them to fire in Doze mode.
 
 In the same section of the documentation where this is mentioned, they suggest the new WorkManager API which seems to do exactly what we want. So lets have a look.
 
 
 # Schedule tasks with WorkManager
-The WorkManager [10] enables to schedule tasks that are executed in background.
+The WorkManager [10] enables to schedule tasks that are executed in background. They operate in an energy efficient way and offer the opportunity to define periodical work events. Sounds good.
+
+Unfortunately there is a note in the documentation for PeriodicWorkRequest [11] which says, that the minimum repeat interval is 15 minutes which is much more than our maximum report latency. Again back to alarms...
+
+
+# Schedule repeating alarms
+Alarms[9] seem to be the best way to go. They give us a way to perform background tasks even if the device is asleep i.e. in doze mode.  
 
 
 
@@ -67,7 +73,9 @@ Ref:
 [7]: https://source.android.com/devices/sensors/suspend-mode#wake-up_sensors  
 [8]: https://developer.android.com/reference/android/app/AlarmManager  
 [9]: https://developer.android.com/training/scheduling/alarms  
-[10]: https://developer.android.com/topic/libraries/architecture/workmanager
+[10]: https://developer.android.com/topic/libraries/architecture/workmanager  
+[11]: https://developer.android.com/topic/libraries/architecture/workmanager/how-to/define-work#schedule_periodic_work  
+
 
 
 
