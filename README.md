@@ -17,21 +17,21 @@ Furthermore we use a soap dispenser to determine if there've been a new hand-was
 
 
 ## Tasks / Roadmap
-- **June:** Related work to incremental machine learning/ efficient sensor listening on WearOS 
-- **June:** Concept for overall architecture / Pipeline
-- **June:** WearOS record continuously data in background and efficient way
-- **June:** Observe energy consumption
-- **June:** Evaluate ground truth data (Simple approach via user interaction. Trigger to signal, that recently recorded data is ground truth)
-- **June:** Transmit data to Server
-- **July:** Implement basic learner?
-- **July:** Relearn with extended data
-- **August:** Publish classifier to WearOS
-- **August:** Advanced ground truth data evaluation using existing classifier and less user interaction (confirm)
-- **August:** Communicate with soap dispenser -> no user interaction needed
-- **September:** Incremental learning approach
-- **September:** Refactoring 
-- **October:** Documentation
-- **October:** evaluation
+- [ ] **June:** Related work to incremental machine learning/ efficient sensor listening on WearOS 
+- [x] **June:** Concept for overall architecture / Pipeline
+- [ ] **June:** WearOS record continuously data in background and efficient way
+- [ ] **June:** Observe energy consumption
+- [ ] **June:** Evaluate ground truth data (Simple approach via user interaction. Trigger to signal, that recently recorded data is ground truth)
+- [ ] **June:** Transmit data to Server
+- [ ] **July:** Implement basic learner?
+- [ ] **July:** Relearn with extended data
+- [ ] **August:** Publish classifier to WearOS
+- [ ] **August:** Advanced ground truth data evaluation using existing classifier and less user interaction (confirm)
+- [ ] **August:** Communicate with soap dispenser -> no user interaction needed
+- [ ] **September:** Incremental learning approach
+- [ ] **September:** Refactoring 
+- [ ] **October:** Documentation
+- [ ] **October:** evaluation
 
 
 
