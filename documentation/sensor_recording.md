@@ -58,9 +58,33 @@ Unfortunately there is a note in the documentation for PeriodicWorkRequest [11] 
 
 
 # Schedule repeating alarms
-Alarms[9] seem to be the best way to go. They give us a way to perform background tasks even if the device is asleep i.e. in doze mode.  
+Alarms [9] seem to be the best way to go. They give us a way to perform background tasks even if the device is asleep i.e. in doze mode.  
+There are several documentations were this is recommended for background tasks with specific timings [13][14]. But they also mention that method could drain the battery significant. So we have to test how our implementation will perform.
 
+Due to we already have a service for sensor listening, we can use the same Intent [15] for our repeating alarm. All we have to do is create a PendingIntent [16] out of our Intent and set it for a repeating alarm over the AlarmManager [8].
 
+```javascript
+  Intent sensorServiceIntent = new Intent(this, SensorListenerService.class);
+  AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+  PendingIntent pendingIntent = PendingIntent.getService(this, 0, sensorServiceIntent, 0);
+  alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 10 * 1000, 60 * 1000, pendingIntent);
+```
+
+At first we set the repeating time to 60 seconds. But this is no exact value. We try to estimate a long as possible interval of wake ups, to get information consistency at a minimum battery loose.
+
+In the onStartCommand we have to distinct between the initial start and the repeating triggers. This can be done by a simple boolean variable which is set to true in the first call. If the onStartCommand ist called and our initial variable is true, we simply flush the sensor. This should be done in a short time and hopefully we don't need to set wakelocks.
+
+# Other things we could consider
+JobSheduler:
+  - For tasks where the timing is not critical
+  - System tries to batch multiple jobs -> execution time point can vary
+
+Handler:
+  - Can't be executed in doze mode
+
+Foreground Service:
+  - Seem not really implemented in WearOS 
+  - use Always-on [12]
 
 ---------------------------------------------
 Ref:  
@@ -75,6 +99,12 @@ Ref:
 [9]: https://developer.android.com/training/scheduling/alarms  
 [10]: https://developer.android.com/topic/libraries/architecture/workmanager  
 [11]: https://developer.android.com/topic/libraries/architecture/workmanager/how-to/define-work#schedule_periodic_work  
+[12]: https://developer.android.com/training/wearables/apps/always-on  
+[13]: https://android-developers.googleblog.com/2018/10/modern-background-execution-in-android.html  
+[14]: https://developer.android.com/guide/background  
+[15]: https://developer.android.com/reference/android/content/Intent  
+[16]: https://developer.android.com/reference/android/app/PendingIntent  
+
 
 
 
