@@ -74,6 +74,31 @@ At first we set the repeating time to 60 seconds. But this is no exact value. We
 
 In the onStartCommand we have to distinct between the initial start and the repeating triggers. This can be done by a simple boolean variable which is set to true in the first call. If the onStartCommand ist called and our initial variable is true, we simply flush the sensor. This should be done in a short time and hopefully we don't need to set wakelocks.
 
+
+## Repeating Alarms don't fire in Doze mode
+Sadly as mentioned in section 'Regular waking up of the AP' we have to setup some things to get the alarm fire in Doze mode. In fact this affects our repeating alarm in a way that we simply can't use repeating alarms.
+
+There are two functions which set a alarm which triggers in doze mode `setAndAllowWhileIdle` and `setExactAndAllowWhileIdle`. This are single alarms. But we can simply reset it after our service has been triggered. So we change our code block to:
+
+```javascript
+  Intent sensorServiceIntent = new Intent(this, SensorListenerService.class);
+  AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+  PendingIntent pendingIntent = PendingIntent.getService(this, 0, sensorServiceIntent, 0);
+  alarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 60 * 1000, pendingIntent);
+```
+
+Additionally we copy the last line after the sensor flush (AlarmManager and PendingIntent need to be class members). 
+
+
+#### Time restrictions for single alarms
+> To reduce abuse, there are restrictions on how frequently these alarms will go off for a particular application [8]
+
+This could lead us to problems...
+
+And yes our tests showed that after some alarm triggers, they stop triggering.
+
+
+
 # Other things we could consider
 JobSheduler:
   - For tasks where the timing is not critical
