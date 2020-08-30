@@ -1,6 +1,8 @@
 package com.example.sensorcollecttest;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +12,7 @@ import android.hardware.SensorAdditionalInfo;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
@@ -19,6 +22,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.widget.Toast;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -37,6 +41,9 @@ public class MainActivity extends WearableActivity {
     float startCharge;
     boolean isActive = false;
     Intent batteryStatus;
+    Intent flushSensorIntent;
+    AlarmManager alarmManager;
+    PendingIntent pendingIntent;
 
 
 
@@ -52,10 +59,22 @@ public class MainActivity extends WearableActivity {
 
         intent = new Intent(this, SensorListenerService.class );
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+        /*
+        flushSensorIntent = new Intent(this, FlushSensor.class);
+        alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        pendingIntent = PendingIntent.getService(this, 0, intent, 0);
+        if (pendingIntent != null && alarmManager != null) {
+            alarmManager.cancel(pendingIntent);
+            Log.d("alarm", "Kill old alarm");
+        }
+        */
+
+
+
         startService(intent);
 
-
-        final TextView resultText = (TextView)findViewById(R.id.textViewResult);
+        final TextView resultText = (TextView)findViewById(R.id.scrollText);
 
         final Button button = (Button) findViewById(R.id.buttonStartStop);
         button.setOnClickListener(new View.OnClickListener() {
@@ -71,6 +90,7 @@ public class MainActivity extends WearableActivity {
 
                     startCharge = level * 100 / (float)scale;
                     sensorService.registerToManager();
+                    // alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 10 * 1000, 60 * 1000, pendingIntent);
 
                 } else {
                     button.setText("Start");
@@ -94,13 +114,25 @@ public class MainActivity extends WearableActivity {
                     Log.i("report", "Did " + sensorService.awakeCounter + " wake ups.");
                     isActive = false;
                     resultText.setText("lost " + chargeDiff + "% charge over " + hours + " hours and " + minutes + " minutes.\n");
-                    resultText.append("Did " + sensorService.awakeCounter + " wake ups.");
+                    resultText.append("Did " + sensorService.awakeCounter + " wake ups.\n");
+                    resultText.append("Got " + sensorService.batchCounter + " batches.\n");
+                    resultText.append("Triggered " + sensorService.triggeredAlarms + " alarms.\n");
+                    resultText.append("Lost " + sensorService.errorCounter + " sensor readings\n");
+                    for(long delay: sensorService.missedDelays){
+                        resultText.append(delay/1000000000 + "\n");
+                    }
+                    resultText.append("Triggers at:\n");
+                    for(int i = 1; i < sensorService.alarmTriggers.size(); i++){
+                        long delay = sensorService.alarmTriggers.get(i) - sensorService.alarmTriggers.get(i-1);
+                        resultText.append(delay/1000 + "\n");
+                    }
                     sensorService.unregisterfromManager();
+                    // alarmManager.cancel(pendingIntent);
                 }
             }
         });
 
-        // Enables Always-on
+        // Enables Always-on1
         setAmbientEnabled();
 
     }
