@@ -6,9 +6,11 @@
 NDK package offers prebuild binaries. We can use /prebuilt/linux-x86_64/bin/armv7a-linux-androideabi16-clang.
 
 ## ndk-build
-can be downloaded at [16]. needs and Android.mk
-[19]
+Can be downloaded at [16]. Needs and **Android.mk** and **Application.mk**. Then run `ndk-build` in project folder [21] [19].  
+We need android library for the sensor framework. Therefore we have to add `LOCAL_LDLIBS    := -landroid` to our **Android.mk**.
 
+#### LD_LIBRARY
+Could occur missing library `libc++_shared.so`. We have to set path variable `LD_LIBRARY_PATH` [22]
 
 # Run code at startup
 We have to change init.rc
@@ -48,24 +50,26 @@ provides some commands [9][10][11][12]
 AOSP is used to build kernel modules [13][14]
 
 ---------------------------------
-Refs:
-[1]: http://nickdesaulniers.github.io/blog/2016/07/01/android-cli/
-[2]: http://droidcore.blogspot.com/2012/12/how-to-edit-initrc-in-android.html
-[3]: https://unix.stackexchange.com/questions/64628/how-to-extract-boot-img
-[4]: https://stackoverflow.com/questions/9768103/make-persistent-changes-to-init-rc
-[5]: https://topjohnwu.github.io/Magisk/guides.html#boot-scripts
-[6]: https://stackoverflow.com/questions/17654140/is-there-a-way-to-get-wakelock-on-android-through-the-jni-ndk
-[7]: https://ragsagar.wordpress.com/2011/08/15/how-to-automatically-wake-up-your-computer-at-a-particular-time-resume-by-rtc-alarm-in-arch-linux/
-[8]: https://android.googlesource.com/kernel/msm/+/f5335159eed416b26b7c8a5a4e8820f97dc1ad19/Documentation/i2c/dev-interface
-[9]: https://stackoverflow.com/questions/19763831/building-i2c-tools-on-android
-[10]: https://github.com/richardtin/i2c-tools
-[11]: https://ara-mdk.googlesource.com/platform/external/i2c-tools/
-[12]: https://discuss.96boards.org/t/building-i2c-tools-for-aosp-on-hikey-960/5163
-[13]: https://source.android.com/setup/build/downloading
-[14]: https://source.android.com/setup/build/building
-[15]: https://github.com/topjohnwu/Magisk/blob/master/docs/guides.md
-[16]: https://developer.android.com/ndk/downloads
-[17]: https://androidforums.com/threads/where-is-my-boot-img.892350/
-[18]: https://android.stackexchange.com/questions/190095/backup-boot-img-via-terminal-one-line-command
-[19]: https://code.tutsplus.com/tutorials/advanced-android-getting-started-with-the-ndk--mobile-2152
-[20]: https://www-numi.fnal.gov/offline_software/srt_public_context/WebDocs/Errors/unix_system_errors.html
+Refs:  
+[1]: http://nickdesaulniers.github.io/blog/2016/07/01/android-cli/  
+[2]: http://droidcore.blogspot.com/2012/12/how-to-edit-initrc-in-android.html  
+[3]: https://unix.stackexchange.com/questions/64628/how-to-extract-boot-img  
+[4]: https://stackoverflow.com/questions/9768103/make-persistent-changes-to-init-rc  
+[5]: https://topjohnwu.github.io/Magisk/guides.html#boot-scripts  
+[6]: https://stackoverflow.com/questions/17654140/is-there-a-way-to-get-wakelock-on-android-through-the-jni-ndk  
+[7]: https://ragsagar.wordpress.com/2011/08/15/how-to-automatically-wake-up-your-computer-at-a-particular-time-resume-by-rtc-alarm-in-arch-linux/  
+[8]: https://android.googlesource.com/kernel/msm/+/f5335159eed416b26b7c8a5a4e8820f97dc1ad19/Documentation/i2c/dev-interface  
+[9]: https://stackoverflow.com/questions/19763831/building-i2c-tools-on-android  
+[10]: https://github.com/richardtin/i2c-tools  
+[11]: https://ara-mdk.googlesource.com/platform/external/i2c-tools/  
+[12]: https://discuss.96boards.org/t/building-i2c-tools-for-aosp-on-hikey-960/5163  
+[13]: https://source.android.com/setup/build/downloading  
+[14]: https://source.android.com/setup/build/building  
+[15]: https://github.com/topjohnwu/Magisk/blob/master/docs/guides.md  
+[16]: https://developer.android.com/ndk/downloads  
+[17]: https://androidforums.com/threads/where-is-my-boot-img.892350/  
+[18]: https://android.stackexchange.com/questions/190095/backup-boot-img-via-terminal-one-line-command  
+[19]: https://code.tutsplus.com/tutorials/advanced-android-getting-started-with-the-ndk--mobile-2152  
+[20]: https://www-numi.fnal.gov/offline_software/srt_public_context/WebDocs/Errors/unix_system_errors.html  
+[21]: http://web.guohuiwang.com/technical-notes/androidndk1  
+[22]: https://libcxx.llvm.org/docs/UsingLibcxx.html  
