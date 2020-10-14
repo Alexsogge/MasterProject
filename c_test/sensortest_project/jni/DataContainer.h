@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <string>
 #include "SensorData.h"
 
 #ifndef DATACONTAINER_H
@@ -21,16 +22,23 @@ private:
   size_t m_acc_pointer = 0;
   size_t m_gyro_pointer = 0;
   size_t m_magnetic_pointer = 0;
-  FILE *m_file;
+  FILE *m_file_acc;
+  FILE *m_file_gyro;
+  FILE *m_file_magneto;
 public:
   SensorData m_accelerationBuffer[STD_BUFFER_SIZE];
-  DataContainer(FILE *file);
+  SensorData m_gyroscopeBuffer[STD_BUFFER_SIZE];
+  SensorData m_magnetometerBuffer[STD_BUFFER_SIZE];
+  DataContainer(const std::string &file_path);
+  ~DataContainer();
   
-  void AddNewReading(unsigned long long time_stamp);
-  void AddNewAcceleration(unsigned long long time_stamp,float x, float y, float z);
-  void AddNewGyroscope(unsigned long long time_stamp,float pitch, float roll, float azimuth);
-  void AddNewMagnetic(float x, float y, float z);
+  void AddNewAcceleration(unsigned long long time_stamp, float x, float y, float z);
+  void AddNewGyroscope(unsigned long long time_stamp, float x, float y, float z);
+  void AddNewMagnetic(unsigned long long time_stamp, float x, float y, float z);
   void FlushBuffer();
+  void FlushBufferAcc();
+  void FlushBufferGyro();
+  void FlushBufferMagneto();
 };
 
 #endif

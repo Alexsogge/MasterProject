@@ -20,14 +20,9 @@ void die(char *err){
 }
 
 int main(int argv, char *argc[]){
-  FILE *fp;
-	fp = fopen("/data/local/tmp/sensordata.csv", "w+");
-	// fprintf(fp, "Test fprintf...\n");
-	// fputs("Test fputs..\n", fp);
-	// fflush(fp);
   ASensorManager *sensor_manager = ASensorManager_getInstance();
   ASensorList sensor_list = NULL;
-	DataContainer *dataContainer = new DataContainer(fp);
+	DataContainer *dataContainer = new DataContainer("/data/local/tmp/");
 	
   if( sensor_manager == NULL )
     die("error, sensor_manager");
@@ -118,7 +113,7 @@ int main(int argv, char *argc[]){
 				dataContainer->AddNewGyroscope(sEvent.timestamp, sEvent.data[0], sEvent.data[1], sEvent.data[2]);
 			}
 			if (sEvent.type == ASENSOR_TYPE_MAGNETIC_FIELD){
-				dataContainer->AddNewMagnetic(sEvent.magnetic.x, sEvent.magnetic.y, sEvent.magnetic.z);
+				dataContainer->AddNewMagnetic(sEvent.timestamp, sEvent.magnetic.x, sEvent.magnetic.y, sEvent.magnetic.z);
 			}
 			// printf("%f %f %f %f %f %f\n", sEvent.acceleration.x, sEvent.acceleration.y, sEvent.acceleration.z, sEvent.acceleration.pitch, sEvent.acceleration.roll, sEvent.acceleration.azimuth);
 			// dataContainer->AddNewReading(sEvent.acceleration.x, sEvent.acceleration.y, sEvent.acceleration.z, sEvent.acceleration.pitch, sEvent.acceleration.roll, sEvent.acceleration.azimuth);
@@ -128,8 +123,7 @@ int main(int argv, char *argc[]){
 		sec:
 		sleep( 1 );
 	}
-  fputs("Ended read...\n", fp);
-  fflush(fp);
+
   
   //disable
   ASensorEventQueue_disableSensor(sensor_queue, sensor_acc );
@@ -140,7 +134,5 @@ int main(int argv, char *argc[]){
 	//destroy
 	ASensorManager_destroyEventQueue(sensor_manager, sensor_queue);
   
-
-  fclose(fp);
   return 0;
 }
