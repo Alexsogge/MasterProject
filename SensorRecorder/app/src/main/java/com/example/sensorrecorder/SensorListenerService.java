@@ -1,34 +1,29 @@
 package com.example.sensorrecorder;
 
-import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.AsyncTask;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 
 
@@ -39,6 +34,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     SensorManager sensorManager;
     Sensor acceleration_sensor;
+    Sensor gyro_sensor;
     //int samplingRate = SensorManager.SENSOR_DELAY_NORMAL;
     int samplingRate = 20000;
     //int reportRate = 100000000;
@@ -64,17 +60,36 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     File recording_file_acc;
     FileOutputStream file_output_acc;
+    File recording_file_gyro;
+    FileOutputStream file_output_gyro;
+    public static final String CHANNEL_ID = "ForegroundServiceChannel";
 
 
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d("sensorinfo", "Start service");
+
+        createNotificationChannel();
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, 0);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Foreground Service")
+                .setContentText("SensorRecorder")
+                .setContentIntent(pendingIntent)
+                .build();
+
+        startForeground(1, notification);
+
+
         if (!initialized) {
             initialized = true;
             this.intent = intent;
             sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
             acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
             try {
                 final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
                 if(!path.exists())
@@ -82,8 +97,11 @@ public class SensorListenerService extends Service implements SensorEventListene
                     // Make it, if it doesn't exit
                     path.mkdirs();
                 }
-                recording_file_acc = new File(path, "sensor_recording_android.csv");
+                recording_file_acc = new File(path, "sensor_recording_android_acc.csv");
                 recording_file_acc.createNewFile();
+                recording_file_gyro = new File(path, "sensor_recording_android_gyro.csv");
+                recording_file_gyro.createNewFile();
+
                 //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -92,6 +110,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             }
             try {
                 file_output_acc = new FileOutputStream(recording_file_acc);
+                file_output_gyro = new FileOutputStream(recording_file_gyro);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
@@ -104,10 +123,12 @@ public class SensorListenerService extends Service implements SensorEventListene
             Log.e("sensorinfo", "Max delay: " + acceleration_sensor.getMaxDelay() + " - Fifo count" + acceleration_sensor.getFifoReservedEventCount());
 
 
-            PowerManager powerManager = (PowerManager) this.getSystemService(POWER_SERVICE);
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                    "SensorReadings::FlushSensorLock");
             registerToManager();
+
+            PowerManager powerManager = (PowerManager) this.getSystemService(POWER_SERVICE);
+            PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "SensorReadings::FlushSensorLock");
+            wakeLock.acquire(600*60*1000L /*10 minutes*/);
 
         } else {
 
@@ -122,7 +143,8 @@ public class SensorListenerService extends Service implements SensorEventListene
         recording_values_gyro = new float[1000][3];
         pointer_acc = 0;
         pointer_gyro = 0;
-        final boolean batchMode = sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate);
+        boolean batchMode = sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate);
+        batchMode = sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate) && batchMode;
         if (!batchMode){
             Log.e("sensorinfo", "Could not register sensor to batch");
         } else {
@@ -191,11 +213,28 @@ public class SensorListenerService extends Service implements SensorEventListene
             // Log.d("sensor", ""+pointer_acc);
             if(pointer_acc == 1000) {
                 try {
-                    SendSensorData();
+                    SendSensorDataAcc();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 pointer_acc = 0;
+            }
+        }
+        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            // Log.d("sensor", "[" + event.timestamp + "]" + event.values[0] + " " + event.values[1] + " " + event.values[2]);
+            recording_timestamps_gyro[pointer_gyro] = event.timestamp;
+            recording_values_gyro[pointer_gyro][0] = event.values[0];
+            recording_values_gyro[pointer_gyro][1] = event.values[1];
+            recording_values_gyro[pointer_gyro][2] = event.values[2];
+            pointer_gyro++;
+            // Log.d("sensor", ""+pointer_acc);
+            if(pointer_gyro == 1000) {
+                try {
+                    SendSensorDataGyro();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                pointer_gyro = 0;
             }
         }
     }
@@ -205,7 +244,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     }
 
-    public void SendSensorData() throws IOException {
+    public void SendSensorDataAcc() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
         for(int i = 0; i < pointer_acc; i++){
@@ -217,6 +256,34 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
         file_output_acc.write(data.toString().getBytes());
         file_output_acc.flush();
-        Log.e("write", "Flushed File");
+        Log.e("write", "Flushed File acc");
+    }
+
+    public void SendSensorDataGyro() throws IOException {
+        Log.e("write", "Write File");
+        StringBuilder data = new StringBuilder();
+        for(int i = 0; i < pointer_gyro; i++){
+            // Log.i("sensor", "RecordingService: " + timeStamp);
+            data.append(recording_timestamps_gyro[i]).append("\t");
+            data.append(recording_values_gyro[i][0]).append("\t");
+            data.append(recording_values_gyro[i][1]).append("\t");
+            data.append(recording_values_gyro[i][2]).append("\n");
+        }
+        file_output_gyro.write(data.toString().getBytes());
+        file_output_gyro.flush();
+        Log.e("write", "Flushed File gyro");
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel serviceChannel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Foreground Service Channel",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(serviceChannel);
+        }
     }
 }

@@ -48,3 +48,16 @@ Alarms at:
 lost 2 readings:
   - 7 sec
   - 8613 sec -> 143 min
+
+
+
+
+# Stable Foreground Service
+
+
+## Fossil Gen 5
+1934000 recordings -> 10h nedded 90% Battery daily use
+
+
+## Ticwatch C2
+1684000 recordings -> 9h needed 14% no usage
