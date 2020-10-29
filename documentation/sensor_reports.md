@@ -57,7 +57,9 @@ lost 2 readings:
 
 ## Fossil Gen 5
 1934000 recordings -> 10h nedded 90% Battery daily use
+650000 recordings -> 3:29h nedded 40% daily usage 
 
 
 ## Ticwatch C2
 1684000 recordings -> 9h needed 14% no usage
+>995000 recordings -> 5,5h needed 18% some usage

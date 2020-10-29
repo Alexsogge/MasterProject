@@ -1,5 +1,6 @@
 package com.example.sensorrecorder;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -19,12 +20,20 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.Permission;
+import java.security.Permissions;
 import java.util.ArrayList;
+
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale;
 
 
 public class SensorListenerService extends Service implements SensorEventListener{
@@ -56,40 +65,61 @@ public class SensorListenerService extends Service implements SensorEventListene
     int errorCounter = 0;
     ArrayList<Long> missedDelays = new ArrayList<Long>();
     boolean initialized = false;
-    PowerManager.WakeLock wakeLock;
 
     File recording_file_acc;
     FileOutputStream file_output_acc;
     File recording_file_gyro;
     FileOutputStream file_output_gyro;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
+    private ArrayList<long[]> handWashEvents;
 
 
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d("sensorinfo", "Start service");
+        Log.d("sensorinfo", "Start service" + flags + " | " + startId + initialized);
+        Log.d("sensorinfo", "Params: " + intent.getStringExtra("trigger"));
 
-        createNotificationChannel();
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
-
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Foreground Service")
-                .setContentText("SensorRecorder")
-                .setContentIntent(pendingIntent)
-                .build();
-
-        startForeground(1, notification);
 
 
         if (!initialized) {
             initialized = true;
+
+            createNotificationChannel();
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                    0, notificationIntent, 0);
+
+            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("Foreground Service")
+                    .setContentText("SensorRecorder")
+                    .setContentIntent(pendingIntent)
+                    .build();
+
+            Intent handwashIntent = new Intent(intent);
+            handwashIntent.putExtra("trigger", "handWash");
+            PendingIntent pint = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("Running")
+                    .setContentText("Sensor recorder is active")
+                    .setStyle(new NotificationCompat.BigTextStyle()
+                            .bigText("Sensor recorder is active"))
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setSmallIcon(R.drawable.preference_wrapped_icon)
+                    .addAction(R.drawable.action_item_background, "HandWash", pint);
+
+
+
+            startForeground(1, builder.build());
+
             this.intent = intent;
             sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
             acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
+
             try {
                 final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
                 if(!path.exists())
@@ -120,20 +150,23 @@ public class SensorListenerService extends Service implements SensorEventListene
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.getFifoReservedEventCount()));
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.getMaxDelay()));
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.isWakeUpSensor()));
-            Log.e("sensorinfo", "Max delay: " + acceleration_sensor.getMaxDelay() + " - Fifo count" + acceleration_sensor.getFifoReservedEventCount());
-
+            //Log.e("sensorinfo", "Max delay: " + acceleration_sensor.getMaxDelay() + " - Fifo count" + acceleration_sensor.getFifoReservedEventCount());
 
             registerToManager();
 
-            PowerManager powerManager = (PowerManager) this.getSystemService(POWER_SERVICE);
-            PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                    "SensorReadings::FlushSensorLock");
-            wakeLock.acquire(600*60*1000L /*10 minutes*/);
-
         } else {
-
+            if (intent.getStringExtra("trigger") != null){
+                if (intent.getStringExtra("trigger").equals("testCall"))
+                    TestCall();
+                if (intent.getStringExtra("trigger").equals("handWash"))
+                    AddHandWashEvent();
+            }
         }
         return START_STICKY;
+    }
+
+    public void TestCall(){
+        Log.d("fgservice", "Test call");
     }
 
     public void registerToManager(){
@@ -143,12 +176,15 @@ public class SensorListenerService extends Service implements SensorEventListene
         recording_values_gyro = new float[1000][3];
         pointer_acc = 0;
         pointer_gyro = 0;
+
+        handWashEvents = new ArrayList<>();
+
         boolean batchMode = sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate);
-        batchMode = sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate) && batchMode;
+        batchMode = batchMode && sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate);
         if (!batchMode){
-            Log.e("sensorinfo", "Could not register sensor to batch");
+            Log.e("sensorinfo", "Could not register sensors to batch");
         } else {
-            Log.e("sensorinfo", "Registered sensor to batch");
+            Log.e("sensorinfo", "Registered sensors to batch");
         }
 
         // wakeLock.acquire(1000);
@@ -217,7 +253,8 @@ public class SensorListenerService extends Service implements SensorEventListene
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                pointer_acc = 0;
+                recording_timestamps_acc[0] = recording_timestamps_acc[pointer_acc-1];
+                pointer_acc = 1;
             }
         }
         if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
@@ -234,7 +271,8 @@ public class SensorListenerService extends Service implements SensorEventListene
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                pointer_gyro = 0;
+                recording_timestamps_gyro[0] = recording_timestamps_gyro[pointer_gyro-1];
+                pointer_gyro = 1;
             }
         }
     }
@@ -254,9 +292,13 @@ public class SensorListenerService extends Service implements SensorEventListene
             data.append(recording_values_acc[i][1]).append("\t");
             data.append(recording_values_acc[i][2]).append("\n");
         }
-        file_output_acc.write(data.toString().getBytes());
-        file_output_acc.flush();
-        Log.e("write", "Flushed File acc");
+        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+            file_output_acc.write(data.toString().getBytes());
+            file_output_acc.flush();
+            Log.e("write", "Flushed File acc");
+        } else {
+            Log.e("write", "Can't write file");
+        }
     }
 
     public void SendSensorDataGyro() throws IOException {
@@ -269,9 +311,24 @@ public class SensorListenerService extends Service implements SensorEventListene
             data.append(recording_values_gyro[i][1]).append("\t");
             data.append(recording_values_gyro[i][2]).append("\n");
         }
-        file_output_gyro.write(data.toString().getBytes());
-        file_output_gyro.flush();
-        Log.e("write", "Flushed File gyro");
+        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+            file_output_gyro.write(data.toString().getBytes());
+            file_output_gyro.flush();
+            Log.e("write", "Flushed File gyro");
+        } else {
+            Log.e("write", "Can't write file");
+        }
+    }
+
+    private void AddHandWashEvent(){
+        Log.d("fgservice", "New handwash at " + (pointer_acc - 1) + "   " + (pointer_gyro - 1));
+        flushSensor();
+        if(pointer_acc == 0 || pointer_gyro == 0)
+            return;
+        long[] newEvent = {recording_timestamps_acc[pointer_acc - 1], recording_timestamps_gyro[pointer_gyro - 1]};
+        handWashEvents.add(newEvent);
+        Log.d("fgservice", "New handwash at " + newEvent[0] + "   " + newEvent[1]);
+
     }
 
     private void createNotificationChannel() {
