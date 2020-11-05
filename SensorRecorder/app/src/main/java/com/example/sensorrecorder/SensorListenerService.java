@@ -11,9 +11,11 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
@@ -22,13 +24,24 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.Permission;
 import java.security.Permissions;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -75,6 +88,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
 
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d("sensorinfo", "Start service" + flags + " | " + startId + initialized);
@@ -98,7 +112,12 @@ public class SensorListenerService extends Service implements SensorEventListene
 
             Intent handwashIntent = new Intent(intent);
             handwashIntent.putExtra("trigger", "handWash");
-            PendingIntent pint = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            // Intent openIntent = new Intent(intent);
+            Intent openIntent = new Intent(getApplicationContext(), MainActivity.class);
+
+            openIntent.putExtra("trigger", "open");
+            PendingIntent pintOpen = PendingIntent.getActivity(getApplicationContext(), 579, openIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -108,7 +127,9 @@ public class SensorListenerService extends Service implements SensorEventListene
                             .bigText("Sensor recorder is active"))
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setSmallIcon(R.drawable.preference_wrapped_icon)
-                    .addAction(R.drawable.action_item_background, "HandWash", pint);
+                    .addAction(R.drawable.action_item_background, "HandWash", pintHandWash)
+                    // .addAction(R.drawable.action_item_background, "Open", pintOpen);
+                    .setContentIntent(pintOpen);
 
 
 
@@ -138,13 +159,6 @@ public class SensorListenerService extends Service implements SensorEventListene
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            try {
-                file_output_acc = new FileOutputStream(recording_file_acc);
-                file_output_gyro = new FileOutputStream(recording_file_gyro);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-
 
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.getFifoMaxEventCount()));
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.getFifoReservedEventCount()));
@@ -160,6 +174,10 @@ public class SensorListenerService extends Service implements SensorEventListene
                     TestCall();
                 if (intent.getStringExtra("trigger").equals("handWash"))
                     AddHandWashEvent();
+                if (intent.getStringExtra("trigger").equals("open")){
+                    Intent mainIntent = new Intent(this, MainActivity.class);
+                    startActivity(mainIntent);
+                }
             }
         }
         return START_STICKY;
@@ -178,6 +196,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         pointer_gyro = 0;
 
         handWashEvents = new ArrayList<>();
+        OpenFileStream();
 
         boolean batchMode = sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate);
         batchMode = batchMode && sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate);
@@ -200,6 +219,14 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void unregisterfromManager(){
         Log.i("sensorinfo", "unregister listener");
+        try {
+            SendSensorDataAcc();
+            SendSensorDataGyro();
+            file_output_acc.close();
+            file_output_gyro.close();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
         sensorManager.unregisterListener(this);
         // wakeLock.release();
     }
@@ -282,6 +309,15 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     }
 
+    private void OpenFileStream(){
+        try {
+            file_output_acc = new FileOutputStream(recording_file_acc);
+            file_output_gyro = new FileOutputStream(recording_file_gyro);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void SendSensorDataAcc() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
@@ -342,5 +378,118 @@ public class SensorListenerService extends Service implements SensorEventListene
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
         }
+    }
+
+
+    public void UploadSensorData(){
+        Log.d("sensorrecorder", "Upload sensorData");
+        flushSensor();
+
+        unregisterfromManager();
+        // Upload files after short time to ensure that everything has written
+        Handler postHandler = new Handler();
+        postHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Log.d("sensorrecorder", "upload: " + recording_file_acc.getName() + " of size " + recording_file_acc.length());
+                    new CallAPI().execute("http://192.168.0.101:8000", recording_file_acc.getName()).get();
+                    new CallAPI().execute("http://192.168.0.101:8000", recording_file_gyro.getName()).get();
+                    registerToManager();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 2000);
+    }
+}
+
+
+
+class CallAPI extends AsyncTask<String, String, String> {
+
+    public CallAPI(){
+        //set context variables if required
+    }
+
+    @Override
+    protected void onPreExecute() {
+        super.onPreExecute();
+    }
+
+    @Override
+    protected String doInBackground(String... params) {
+        Log.d("sensorrecorder", "Post sensorData");
+        String urlString = params[0]; // URL to call
+        String data = params[1]; //data to post
+        HttpURLConnection connection = null;
+        DataOutputStream outputStream = null;
+        InputStream inputStream = null;
+        String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
+        int bytesRead, bytesAvailable, bufferSize;
+        byte[] buffer;
+        //String[] q = recording_file_acc.pat.split("/");
+        //int idx = q.length - 1;
+        try {
+            final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
+            File file = new File(path, data);
+            FileInputStream fileInputStream = new FileInputStream(file);
+            Log.d("sensorrecorder", "Load File "+ data + " of size:" + file.length());
+            Log.d("sensorrecorder", "File exists " + file.exists() + " can read " + file.canRead());
+            URL url = null;
+            url = new URL(urlString);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Connection", "Keep-Alive");
+            connection.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
+            outputStream = new DataOutputStream(connection.getOutputStream());
+            outputStream.writeBytes("--" + boundary + "\r\n");
+            outputStream.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"" + "\r\n");
+            outputStream.writeBytes("Content-Type: text/csv" + "\r\n");
+            outputStream.writeBytes("Content-Transfer-Encoding: binary" + "\r\n");
+            outputStream.writeBytes("\r\n");
+            bytesAvailable = fileInputStream.available();
+            bufferSize = Math.min(bytesAvailable, 1048576);
+            buffer = new byte[bufferSize];
+            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+            while(bytesRead > 0) {
+                outputStream.write(buffer, 0, bufferSize);
+                bytesAvailable = fileInputStream.available();
+                bufferSize = Math.min(bytesAvailable, 1048576);
+                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+            }
+            outputStream.writeBytes("\r\n");
+            outputStream.writeBytes("--" + boundary + "--" + "\r\n");
+            inputStream = connection.getInputStream();
+            int status = connection.getResponseCode();
+            if (status == HttpURLConnection.HTTP_OK) {
+                Log.d("sensorrecorder", "HTTP OK");
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                inputStream.close();
+                connection.disconnect();
+                fileInputStream.close();
+                outputStream.flush();
+                outputStream.close();
+                return response.toString();
+            } else {
+                throw new Exception("Non ok response returned");
+            }
+        } catch (MalformedURLException | ProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

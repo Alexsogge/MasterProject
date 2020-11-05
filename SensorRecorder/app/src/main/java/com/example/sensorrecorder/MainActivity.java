@@ -9,7 +9,9 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.wearable.activity.WearableActivity;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,8 +48,6 @@ public class MainActivity extends WearableActivity {
 
         */
 
-        mTextView = (TextView) findViewById(R.id.text);
-
 
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED){
             ActivityCompat.requestPermissions(MainActivity.this,
@@ -56,7 +56,15 @@ public class MainActivity extends WearableActivity {
 
         }else {
             StartRecordService();
+            Button uploadButton = (Button)findViewById(R.id.uploadaButton);
+            uploadButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    sensorService.UploadSensorData();
+                }
+            });
         }
+
 
 
         //sensorService.registerToManager();
