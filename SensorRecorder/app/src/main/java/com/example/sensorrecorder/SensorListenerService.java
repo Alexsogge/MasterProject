@@ -78,6 +78,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     int errorCounter = 0;
     ArrayList<Long> missedDelays = new ArrayList<Long>();
     boolean initialized = false;
+    boolean isRunning = true;
 
     File recording_file_acc;
     FileOutputStream file_output_acc;
@@ -205,7 +206,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         } else {
             Log.e("sensorinfo", "Registered sensors to batch");
         }
-
+        isRunning = true;
         // wakeLock.acquire(1000);
         /*
         Intent flushSensorIntent = new Intent(this, SensorEventListener.class);
@@ -228,6 +229,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             e.printStackTrace();
         }
         sensorManager.unregisterListener(this);
+        isRunning = false;
         // wakeLock.release();
     }
 

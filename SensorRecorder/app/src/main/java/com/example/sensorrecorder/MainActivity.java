@@ -67,6 +67,19 @@ public class MainActivity extends WearableActivity {
                     sensorService.UploadSensorData();
                 }
             });
+            final Button startStopButton = (Button)findViewById(R.id.startStopButton);
+            startStopButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if(sensorService.isRunning){
+                        sensorService.unregisterfromManager();
+                        startStopButton.setText("Start");
+                    } else {
+                        sensorService.registerToManager();
+                        startStopButton.setText("Stop");
+                    }
+                }
+            });
         }
 
 
