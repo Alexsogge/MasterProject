@@ -72,10 +72,10 @@ public class MainActivity extends WearableActivity {
                 @Override
                 public void onClick(View v) {
                     if(sensorService.isRunning){
-                        sensorService.unregisterfromManager();
+                        sensorService.stopRecording();
                         startStopButton.setText("Start");
                     } else {
-                        sensorService.registerToManager();
+                        sensorService.startRecording();
                         startStopButton.setText("Stop");
                     }
                 }

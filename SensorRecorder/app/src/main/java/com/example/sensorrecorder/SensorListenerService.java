@@ -1,6 +1,5 @@
 package com.example.sensorrecorder;
 
-import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -17,12 +16,15 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -33,20 +35,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.Permission;
-import java.security.Permissions;
 import java.util.ArrayList;
-import java.util.UUID;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale;
 
 
 public class SensorListenerService extends Service implements SensorEventListener{
@@ -86,7 +83,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     FileOutputStream file_output_gyro;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     private ArrayList<long[]> handWashEvents;
-
+    private NotificationCompat.Builder notificationBuilder;
 
 
 
@@ -99,44 +96,11 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         if (!initialized) {
             initialized = true;
-
-            createNotificationChannel();
-            Intent notificationIntent = new Intent(this, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                    0, notificationIntent, 0);
-
-            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("Foreground Service")
-                    .setContentText("SensorRecorder")
-                    .setContentIntent(pendingIntent)
-                    .build();
-
-            Intent handwashIntent = new Intent(intent);
-            handwashIntent.putExtra("trigger", "handWash");
-            PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            // Intent openIntent = new Intent(intent);
-            Intent openIntent = new Intent(getApplicationContext(), MainActivity.class);
-
-            openIntent.putExtra("trigger", "open");
-            PendingIntent pintOpen = PendingIntent.getActivity(getApplicationContext(), 579, openIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("Running")
-                    .setContentText("Sensor recorder is active")
-                    .setStyle(new NotificationCompat.BigTextStyle()
-                            .bigText("Sensor recorder is active"))
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setSmallIcon(R.drawable.preference_wrapped_icon)
-                    .addAction(R.drawable.action_item_background, "HandWash", pintHandWash)
-                    // .addAction(R.drawable.action_item_background, "Open", pintOpen);
-                    .setContentIntent(pintOpen);
-
-
-
-            startForeground(1, builder.build());
-
             this.intent = intent;
+
+            createForeGroundNotification();
+            // startForeground(1, notificationBuilder.build());
+
             sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
             acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -167,7 +131,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.isWakeUpSensor()));
             //Log.e("sensorinfo", "Max delay: " + acceleration_sensor.getMaxDelay() + " - Fifo count" + acceleration_sensor.getFifoReservedEventCount());
 
-            registerToManager();
+            startRecording();
 
         } else {
             if (intent.getStringExtra("trigger") != null){
@@ -184,11 +148,45 @@ public class SensorListenerService extends Service implements SensorEventListene
         return START_STICKY;
     }
 
-    public void TestCall(){
+    private void TestCall(){
         Log.d("fgservice", "Test call");
     }
 
-    public void registerToManager(){
+    private void createForeGroundNotification(){
+        createNotificationChannel();
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, 0);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Foreground Service")
+                .setContentText("SensorRecorder")
+                .setContentIntent(pendingIntent)
+                .build();
+
+        Intent handwashIntent = new Intent(this.intent);
+        handwashIntent.putExtra("trigger", "handWash");
+        PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        // Intent openIntent = new Intent(intent);
+        Intent openIntent = new Intent(getApplicationContext(), MainActivity.class);
+
+        openIntent.putExtra("trigger", "open");
+        PendingIntent pintOpen = PendingIntent.getActivity(getApplicationContext(), 579, openIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Running")
+                .setContentText("Sensor recorder is active")
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText("Sensor recorder is active"))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setSmallIcon(R.drawable.preference_wrapped_icon)
+                .addAction(R.drawable.action_item_background, "HandWash", pintHandWash)
+                // .addAction(R.drawable.action_item_background, "Open", pintOpen);
+                .setContentIntent(pintOpen);
+    }
+
+    private void registerToManager(){
         recording_timestamps_acc = new long[1000];
         recording_values_acc = new float[1000][3];
         recording_timestamps_gyro = new long[1000];
@@ -218,7 +216,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     }
 
-    public void unregisterfromManager(){
+    private void unregisterfromManager(){
         Log.i("sensorinfo", "unregister listener");
         try {
             SendSensorDataAcc();
@@ -231,6 +229,16 @@ public class SensorListenerService extends Service implements SensorEventListene
         sensorManager.unregisterListener(this);
         isRunning = false;
         // wakeLock.release();
+    }
+
+    public void startRecording(){
+        startForeground(1, notificationBuilder.build());
+        registerToManager();
+    }
+
+    public void stopRecording(){
+        unregisterfromManager();
+        stopForeground(true);
     }
 
     public void flushSensor(){
@@ -320,7 +328,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
-    public void SendSensorDataAcc() throws IOException {
+    private void SendSensorDataAcc() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
         for(int i = 0; i < pointer_acc; i++){
@@ -339,7 +347,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
-    public void SendSensorDataGyro() throws IOException {
+    private void SendSensorDataGyro() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
         for(int i = 0; i < pointer_gyro; i++){
@@ -395,8 +403,25 @@ public class SensorListenerService extends Service implements SensorEventListene
             public void run() {
                 try {
                     Log.d("sensorrecorder", "upload: " + recording_file_acc.getName() + " of size " + recording_file_acc.length());
-                    new CallAPI().execute("http://192.168.0.101:8000", recording_file_acc.getName()).get();
-                    new CallAPI().execute("http://192.168.0.101:8000", recording_file_gyro.getName()).get();
+                    
+                    CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", recording_file_acc.getName()).get();
+                    Toast.makeText(getBaseContext(), response, Toast.LENGTH_LONG).show();
+                    response = new HTTPPostFile().execute("http://192.168.0.101:8000", recording_file_gyro.getName()).get();
+                    Toast.makeText(getBaseContext(), response, Toast.LENGTH_LONG).show();
+
+                    JSONObject additional_data = new JSONObject();
+                    JSONArray array = new JSONArray();
+                    for(int i = 0; i < handWashEvents.size(); i++) {
+                        array.put(handWashEvents.get(i)[0]);
+                    }
+                    additional_data.put("hand_wash_events_acc", array);
+                    array = new JSONArray();
+                    for(int i = 0; i < handWashEvents.size(); i++) {
+                        array.put(handWashEvents.get(i)[1]);
+                    }
+                    additional_data.put("hand_wash_events_gyro", array);
+                    new HTTPPostJSON().execute("http://192.168.0.101:8000", additional_data.toString()).get();
+
                     registerToManager();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -408,9 +433,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
 
 
-class CallAPI extends AsyncTask<String, String, String> {
+class HTTPPostFile extends AsyncTask<String, String, String> {
 
-    public CallAPI(){
+    public HTTPPostFile(){
         //set context variables if required
     }
 
@@ -430,11 +455,12 @@ class CallAPI extends AsyncTask<String, String, String> {
         String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
         int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
+        File file = null;
         //String[] q = recording_file_acc.pat.split("/");
         //int idx = q.length - 1;
         try {
             final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
-            File file = new File(path, data);
+            file = new File(path, data);
             FileInputStream fileInputStream = new FileInputStream(file);
             Log.d("sensorrecorder", "Load File "+ data + " of size:" + file.length());
             Log.d("sensorrecorder", "File exists " + file.exists() + " can read " + file.canRead());
@@ -481,17 +507,80 @@ class CallAPI extends AsyncTask<String, String, String> {
                 fileInputStream.close();
                 outputStream.flush();
                 outputStream.close();
-                return response.toString();
+                return "uploaded " + file.getName();
             } else {
-                throw new Exception("Non ok response returned");
+                return "servererror";
+                // throw new Exception("Non ok response returned");
             }
         } catch (MalformedURLException | ProtocolException e) {
             e.printStackTrace();
+            return "server not reachable";
+        }catch (ConnectException e){
+            e.printStackTrace();
+            return "Failed to connect to " + urlString;
         } catch (IOException e) {
             e.printStackTrace();
+            return "can't read sensor file";
         } catch (Exception e) {
             e.printStackTrace();
+            return "error";
         }
-        return "";
+    }
+}
+
+class HTTPPostJSON extends AsyncTask<String, String, String> {
+
+    public HTTPPostJSON(){
+        //set context variables if required
+    }
+
+    @Override
+    protected void onPreExecute() {
+        super.onPreExecute();
+    }
+
+    @Override
+    protected String doInBackground(String... params) {
+        Log.d("sensorrecorder", "Post sensorData");
+        String urlString = params[0]; // URL to call
+        String data = params[1]; //data to post
+        HttpURLConnection connection = null;
+        String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
+
+        try {
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            // conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8;boundary=\"+boundary");
+            conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+            conn.setRequestProperty("Accept","application/json");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+
+            JSONObject jsonParam = new JSONObject(data);
+
+            Log.i("JSON", jsonParam.toString());
+            DataOutputStream os = new DataOutputStream(conn.getOutputStream());
+            // os.writeBytes("--" + boundary + "\r\n");
+            //os.writeBytes(URLEncoder.encode(jsonParam.toString(), "UTF-8"));
+            os.writeBytes(jsonParam.toString());
+
+            os.flush();
+            os.close();
+
+            Log.i("STATUS", String.valueOf(conn.getResponseCode()));
+            Log.i("MSG" , conn.getResponseMessage());
+
+            conn.disconnect();
+            return "uploaded ";
+        } catch (ProtocolException ex) {
+            ex.printStackTrace();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+        return "Uploaded info data";
     }
 }
