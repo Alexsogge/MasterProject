@@ -6,8 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
@@ -36,7 +40,7 @@ public class MainActivity extends WearableActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        turnOffDozeMode(this);
         /*
         WearableRecyclerView myView = (WearableRecyclerView)findViewById(R.id.recycler_launcher_view);
         myView.setEdgeItemsCenteringEnabled(true);
@@ -120,6 +124,21 @@ public class MainActivity extends WearableActivity {
 
             // other 'case' lines to check for other
             // permissions this app might request
+        }
+    }
+
+    public void turnOffDozeMode(Context context){  //you can use with or without passing context
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent();
+            String packageName = context.getPackageName();
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            if (pm.isIgnoringBatteryOptimizations(packageName)) // if you want to desable doze mode for this package
+                intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+            else { // if you want to enable doze mode
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+            }
+            context.startActivity(intent);
         }
     }
 }
