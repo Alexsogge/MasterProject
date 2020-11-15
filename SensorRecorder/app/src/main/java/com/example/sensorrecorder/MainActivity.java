@@ -92,7 +92,11 @@ public class MainActivity extends WearableActivity {
     private void StartRecordService(){
         intent = new Intent(this, SensorListenerService.class );
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
-        startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        } else {
+            startService(intent);
+        }
     }
 
 
@@ -105,6 +109,7 @@ public class MainActivity extends WearableActivity {
             SensorListenerService.LocalBinder binder = (SensorListenerService.LocalBinder) service;
             sensorService = binder.getService();
             mBound = true;
+            sensorService.infoText = (TextView) findViewById(R.id.infoText);
         }
 
         @Override

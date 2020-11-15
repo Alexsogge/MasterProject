@@ -10,13 +10,20 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Debug;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.PowerManager;
 import android.util.Log;
+import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -35,12 +42,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
+
+
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
@@ -82,8 +92,12 @@ public class SensorListenerService extends Service implements SensorEventListene
     File recording_file_gyro;
     FileOutputStream file_output_gyro;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
-    private ArrayList<long[]> handWashEvents;
+    private ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
+    private PowerManager.WakeLock wakeLock;
+    private final File recording_file_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
+    public TextView infoText;
+    private Handler mainLoopHandler;
 
 
 
@@ -105,17 +119,23 @@ public class SensorListenerService extends Service implements SensorEventListene
             acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
+            handWashEvents = new ArrayList<>();
+            mainLoopHandler = new Handler(Looper.getMainLooper());
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "SensorRecorder::WakelockTag");
 
             try {
-                final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
-                if(!path.exists())
+
+                if(!recording_file_path.exists())
                 {
                     // Make it, if it doesn't exit
-                    path.mkdirs();
+                    recording_file_path.mkdirs();
                 }
-                recording_file_acc = new File(path, "sensor_recording_android_acc.csv");
+                recording_file_acc = new File(recording_file_path, "sensor_recording_android_acc.csv");
                 recording_file_acc.createNewFile();
-                recording_file_gyro = new File(path, "sensor_recording_android_gyro.csv");
+                recording_file_gyro = new File(recording_file_path, "sensor_recording_android_gyro.csv");
                 recording_file_gyro.createNewFile();
 
                 //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
@@ -179,7 +199,7 @@ public class SensorListenerService extends Service implements SensorEventListene
                 .setContentText("Sensor recorder is active")
                 .setStyle(new NotificationCompat.BigTextStyle()
                         .bigText("Sensor recorder is active"))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.preference_wrapped_icon)
                 .addAction(R.drawable.action_item_background, "HandWash", pintHandWash)
                 // .addAction(R.drawable.action_item_background, "Open", pintOpen);
@@ -194,7 +214,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         pointer_acc = 0;
         pointer_gyro = 0;
 
-        handWashEvents = new ArrayList<>();
+        handWashEvents.add(new ArrayList<long[]>());
         OpenFileStream();
 
         boolean batchMode = sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate);
@@ -232,6 +252,8 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     public void startRecording(){
+        wakeLock.acquire(1000*60*1000L /*1000 minutes*/);
+
         startForeground(1, notificationBuilder.build());
         registerToManager();
     }
@@ -239,6 +261,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     public void stopRecording(){
         unregisterfromManager();
         stopForeground(true);
+        wakeLock.release();
     }
 
     public void flushSensor(){
@@ -372,7 +395,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         if(pointer_acc == 0 || pointer_gyro == 0)
             return;
         long[] newEvent = {recording_timestamps_acc[pointer_acc - 1], recording_timestamps_gyro[pointer_gyro - 1]};
-        handWashEvents.add(newEvent);
+        handWashEvents.get(handWashEvents.size()-1).add(newEvent);
         Log.d("fgservice", "New handwash at " + newEvent[0] + "   " + newEvent[1]);
 
     }
@@ -393,9 +416,27 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void UploadSensorData(){
         Log.d("sensorrecorder", "Upload sensorData");
+
         flushSensor();
 
         unregisterfromManager();
+
+        setInfoText("Backup files");
+        Log.d("sensorrecorder", "Backup files");
+        backup_recording_files();
+        setInfoText("Check connection");
+        Log.d("sensorrecorder", "Check connection");
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) getSystemService(this.CONNECTIVITY_SERVICE);
+        Log.d("sensorrecorder", "Get active connection");
+        Network activeNetwork = connectivityManager.getActiveNetwork();
+        Log.d("sensorrecorder", "active connection is: " + activeNetwork.toString());
+        if (activeNetwork == null) {
+            Toast.makeText(getBaseContext(), "No connection to internet", Toast.LENGTH_LONG).show();
+            registerToManager();
+            return;
+        }
+
         // Upload files after short time to ensure that everything has written
         Handler postHandler = new Handler();
         postHandler.postDelayed(new Runnable() {
@@ -403,25 +444,61 @@ public class SensorListenerService extends Service implements SensorEventListene
             public void run() {
                 try {
                     Log.d("sensorrecorder", "upload: " + recording_file_acc.getName() + " of size " + recording_file_acc.length());
-                    
-                    CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", recording_file_acc.getName()).get();
-                    Toast.makeText(getBaseContext(), response, Toast.LENGTH_LONG).show();
-                    response = new HTTPPostFile().execute("http://192.168.0.101:8000", recording_file_gyro.getName()).get();
-                    Toast.makeText(getBaseContext(), response, Toast.LENGTH_LONG).show();
-
-                    JSONObject additional_data = new JSONObject();
-                    JSONArray array = new JSONArray();
-                    for(int i = 0; i < handWashEvents.size(); i++) {
-                        array.put(handWashEvents.get(i)[0]);
+                    File tmp_file = null;
+                    // Upload all acceleration files
+                    String file_name = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
+                    for (int i = 0; i < 99; i++) {
+                        tmp_file = new File(recording_file_path, file_name + "_" + i + ".csv");
+                        if (!tmp_file.exists())
+                            break;
+                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
+                        setInfoText("upload " + tmp_file.getName());
+                        CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
+                        Log.d("sensorrecorder", "upload finished");
+                        makeToast(response.toString());
+                        if(response.subSequence(0, "success:".length()).equals("success:")){
+                            tmp_file.delete();
+                        }
                     }
-                    additional_data.put("hand_wash_events_acc", array);
-                    array = new JSONArray();
-                    for(int i = 0; i < handWashEvents.size(); i++) {
-                        array.put(handWashEvents.get(i)[1]);
-                    }
-                    additional_data.put("hand_wash_events_gyro", array);
-                    new HTTPPostJSON().execute("http://192.168.0.101:8000", additional_data.toString()).get();
 
+                    // Upload all gyroscope files
+                    file_name = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
+                    for (int i = 0; i < 99; i++) {
+                        tmp_file = new File(recording_file_path, file_name + "_" + i + ".csv");
+                        if (!tmp_file.exists())
+                            break;
+                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
+                        setInfoText("upload " + tmp_file.getName());
+                        CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
+                        Log.d("sensorrecorder", "upload finished");
+                        makeToast(response.toString());
+                        if(response.subSequence(0, "success:".length()).equals("success:")){
+                            tmp_file.delete();
+                        }
+                    }
+
+                    // upload hand wash events
+                    for(int j = handWashEvents.size() - 1; j >= 0; j--) {
+                        JSONObject additional_data = new JSONObject();
+                        JSONArray array = new JSONArray();
+                        for (int i = 0; i < handWashEvents.get(j).size(); i++) {
+                            array.put(handWashEvents.get(j).get(i)[0]);
+                        }
+                        additional_data.put("hand_wash_events_acc_" + j, array);
+                        array = new JSONArray();
+                        for (int i = 0; i < handWashEvents.get(j).size(); i++) {
+                            array.put(handWashEvents.get(j).get(i)[1]);
+                        }
+                        Log.d("sensorrecorder", "upload: handwash events");
+                        setInfoText("upload " + "hand_wash_events_gyro_" + j);
+                        additional_data.put("hand_wash_events_gyro_" + j, array);
+                        CharSequence response = new HTTPPostJSON().execute("http://192.168.0.101:8000", additional_data.toString()).get();
+                        makeToast(response.toString());
+                        if(response.subSequence(0, "success:".length()).equals("success:")){
+                            handWashEvents.remove(j);
+                        }
+                    }
+                    setInfoText("upload finished");
                     registerToManager();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -429,6 +506,60 @@ public class SensorListenerService extends Service implements SensorEventListene
             }
         }, 2000);
     }
+
+    public File[] backup_recording_files(){
+        File[] files = new File[2];
+        try {
+            files[0] = backup_file(recording_file_acc);
+            files[1] = backup_file(recording_file_gyro);
+        } catch (IOException e){
+            Log.e("sensorrecorder", "Error while backup file");
+            e.printStackTrace();
+        }
+        return files;
+    }
+
+    public File backup_file(File src) throws IOException {
+        String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
+        File dst = null;
+        for (int i = 0; i < 99; i++){
+            dst = new File(recording_file_path, backup_name + "_" + i + ".csv");
+            if (!dst.exists())
+                break;
+        }
+        Log.d("sensorrecorder", "Backup " + dst.getName());
+        dst.createNewFile();
+        try (InputStream in = new FileInputStream(src)) {
+            try (OutputStream out = new FileOutputStream(dst)) {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            }
+        }
+        return dst;
+    }
+
+    private void setInfoText(final String text){
+        mainLoopHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                infoText.setText(text);
+            }
+        });
+    }
+
+    private void makeToast(final String text){
+        mainLoopHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getBaseContext(), text, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
 }
 
 
@@ -507,23 +638,23 @@ class HTTPPostFile extends AsyncTask<String, String, String> {
                 fileInputStream.close();
                 outputStream.flush();
                 outputStream.close();
-                return "uploaded " + file.getName();
+                return "success: uploaded " + file.getName();
             } else {
-                return "servererror";
+                return "error: servererror";
                 // throw new Exception("Non ok response returned");
             }
         } catch (MalformedURLException | ProtocolException e) {
             e.printStackTrace();
-            return "server not reachable";
+            return "error: server not reachable";
         }catch (ConnectException e){
             e.printStackTrace();
-            return "Failed to connect to " + urlString;
+            return "error: Failed to connect to " + urlString;
         } catch (IOException e) {
             e.printStackTrace();
-            return "can't read sensor file";
+            return "error: can't read sensor file";
         } catch (Exception e) {
             e.printStackTrace();
-            return "error";
+            return "error: error";
         }
     }
 }
@@ -572,15 +703,16 @@ class HTTPPostJSON extends AsyncTask<String, String, String> {
             Log.i("MSG" , conn.getResponseMessage());
 
             conn.disconnect();
-            return "uploaded ";
+            return "success: uploaded data";
         } catch (ProtocolException ex) {
             ex.printStackTrace();
+            return "error: ProtocolException";
         } catch (IOException ex) {
             ex.printStackTrace();
+            return "error: IOExeception";
         } catch (Exception e) {
             e.printStackTrace();
-            return "error";
+            return "error: error";
         }
-        return "Uploaded info data";
     }
 }

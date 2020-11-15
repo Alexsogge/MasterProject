@@ -27,19 +27,28 @@
                 android:layout_margin="5dp"
                 android:gravity="center_horizontal"
                 android:text="Sensor Recorder"
-                android:textSize="18sp" />
+                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/uploadaButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Upload" />
+                android:minHeight="25dip"
+                android:text="Upload"
+                android:textSize="14sp" />
 
             <Button
                 android:id="@+id/startStopButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:minHeight="25dip"
                 android:text="Stop" />
+
+            <TextView
+                android:id="@+id/infoText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal" />
         </LinearLayout>
     </FrameLayout>
 </androidx.wear.widget.BoxInsetLayout>
