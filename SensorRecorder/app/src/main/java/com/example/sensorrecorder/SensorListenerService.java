@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -51,6 +52,13 @@ import java.net.URL;
 import java.util.ArrayList;
 
 
+import okhttp3.Headers;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
@@ -99,6 +107,9 @@ public class SensorListenerService extends Service implements SensorEventListene
     public TextView infoText;
     private Handler mainLoopHandler;
 
+    private static final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
+    private final OkHttpClient client = new OkHttpClient();
+    private final String serverUrl = "http://192.168.0.101:8000";
 
 
     @Override
@@ -416,6 +427,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void UploadSensorData(){
         Log.d("sensorrecorder", "Upload sensorData");
+        PowerManager mgr = (PowerManager)this.getSystemService(Context.POWER_SERVICE);
+        final PowerManager.WakeLock wakeLock = mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "sensor_recorder::upload_lock");
+        wakeLock.acquire(10*60*1000L /*10 minutes*/);
 
         flushSensor();
 
@@ -443,40 +457,6 @@ public class SensorListenerService extends Service implements SensorEventListene
             @Override
             public void run() {
                 try {
-                    Log.d("sensorrecorder", "upload: " + recording_file_acc.getName() + " of size " + recording_file_acc.length());
-                    File tmp_file = null;
-                    // Upload all acceleration files
-                    String file_name = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(recording_file_path, file_name + "_" + i + ".csv");
-                        if (!tmp_file.exists())
-                            break;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        setInfoText("upload " + tmp_file.getName());
-                        CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
-                        Log.d("sensorrecorder", "upload finished");
-                        makeToast(response.toString());
-                        if(response.subSequence(0, "success:".length()).equals("success:")){
-                            tmp_file.delete();
-                        }
-                    }
-
-                    // Upload all gyroscope files
-                    file_name = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(recording_file_path, file_name + "_" + i + ".csv");
-                        if (!tmp_file.exists())
-                            break;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        setInfoText("upload " + tmp_file.getName());
-                        CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
-                        Log.d("sensorrecorder", "upload finished");
-                        makeToast(response.toString());
-                        if(response.subSequence(0, "success:".length()).equals("success:")){
-                            tmp_file.delete();
-                        }
-                    }
-
                     // upload hand wash events
                     for(int j = handWashEvents.size() - 1; j >= 0; j--) {
                         JSONObject additional_data = new JSONObject();
@@ -498,8 +478,46 @@ public class SensorListenerService extends Service implements SensorEventListene
                             handWashEvents.remove(j);
                         }
                     }
+
+                    File tmp_file = null;
+                    // Upload all acceleration files
+                    String file_name = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
+                    for (int i = 0; i < 99; i++) {
+                        tmp_file = new File(recording_file_path, file_name + "_" + i + ".csv");
+                        if (!tmp_file.exists())
+                            break;
+                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
+                        setInfoText("upload " + tmp_file.getName());
+                        //CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
+                        CharSequence response = new HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
+                        Log.d("sensorrecorder", "upload finished");
+                        makeToast(response.toString());
+                        if(response.subSequence(0, "success:".length()).equals("success:")){
+                            tmp_file.delete();
+                        }
+                    }
+
+                    // Upload all gyroscope files
+                    file_name = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
+                    for (int i = 0; i < 99; i++) {
+                        tmp_file = new File(recording_file_path, file_name + "_" + i + ".csv");
+                        if (!tmp_file.exists())
+                            break;
+                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
+                        setInfoText("upload " + tmp_file.getName());
+                        //CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
+                        CharSequence response = new HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
+                        Log.d("sensorrecorder", "upload finished");
+                        makeToast(response.toString());
+                        if(response.subSequence(0, "success:".length()).equals("success:")){
+                            tmp_file.delete();
+                        }
+
+                    }
+
                     setInfoText("upload finished");
                     registerToManager();
+                    wakeLock.release();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -559,7 +577,6 @@ public class SensorListenerService extends Service implements SensorEventListene
             }
         });
     }
-
 }
 
 
@@ -713,6 +730,66 @@ class HTTPPostJSON extends AsyncTask<String, String, String> {
         } catch (Exception e) {
             e.printStackTrace();
             return "error: error";
+        }
+    }
+}
+
+class HTTPPostMultiPartFile extends AsyncTask<String, String, String> {
+
+    private static final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
+    private final OkHttpClient client = new OkHttpClient();
+    private final String serverUrl = "http://192.168.0.101:8000";
+
+    public HTTPPostMultiPartFile(){
+        //set context variables if required
+    }
+
+    @Override
+    protected void onPreExecute() {
+        super.onPreExecute();
+    }
+
+    @Override
+    protected String doInBackground(String... params) {
+        Log.d("sensorrecorder", "Post sensorData");
+        String urlString = params[0]; // URL to call
+        String data = params[1]; //data to post
+        File file = null;
+        //String[] q = recording_file_acc.pat.split("/");
+        //int idx = q.length - 1;
+        try {
+            final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
+            file = new File(path, data);
+            Log.d("sensorrecorder", "Load File "+ data + " of size:" + file.length());
+            uploadMultipartFile(file);
+            return "success: uploaded";
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error: error";
+        }
+    }
+
+    private void uploadMultipartFile(File file) throws Exception {
+        // Use the imgur image upload API as documented at https://api.imgur.com/endpoints/image
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                //.addFormDataPart("name", "file")
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(MEDIA_TYPE_CSV, file))
+                //.addFormDataPart("filename", file.getName(),
+                //        RequestBody.create(MEDIA_TYPE_CSV, file))
+                .build();
+
+
+        Request request = new Request.Builder()
+                .url(serverUrl)
+                .post(requestBody)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+            System.out.println(response.body().string());
         }
     }
 }
