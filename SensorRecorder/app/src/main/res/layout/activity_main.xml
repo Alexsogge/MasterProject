@@ -49,6 +49,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal" />
+
+            <ProgressBar
+                android:id="@+id/uploaadProgressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="0"
+                android:visibility="invisible" />
         </LinearLayout>
     </FrameLayout>
 </androidx.wear.widget.BoxInsetLayout>

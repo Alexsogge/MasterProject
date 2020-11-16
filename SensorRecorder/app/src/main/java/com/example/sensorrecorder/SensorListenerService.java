@@ -100,10 +100,10 @@ public class SensorListenerService extends Service implements SensorEventListene
     File recording_file_gyro;
     FileOutputStream file_output_gyro;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
-    private ArrayList<ArrayList<long[]>> handWashEvents;
+    public ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
     private PowerManager.WakeLock wakeLock;
-    private final File recording_file_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
+    public final File recording_file_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
     public TextView infoText;
     private Handler mainLoopHandler;
 
@@ -217,7 +217,7 @@ public class SensorListenerService extends Service implements SensorEventListene
                 .setContentIntent(pintOpen);
     }
 
-    private void registerToManager(){
+    public void registerToManager(){
         recording_timestamps_acc = new long[1000];
         recording_values_acc = new float[1000][3];
         recording_timestamps_gyro = new long[1000];
@@ -523,6 +523,15 @@ public class SensorListenerService extends Service implements SensorEventListene
                 }
             }
         }, 2000);
+    }
+
+    public void prepareUpload(){
+        flushSensor();
+        unregisterfromManager();
+        setInfoText("Backup files");
+        Log.d("sensorrecorder", "Backup files");
+        backup_recording_files();
+        registerToManager();
     }
 
     public File[] backup_recording_files(){
