@@ -772,6 +772,7 @@ class HTTPPostMultiPartFile extends AsyncTask<String, String, String> {
 
     private void uploadMultipartFile(File file) throws Exception {
         // Use the imgur image upload API as documented at https://api.imgur.com/endpoints/image
+
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 //.addFormDataPart("name", "file")
@@ -781,9 +782,19 @@ class HTTPPostMultiPartFile extends AsyncTask<String, String, String> {
                 .build();
 
 
+        ProgressRequestBody progressRequestBody = new ProgressRequestBody(requestBody, new ProgressRequestBody.Listener() {
+            @Override
+            public void onRequestProgress(long bytesWritten, long contentLength) {
+                float percentage = 100f * bytesWritten / contentLength;
+                Log.d("sensorrecorder", "Progress: " + percentage);
+
+            }
+        });
+
+
         Request request = new Request.Builder()
                 .url(serverUrl)
-                .post(requestBody)
+                .post(progressRequestBody)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
