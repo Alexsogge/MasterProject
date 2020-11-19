@@ -138,6 +138,7 @@ public class MainActivity extends WearableActivity {
         sensorService.prepareUpload();
 
         infoText.setText("Check connection");
+        infoText.invalidate();
         Log.d("sensorrecorder", "Check connection");
         ConnectivityManager connectivityManager =
                 (ConnectivityManager) getSystemService(this.CONNECTIVITY_SERVICE);
@@ -170,6 +171,7 @@ public class MainActivity extends WearableActivity {
                         }
                         Log.d("sensorrecorder", "upload: handwash events");
                         infoText.setText("upload " + "hand_wash_events_gyro_" + j);
+                        infoText.invalidate();
                         additional_data.put("hand_wash_events_gyro_" + j, array);
                         CharSequence response = new HTTPPostJSON().execute("http://192.168.0.101:8000", additional_data.toString()).get();
                         makeToast(response.toString());
@@ -187,18 +189,8 @@ public class MainActivity extends WearableActivity {
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        infoText.setText("upload " + tmp_file.getName());
-                        //CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
-                        // CharSequence response = new HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
                         new HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
                         toUploadedFiles.add(tmp_file.getName());
-                        Log.d("sensorrecorder", "upload finished");
-                        /*
-                        makeToast(response.toString());
-                        if(response.subSequence(0, "success:".length()).equals("success:")){
-                            tmp_file.delete();
-                        }
-                        */
                     }
 
                     // Upload all gyroscope files
@@ -208,23 +200,9 @@ public class MainActivity extends WearableActivity {
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        infoText.setText("upload " + tmp_file.getName());
-                        //CharSequence response = new HTTPPostFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
-                        //CharSequence response = new HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName()).get();
                         new HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
-                        Log.d("sensorrecorder", "upload finished");
                         toUploadedFiles.add(tmp_file.getName());
-                        /*makeToast(response.toString());
-                        if(response.subSequence(0, "success:".length()).equals("success:")){
-                            tmp_file.delete();
-                        }
-                        */
                     }
-
-                    //infoText.setText("upload finished");
-
-                    //wakeLock.release();
-                    //getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 } catch (Exception e) {
                     Log.e("sensorrecorder", "Error during multipart upload");
                     e.printStackTrace();
@@ -240,6 +218,7 @@ public class MainActivity extends WearableActivity {
             infoText.setText("upload finished");
             uploadProgressBar.setVisibility(View.INVISIBLE);
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            sensorService.registerToManager();
         }
     }
 
@@ -329,6 +308,13 @@ public class MainActivity extends WearableActivity {
             Log.d("sensorrecorder", "Post sensorData");
             String urlString = params[0]; // URL to call
             filename = params[1]; //data to post
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    infoText.setText("upload: " + filename);
+                }
+            });
 
             File file = null;
             //String[] q = recording_file_acc.pat.split("/");

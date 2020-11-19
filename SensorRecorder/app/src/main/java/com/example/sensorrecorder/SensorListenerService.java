@@ -531,7 +531,6 @@ public class SensorListenerService extends Service implements SensorEventListene
         setInfoText("Backup files");
         Log.d("sensorrecorder", "Backup files");
         backup_recording_files();
-        registerToManager();
     }
 
     public File[] backup_recording_files(){
@@ -574,6 +573,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             @Override
             public void run() {
                 infoText.setText(text);
+                infoText.invalidate();
             }
         });
     }
