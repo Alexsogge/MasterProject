@@ -18,9 +18,10 @@ class DataProcessor:
         self._offset = None
         self.data_csv: Dict[str, List[List]] = self.read_folder(folder_name)
         self.data_dict: Dict[str, np.ndarray] = dict()
-        self.data_dict['Acceleration'] = self.data_to_np_array(self.data_csv['Acceleration'])
-        self.data_dict['Gyroscope'] = self.data_to_np_array(self.data_csv['Gyroscope'])
-        self.data_dict['time_stamps'] = self.time_stamps_to_np_array(self.data_csv['time_stamps'])
+        self.data_dict['Acceleration'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Acceleration']))
+        self.data_dict['Gyroscope'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Gyroscope']))
+        self.data_dict['time_stamps'] = self.sort_data_array(self.time_stamps_to_np_array(self.data_csv['time_stamps']))
+        # self.clean_data()
 
     @property
     def offset(self):
@@ -56,6 +57,36 @@ class DataProcessor:
                 else:
                     data_csvs[data_name] += self.read_csv(path)
         return data_csvs
+
+    def clean_data(self):
+        def get_initial_values(data):
+            first_time_stamp_index = np.argmin(data[:, 0])
+            return data[first_time_stamp_index]
+
+        def interpolate_error_vals(initial_values, data):
+            for i, vals in enumerate(data[2:-1], start=2):
+                split = False
+                for j in range(1, len(initial_values)):
+                    if vals[j] == initial_values[j]:
+                        # print(initial_values[1:], '=>', initial_values[j], '==', vals[j], '->', vals[1:])
+                        # print(j)
+                        # split = True
+                        data[i][j] = (data[i - 1][j] + data[i + 1][j]) / 2
+                if split:
+                    print('--------')
+
+
+
+        np.set_printoptions(precision=9)
+        interpolate_error_vals(get_initial_values(self.data_dict['Acceleration']),
+                          self.data_dict['Acceleration'])
+        interpolate_error_vals(get_initial_values(self.data_dict['Gyroscope']),
+                          self.data_dict['Gyroscope'])
+
+
+    def sort_data_array(self, data_array):
+        return data_array[data_array[:, 0].argsort()]
+
 
 
     def find_offset_from_datas(self):

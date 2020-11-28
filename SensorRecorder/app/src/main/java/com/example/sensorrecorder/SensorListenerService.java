@@ -10,6 +10,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
@@ -41,6 +42,8 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class SensorListenerService extends Service implements SensorEventListener{
 
+
+    public Networking networking;
 
     private final IBinder binder = new LocalBinder();
 
@@ -81,6 +84,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     public final File recording_file_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
     public TextView infoText;
     private Handler mainLoopHandler;
+
 
 
     @Override
@@ -405,38 +409,14 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public File[] backup_recording_files(){
         File[] files = new File[2];
-        try {
-            files[0] = backup_file(recording_file_acc);
-            files[1] = backup_file(recording_file_gyro);
-        } catch (IOException e){
-            Log.e("sensorrecorder", "Error while backup file");
-            e.printStackTrace();
-        }
+        networking.toBackupFiles.add(recording_file_acc.getName());
+        networking.toBackupFiles.add(recording_file_gyro.getName());
+        new FileBackupTask().execute(recording_file_acc);
+        new FileBackupTask().execute(recording_file_gyro);
+
         return files;
     }
 
-    public File backup_file(File src) throws IOException {
-        String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
-        File dst = null;
-        for (int i = 0; i < 99; i++){
-            dst = new File(recording_file_path, backup_name + "_" + i + ".csv");
-            if (!dst.exists())
-                break;
-        }
-        Log.d("sensorrecorder", "Backup " + dst.getName());
-        dst.createNewFile();
-        try (InputStream in = new FileInputStream(src)) {
-            try (OutputStream out = new FileOutputStream(dst)) {
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-            }
-        }
-        return dst;
-    }
 
     private void setInfoText(final String text){
         mainLoopHandler.post(new Runnable() {
@@ -455,5 +435,48 @@ public class SensorListenerService extends Service implements SensorEventListene
                 Toast.makeText(getBaseContext(), text, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    protected final class FileBackupTask extends AsyncTask<File, File, String>{
+        String filename;
+
+        public File backup_file(File src) throws IOException {
+            String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
+            File dst = null;
+            for (int i = 0; i < 99; i++){
+                dst = new File(recording_file_path, backup_name + "_" + i + ".csv");
+                if (!dst.exists())
+                    break;
+            }
+            Log.d("sensorrecorder", "Backup " + dst.getName());
+            dst.createNewFile();
+            try (InputStream in = new FileInputStream(src)) {
+                try (OutputStream out = new FileOutputStream(dst)) {
+                    // Transfer bytes from in to out
+                    byte[] buf = new byte[1024];
+                    int len;
+                    while ((len = in.read(buf)) > 0) {
+                        out.write(buf, 0, len);
+                    }
+                }
+            }
+            return dst;
+        }
+
+        @Override
+        protected String doInBackground(File... files) {
+            try {
+                filename = files[0].getName();
+                backup_file(files[0]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            networking.finishedFileBackup(filename);
+        }
     }
 }

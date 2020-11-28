@@ -50,7 +50,6 @@ public class MainActivity extends WearableActivity {
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
-    private ArrayList<String> toUploadedFiles = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,6 +128,7 @@ public class MainActivity extends WearableActivity {
             mBound = true;
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
             networking.sensorService = sensorService;
+            sensorService.networking = networking;
         }
 
         @Override

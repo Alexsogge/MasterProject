@@ -39,6 +39,7 @@ public class Networking {
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
+    public ArrayList<String> toBackupFiles = new ArrayList<>();
     private ArrayList<String> toUploadedFiles = new ArrayList<>();
 
 
@@ -56,6 +57,10 @@ public class Networking {
         Log.d("sensorrecorder", "Upload sensorData");
         sensorService.prepareUpload();
 
+
+    }
+
+    private void UploadFiles(){
         infoText.setText("Check connection");
         infoText.invalidate();
         Log.d("sensorrecorder", "Check connection");
@@ -132,6 +137,13 @@ public class Networking {
 
     private void makeToast(final String text){
         Toast.makeText(mainActivity.getBaseContext(), text, Toast.LENGTH_LONG).show();
+    }
+
+    public void finishedFileBackup(String fileName){
+        toBackupFiles.remove(fileName);
+        if (toBackupFiles.size() == 0){
+            UploadFiles();
+        }
     }
 
     private void FinishedFileUpload(String filename, String result){
