@@ -238,7 +238,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     public void startRecording(){
-        wakeLock.acquire(1000*60*1000L /*1000 minutes*/);
+        wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
 
         startForeground(1, notificationBuilder.build());
         registerToManager();
@@ -340,7 +340,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     private void SendSensorDataAcc() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
-        for(int i = 0; i < pointer_acc; i++){
+        for(int i = 1; i < pointer_acc; i++){
             // Log.i("sensor", "RecordingService: " + timeStamp);
             data.append(recording_timestamps_acc[i]).append("\t");
             data.append(recording_values_acc[i][0]).append("\t");
@@ -359,7 +359,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     private void SendSensorDataGyro() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
-        for(int i = 0; i < pointer_gyro; i++){
+        for(int i = 1; i < pointer_gyro; i++){
             // Log.i("sensor", "RecordingService: " + timeStamp);
             data.append(recording_timestamps_gyro[i]).append("\t");
             data.append(recording_values_gyro[i][0]).append("\t");
