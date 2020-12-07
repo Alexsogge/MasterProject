@@ -39,6 +39,10 @@ import java.util.ArrayList;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
+import com.arthenica.mobileffmpeg.Config;
+import com.arthenica.mobileffmpeg.ExecuteCallback;
+import com.arthenica.mobileffmpeg.FFmpeg;
+
 
 public class SensorListenerService extends Service implements SensorEventListener{
 
@@ -84,6 +88,13 @@ public class SensorListenerService extends Service implements SensorEventListene
     public final File recording_file_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
     public TextView infoText;
     private Handler mainLoopHandler;
+    private long lastDoubleCheckTimeStamp = 0;
+    public int doubleTimeStamps = 0;
+
+    private String ffmpegPipe;
+    private String ffmpegCommand;
+    File recording_pipe_acc;
+    FileOutputStream pipe_output_acc;
 
 
 
@@ -137,6 +148,25 @@ public class SensorListenerService extends Service implements SensorEventListene
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.isWakeUpSensor()));
             //Log.e("sensorinfo", "Max delay: " + acceleration_sensor.getMaxDelay() + " - Fifo count" + acceleration_sensor.getFifoReservedEventCount());
 
+            /*
+            ffmpegPipe = Config.registerNewFFmpegPipe(this);
+            Log.d("sensorrecorder", "Created pipe at " + ffmpegPipe);
+            ffmpegCommand = "-y -i " + ffmpegPipe + " -filter:v loop=loop=25*3:size=1 -c:v mpeg4 -r 50 " + recording_file_acc.getPath()+"/recording.mp4";
+            FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
+                @Override
+                public void apply(final long executionId, final int returnCode) {
+                    Log.i(Config.TAG, "Async command execution completed.");
+                }
+            });
+            */
+            /*
+            recording_pipe_acc = new File(ffmpegPipe);
+            try {
+                pipe_output_acc = new FileOutputStream(ffmpegPipe);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            */
             startRecording();
 
         } else {
@@ -291,6 +321,10 @@ public class SensorListenerService extends Service implements SensorEventListene
             recording_values_acc[pointer_acc][0] = event.values[0];
             recording_values_acc[pointer_acc][1] = event.values[1];
             recording_values_acc[pointer_acc][2] = event.values[2];
+            if (event.timestamp == lastDoubleCheckTimeStamp){
+                doubleTimeStamps++;
+            }
+            lastDoubleCheckTimeStamp = event.timestamp;
             pointer_acc++;
             // Log.d("sensor", ""+pointer_acc);
             if(pointer_acc == 1000) {
@@ -348,8 +382,11 @@ public class SensorListenerService extends Service implements SensorEventListene
             data.append(recording_values_acc[i][2]).append("\n");
         }
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+            // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat <image path> > " + pipe1});
             file_output_acc.write(data.toString().getBytes());
             file_output_acc.flush();
+            // pipe_output_acc.write(data.toString().getBytes());
+            // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat " + recording_file_acc.getPath() + " > " + ffmpegPipe});
             Log.e("write", "Flushed File acc");
         } else {
             Log.e("write", "Can't write file");

@@ -150,7 +150,8 @@ public class Networking {
         toUploadedFiles.remove(filename);
         makeToast(filename + ": " + result);
         if(toUploadedFiles.size() == 0){
-            infoText.setText("upload finished");
+            infoText.setText("upload finished\n" + sensorService.doubleTimeStamps + " doubles");
+            sensorService.doubleTimeStamps = 0;
             uploadProgressBar.setVisibility(View.INVISIBLE);
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             sensorService.registerToManager();
