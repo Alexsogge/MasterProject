@@ -109,7 +109,7 @@ public class Networking {
                     // Upload all acceleration files
                     String file_name = sensorService.recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
                     for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".csv");
+                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
@@ -120,7 +120,7 @@ public class Networking {
                     // Upload all gyroscope files
                     file_name = sensorService.recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
                     for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".csv");
+                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
@@ -161,6 +161,7 @@ public class Networking {
     protected final class HTTPPostMultiPartFile extends AsyncTask<String, String, String> {
 
         private final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
+        private final MediaType MEDIA_TYPE_ZIP = MediaType.parse("application/zip, application/octet-stream");
         private final OkHttpClient client = new OkHttpClient();
         private final String serverUrl = "http://192.168.0.101:8000";
 
@@ -177,9 +178,9 @@ public class Networking {
 
         @Override
         protected String doInBackground(String... params) {
-            Log.d("sensorrecorder", "Post sensorData");
             String urlString = params[0]; // URL to call
             filename = params[1]; //data to post
+            Log.d("sensorrecorder", "Post sensorData " + filename);
 
             mainActivity.runOnUiThread(new Runnable() {
                 @Override
@@ -210,7 +211,7 @@ public class Networking {
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     //.addFormDataPart("name", "file")
-                    .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(MEDIA_TYPE_CSV, file))
+                    .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(MEDIA_TYPE_ZIP, file))
                     //.addFormDataPart("filename", file.getName(),
                     //        RequestBody.create(MEDIA_TYPE_CSV, file))
                     .build();

@@ -34,6 +34,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+
 
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
@@ -79,8 +83,10 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     File recording_file_acc;
     FileOutputStream file_output_acc;
+    ZipOutputStream zip_output_acc;
     File recording_file_gyro;
     FileOutputStream file_output_gyro;
+    ZipOutputStream zip_output_gyro;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     public ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
@@ -130,9 +136,9 @@ public class SensorListenerService extends Service implements SensorEventListene
                     // Make it, if it doesn't exit
                     recording_file_path.mkdirs();
                 }
-                recording_file_acc = new File(recording_file_path, "sensor_recording_android_acc.csv");
+                recording_file_acc = new File(recording_file_path, "sensor_recording_android_acc.zip");
                 recording_file_acc.createNewFile();
-                recording_file_gyro = new File(recording_file_path, "sensor_recording_android_gyro.csv");
+                recording_file_gyro = new File(recording_file_path, "sensor_recording_android_gyro.zip");
                 recording_file_gyro.createNewFile();
 
                 //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
@@ -254,15 +260,23 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     private void unregisterfromManager(){
         Log.i("sensorinfo", "unregister listener");
+        sensorManager.unregisterListener(this);
         try {
             SendSensorDataAcc();
             SendSensorDataGyro();
+
+            zip_output_acc.closeEntry();
+            zip_output_acc.close();
             file_output_acc.close();
+
+            zip_output_gyro.closeEntry();
+            zip_output_gyro.close();
             file_output_gyro.close();
+
         } catch (IOException e){
             e.printStackTrace();
         }
-        sensorManager.unregisterListener(this);
+
         isRunning = false;
         // wakeLock.release();
     }
@@ -365,8 +379,17 @@ public class SensorListenerService extends Service implements SensorEventListene
     private void OpenFileStream(){
         try {
             file_output_acc = new FileOutputStream(recording_file_acc);
+            zip_output_acc = new ZipOutputStream(file_output_acc);
             file_output_gyro = new FileOutputStream(recording_file_gyro);
+            zip_output_gyro = new ZipOutputStream(file_output_gyro);
+            String fileName = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
+            zip_output_acc.putNextEntry(new ZipEntry(fileName + ".csv"));
+
+            fileName = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
+            zip_output_gyro.putNextEntry(new ZipEntry(fileName + ".csv"));
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -383,8 +406,10 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat <image path> > " + pipe1});
-            file_output_acc.write(data.toString().getBytes());
-            file_output_acc.flush();
+            //file_output_acc.write(data.toString().getBytes());
+            //file_output_acc.flush();
+            zip_output_acc.write(data.toString().getBytes());
+            zip_output_acc.flush();
             // pipe_output_acc.write(data.toString().getBytes());
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat " + recording_file_acc.getPath() + " > " + ffmpegPipe});
             Log.e("write", "Flushed File acc");
@@ -404,8 +429,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             data.append(recording_values_gyro[i][2]).append("\n");
         }
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
-            file_output_gyro.write(data.toString().getBytes());
-            file_output_gyro.flush();
+            zip_output_gyro.write(data.toString().getBytes());
+            zip_output_gyro.flush();
             Log.e("write", "Flushed File gyro");
         } else {
             Log.e("write", "Can't write file");
@@ -481,12 +506,16 @@ public class SensorListenerService extends Service implements SensorEventListene
             String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
             File dst = null;
             for (int i = 0; i < 99; i++){
-                dst = new File(recording_file_path, backup_name + "_" + i + ".csv");
+                dst = new File(recording_file_path, backup_name + "_" + i + ".zip");
                 if (!dst.exists())
                     break;
             }
             Log.d("sensorrecorder", "Backup " + dst.getName());
-            dst.createNewFile();
+            //dst.createNewFile();
+
+            src.renameTo(dst);
+
+            /*
             try (InputStream in = new FileInputStream(src)) {
                 try (OutputStream out = new FileOutputStream(dst)) {
                     // Transfer bytes from in to out
@@ -497,6 +526,7 @@ public class SensorListenerService extends Service implements SensorEventListene
                     }
                 }
             }
+            */
             return dst;
         }
 
