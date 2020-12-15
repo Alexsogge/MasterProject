@@ -34,8 +34,17 @@ class DataProcessor:
         with open(filename, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
             data = []
+            prev_time_stamp = 0
+            double_time_stamps = 0
             for row in reader:
-                data.append(row)
+                if len(row) > 0:
+                    if prev_time_stamp != row[0]:
+                        # data.append(row)
+                        prev_time_stamp = row[0]
+                    else:
+                        double_time_stamps += 1
+                    data.append(row)
+            print("Doubles in ", filename, " = ", double_time_stamps)
         return data[1:]
 
     def read_folder(self, folder_name: str) -> Dict[str, List[List]]:

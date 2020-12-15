@@ -5,7 +5,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.sensorrecorder"
-        minSdkVersion 24
+        minSdkVersion 25
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -29,6 +29,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
     implementation 'androidx.wear:wear:1.0.0'
+    implementation project(path: ':ffmpeg')
     compileOnly 'com.google.android.wearable:wearable:2.5.0'
     implementation 'com.arthenica:mobile-ffmpeg-full:4.4'
 }

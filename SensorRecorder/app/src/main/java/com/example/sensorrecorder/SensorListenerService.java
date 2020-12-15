@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -18,6 +19,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,6 +28,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,9 +36,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
 
 
@@ -100,7 +110,12 @@ public class SensorListenerService extends Service implements SensorEventListene
     private String ffmpegPipe;
     private String ffmpegCommand;
     File recording_pipe_acc;
-    FileOutputStream pipe_output_acc;
+    OutputStream pipe_output_acc;
+    ByteBuffer mBuf = ByteBuffer.allocate(4 * 3);
+
+    private FFMpegProcess mFFmpeg;
+
+
 
 
 
@@ -154,25 +169,14 @@ public class SensorListenerService extends Service implements SensorEventListene
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.isWakeUpSensor()));
             //Log.e("sensorinfo", "Max delay: " + acceleration_sensor.getMaxDelay() + " - Fifo count" + acceleration_sensor.getFifoReservedEventCount());
 
-            /*
-            ffmpegPipe = Config.registerNewFFmpegPipe(this);
-            Log.d("sensorrecorder", "Created pipe at " + ffmpegPipe);
-            ffmpegCommand = "-y -i " + ffmpegPipe + " -filter:v loop=loop=25*3:size=1 -c:v mpeg4 -r 50 " + recording_file_acc.getPath()+"/recording.mp4";
-            FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
-                @Override
-                public void apply(final long executionId, final int returnCode) {
-                    Log.i(Config.TAG, "Async command execution completed.");
-                }
-            });
-            */
-            /*
-            recording_pipe_acc = new File(ffmpegPipe);
-            try {
-                pipe_output_acc = new FileOutputStream(ffmpegPipe);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            */
+
+
+            // setupFFMPEGfromPackage();
+            setupFFMPEGfromLocal();
+
+
+            mBuf.order(ByteOrder.nativeOrder());
+
             startRecording();
 
         } else {
@@ -188,6 +192,111 @@ public class SensorListenerService extends Service implements SensorEventListene
             }
         }
         return START_STICKY;
+    }
+
+    public String addPipedInput() throws IOException, InterruptedException {
+        File dir = this.getFilesDir().getParentFile();
+        File f = File.createTempFile("ffmpeg", "", dir);
+
+        String pipename = f.getAbsolutePath();
+
+
+        /** create named pipe */
+        f.delete();
+        Process p = new ProcessBuilder().command("mknod", f.getAbsolutePath(), "p").start();
+        int result = p.waitFor();
+
+        if (result != 0)
+            throw new IOException("mknod failed");
+
+        /** open and store for later use */
+        f = new File(f.getAbsolutePath());
+        f.deleteOnExit();
+
+        return pipename;
+    }
+
+    private void setupFFMPEGfromPackage(){
+        ffmpegPipe = Config.registerNewFFmpegPipe(this);
+        /*
+        try {
+            ffmpegPipe = addPipedInput();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        */
+        Log.d("sensorrecorder", "Created pipe at " + ffmpegPipe);
+        // -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg3167575985090850597, -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg5454277153717897251, -nostdin, -c:a, wavpack, -shortest, -metadata, recorder=automotion 1.21, -metadata, android_id=68a002a0eadad863, -metadata, platform=skipjack skipjack 28, -metadata, fingerprint=mobvoi/skipjack/skipjack:9/PWDS.190618.001.C5/6826145:user/release-keys, -metadata, beginning=2020-12-09T14:20Z, -metadata:s:0, name=LSM6DS3 Accelerometer -Wakeup Secondary, -metadata:s:1, name=LSM6DS3 Gyroscope -Wakeup Secondary, -map, 0, -map, 1, -f, matroska, -y, /storage/emulated/0/DCIM/2020-12-09T14:20+0000_68a002a0eadad863.mkv
+        ffmpegCommand = "-f f32le -ar 50.0 -ac 3.0 -i async:file:" + ffmpegPipe + " -nostdin -c:a wavpack -shortest -map 0 -f matroska -y " + recording_file_path+"/recording.mkv";
+        Log.i("sensorrecorder", "Start ffmpeeg " + ffmpegCommand);
+        FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
+            @Override
+            public void apply(final long executionId, final int returnCode) {
+                Log.i(Config.TAG, "Async command execution completed.");
+            }
+        });
+
+        recording_pipe_acc = new File(ffmpegPipe);
+        try {
+            FileOutputStream fout = new FileOutputStream(ffmpegPipe);
+            recording_pipe_acc.delete();
+            pipe_output_acc = new BufferedOutputStream(fout);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void setupFFMPEGfromLocal(){
+        String platform = Build.BOARD + " " + Build.DEVICE + " " + Build.VERSION.SDK_INT,
+                output = getDefaultOutputPath(getApplicationContext()),
+                android_id = Settings.Secure.getString(
+                        getContentResolver(), Settings.Secure.ANDROID_ID),
+                format = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN ? "f32le" : "f32be";
+
+        try {
+            FFMpegProcess.Builder b = new FFMpegProcess.Builder(getApplicationContext())
+                    .setOutput(output, "matroska")
+                    .setCodec("a", "wavpack")
+                    .addOutputArgument("-shortest")
+                    .setTag("recorder", "sensorrecorder 1.0")
+                    .setTag("android_id", android_id)
+                    .setTag("platform", platform)
+                    .setTag("fingerprint", Build.FINGERPRINT)
+                    .setTag("beginning", getCurrentDateAsIso());
+
+            b.addAudio(format, 50.0, 3)
+                    .setStreamTag("name", "Acceleration");
+            mFFmpeg = b.build();
+            pipe_output_acc = mFFmpeg.getOutputStream(0);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static String getDefaultOutputPath(Context context) {
+        File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        return new File(path, getDefaultFileName(context)).toString();
+    }
+
+    public static String getDefaultFileName(Context context) {
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+        df.setTimeZone(tz);
+        String aid = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+        return df.format(new Date()) + "_" + aid + ".mkv";
+    }
+
+    public static String getCurrentDateAsIso() {
+        // see https://stackoverflow.com/questions/3914404/how-to-get-current-moment-in-iso-8601-format
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return df.format(new Date());
     }
 
     private void TestCall(){
@@ -290,6 +399,8 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void stopRecording(){
         unregisterfromManager();
+        Config.closeFFmpegPipe(ffmpegPipe);
+        FFmpeg.cancel();
         stopForeground(true);
         wakeLock.release();
     }
@@ -335,6 +446,15 @@ public class SensorListenerService extends Service implements SensorEventListene
             recording_values_acc[pointer_acc][0] = event.values[0];
             recording_values_acc[pointer_acc][1] = event.values[1];
             recording_values_acc[pointer_acc][2] = event.values[2];
+            mBuf.clear();
+            for (float v : event.values)
+                mBuf.putFloat(v);
+            try {
+                pipe_output_acc.write(mBuf.array());
+                pipe_output_acc.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             if (event.timestamp == lastDoubleCheckTimeStamp){
                 doubleTimeStamps++;
             }
@@ -421,16 +541,20 @@ public class SensorListenerService extends Service implements SensorEventListene
     private void SendSensorDataGyro() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
+
         for(int i = 1; i < pointer_gyro; i++){
             // Log.i("sensor", "RecordingService: " + timeStamp);
+            /*
             data.append(recording_timestamps_gyro[i]).append("\t");
             data.append(recording_values_gyro[i][0]).append("\t");
             data.append(recording_values_gyro[i][1]).append("\t");
             data.append(recording_values_gyro[i][2]).append("\n");
+            */
         }
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             zip_output_gyro.write(data.toString().getBytes());
             zip_output_gyro.flush();
+            //pipe_output_acc.write(data.toString().getBytes());
             Log.e("write", "Flushed File gyro");
         } else {
             Log.e("write", "Can't write file");
