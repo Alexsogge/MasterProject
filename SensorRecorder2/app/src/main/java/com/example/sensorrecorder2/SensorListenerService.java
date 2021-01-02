@@ -1,4 +1,4 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder2;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -10,14 +10,12 @@ import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.hardware.SensorEventListener2;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
@@ -30,13 +28,10 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -44,22 +39,19 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.TimeZone;
-import java.util.concurrent.CountDownLatch;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import de.uni_freiburg.ffmpeg.FFMpegProcess;
-
-
 
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
-import com.arthenica.mobileffmpeg.Config;
-import com.arthenica.mobileffmpeg.ExecuteCallback;
-import com.arthenica.mobileffmpeg.FFmpeg;
+//import com.arthenica.mobileffmpeg.Config;
+//import com.arthenica.mobileffmpeg.ExecuteCallback;
+//import com.arthenica.mobileffmpeg.FFmpeg;
+
+import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
 
 public class SensorListenerService extends Service implements SensorEventListener{
@@ -78,11 +70,10 @@ public class SensorListenerService extends Service implements SensorEventListene
     // int reportRate = 60000000;  //frequenz in marco seconds * FIFO size / values per step (3)
     int reportRate = 1000000;
     long lastTimeStamp;
-    int sensor_queue_size = 1000;
-    long[] recording_timestamps_acc = new long[sensor_queue_size];
-    float[][] recording_values_acc = new float[sensor_queue_size][3];
-    long[] recording_timestamps_gyro = new long[sensor_queue_size];
-    float[][] recording_values_gyro = new float[sensor_queue_size][3];
+    long[] recording_timestamps_acc = new long[1000];
+    float[][] recording_values_acc = new float[1000][3];
+    long[] recording_timestamps_gyro = new long[1000];
+    float[][] recording_values_gyro = new float[1000][3];
     int pointer_acc = 0;
     int pointer_gyro = 0;
     Intent intent;
@@ -102,7 +93,6 @@ public class SensorListenerService extends Service implements SensorEventListene
     File recording_file_gyro;
     FileOutputStream file_output_gyro;
     ZipOutputStream zip_output_gyro;
-    File recording_file_mkv;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     public ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
@@ -117,13 +107,11 @@ public class SensorListenerService extends Service implements SensorEventListene
     private String ffmpegCommand;
     File recording_pipe_acc;
     OutputStream pipe_output_acc;
-    OutputStream pipe_output_gyro;
     ByteBuffer mBuf = ByteBuffer.allocate(4 * 3);
 
     private FFMpegProcess mFFmpeg;
 
-    private Long mStartTimeNS = -1l;
-    private CountDownLatch mSyncLatch = null;
+
 
 
 
@@ -163,8 +151,6 @@ public class SensorListenerService extends Service implements SensorEventListene
                 recording_file_acc.createNewFile();
                 recording_file_gyro = new File(recording_file_path, "sensor_recording_android_gyro.zip");
                 recording_file_gyro.createNewFile();
-                recording_file_mkv = new File(recording_file_path, "sensor_recording_android.mkv");
-                recording_file_mkv.createNewFile();
 
                 //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
             } catch (FileNotFoundException e) {
@@ -183,30 +169,6 @@ public class SensorListenerService extends Service implements SensorEventListene
 
             // setupFFMPEGfromPackage();
             setupFFMPEGfromLocal();
-
-            List<String> supportedCameraIds = Config.getSupportedCameraIds(this);
-            Log.d("sensorrecorder", "Supported cameras" + supportedCameraIds.toString());
-
-
-            ffmpegCommand = "-f alsa -i hw:0 -t 30 " + recording_file_path.getPath() + "/out.wav";
-            ffmpegCommand = "-f avfoundation -list_devices true -i \"\"";
-            ffmpegCommand = "-f pulse -i default -t 30 " + recording_file_path.getPath() + "/out.wav";
-            ffmpegCommand = "-devices true -f dshow -i dummy";
-            // ffmpegCommand = "-y -f android_camera -i 0:0 -r 30 -t 00:00:05 " + recording_file_path.getPath() + "/out.wav";
-            Log.i("sensorrecorder", "Start ffmpeeg " + ffmpegCommand);
-//            FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
-//                @Override
-//                public void apply(final long executionId, final int returnCode) {
-//                    Log.i(Config.TAG, "Async command execution completed.");
-//                }
-//            });
-
-            int rc = FFmpeg.execute(ffmpegCommand);
-
-
-            Log.i(Config.TAG, String.format("Command execution failed with rc=%d and the output below.", rc));
-            Config.printLastCommandOutput(Log.INFO);
-
 
 
             mBuf.order(ByteOrder.nativeOrder());
@@ -250,52 +212,49 @@ public class SensorListenerService extends Service implements SensorEventListene
         return pipename;
     }
 
-    private void setupFFMPEGfromPackage(){
-        ffmpegPipe = Config.registerNewFFmpegPipe(this);
-        /*
-        try {
-            ffmpegPipe = addPipedInput();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        */
-        Log.d("sensorrecorder", "Created pipe at " + ffmpegPipe);
-        // -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg3167575985090850597, -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg5454277153717897251, -nostdin, -c:a, wavpack, -shortest, -metadata, recorder=automotion 1.21, -metadata, android_id=68a002a0eadad863, -metadata, platform=skipjack skipjack 28, -metadata, fingerprint=mobvoi/skipjack/skipjack:9/PWDS.190618.001.C5/6826145:user/release-keys, -metadata, beginning=2020-12-09T14:20Z, -metadata:s:0, name=LSM6DS3 Accelerometer -Wakeup Secondary, -metadata:s:1, name=LSM6DS3 Gyroscope -Wakeup Secondary, -map, 0, -map, 1, -f, matroska, -y, /storage/emulated/0/DCIM/2020-12-09T14:20+0000_68a002a0eadad863.mkv
-        ffmpegCommand = "-f f32le -ar 50.0 -ac 3.0 -i async:file:" + ffmpegPipe + " -nostdin -c:a wavpack -shortest -map 0 -f matroska -y " + recording_file_path+"/recording.mkv";
-        Log.i("sensorrecorder", "Start ffmpeeg " + ffmpegCommand);
-        FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
-            @Override
-            public void apply(final long executionId, final int returnCode) {
-                Log.i(Config.TAG, "Async command execution completed.");
-            }
-        });
-
-        recording_pipe_acc = new File(ffmpegPipe);
-        try {
-            FileOutputStream fout = new FileOutputStream(ffmpegPipe);
-            recording_pipe_acc.delete();
-            pipe_output_acc = new BufferedOutputStream(fout);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
+//    private void setupFFMPEGfromPackage(){
+//        ffmpegPipe = Config.registerNewFFmpegPipe(this);
+//        /*
+//        try {
+//            ffmpegPipe = addPipedInput();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        */
+//        Log.d("sensorrecorder", "Created pipe at " + ffmpegPipe);
+//        // -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg3167575985090850597, -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg5454277153717897251, -nostdin, -c:a, wavpack, -shortest, -metadata, recorder=automotion 1.21, -metadata, android_id=68a002a0eadad863, -metadata, platform=skipjack skipjack 28, -metadata, fingerprint=mobvoi/skipjack/skipjack:9/PWDS.190618.001.C5/6826145:user/release-keys, -metadata, beginning=2020-12-09T14:20Z, -metadata:s:0, name=LSM6DS3 Accelerometer -Wakeup Secondary, -metadata:s:1, name=LSM6DS3 Gyroscope -Wakeup Secondary, -map, 0, -map, 1, -f, matroska, -y, /storage/emulated/0/DCIM/2020-12-09T14:20+0000_68a002a0eadad863.mkv
+//        ffmpegCommand = "-f f32le -ar 50.0 -ac 3.0 -i async:file:" + ffmpegPipe + " -nostdin -c:a wavpack -shortest -map 0 -f matroska -y " + recording_file_path+"/recording.mkv";
+//        Log.i("sensorrecorder", "Start ffmpeeg " + ffmpegCommand);
+//        FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
+//            @Override
+//            public void apply(final long executionId, final int returnCode) {
+//                Log.i(Config.TAG, "Async command execution completed.");
+//            }
+//        });
+//
+//        recording_pipe_acc = new File(ffmpegPipe);
+//        try {
+//            FileOutputStream fout = new FileOutputStream(ffmpegPipe);
+//            recording_pipe_acc.delete();
+//            pipe_output_acc = new BufferedOutputStream(fout);
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 
     private void setupFFMPEGfromLocal(){
         String platform = Build.BOARD + " " + Build.DEVICE + " " + Build.VERSION.SDK_INT,
                 output = getDefaultOutputPath(getApplicationContext()),
-                output2 = recording_file_mkv.getAbsolutePath(),
                 android_id = Settings.Secure.getString(
                         getContentResolver(), Settings.Secure.ANDROID_ID),
                 format = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN ? "f32le" : "f32be";
-        File tmpFile = new File(output);
-        Log.i("Sensorrecorder", "Output: " + output + tmpFile.exists());
-        Log.i("Sensorrecorder", "Output2: " + output2);
+
         try {
             FFMpegProcess.Builder b = new FFMpegProcess.Builder(getApplicationContext())
-                    .setOutput(output2, "matroska")
+                    .setOutput(output, "matroska")
                     .setCodec("a", "wavpack")
                     .addOutputArgument("-shortest")
                     .setTag("recorder", "sensorrecorder 1.0")
@@ -306,66 +265,12 @@ public class SensorListenerService extends Service implements SensorEventListene
 
             b.addAudio(format, 50.0, 3)
                     .setStreamTag("name", "Acceleration");
-            b.addAudio(format, 50.0, 3)
-                    .setStreamTag("name", "Gyroscope");
             mFFmpeg = b.build();
-
-
-            /**
-             * for each sensor there is thread that copies data to the ffmpeg process. For startup
-             * synchronization the threads are blocked until the starttime has been set at which
-             * point the threadlock will be released.
-             */
-            int us = reportRate;
-
-            mStartTimeNS = -1L;
-            mSyncLatch = new CountDownLatch(2);
-
-
-            sensorManager.registerListener(new SensorEventListener() {
-                @Override
-                public void onSensorChanged(SensorEvent event) {
-                    mStartTimeNS = Long.max(event.timestamp, mStartTimeNS);
-                    mSyncLatch.countDown();
-                    sensorManager.unregisterListener(this);
-                }
-
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-            }, acceleration_sensor, us);
-
-            sensorManager.registerListener(new SensorEventListener() {
-                @Override
-                public void onSensorChanged(SensorEvent event) {
-                    mStartTimeNS = Long.max(event.timestamp, mStartTimeNS);
-                    mSyncLatch.countDown();
-                    sensorManager.unregisterListener(this);
-                }
-
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-            }, gyro_sensor, us);
-
-//            pipe_output_acc = mFFmpeg.getOutputStream(0);
-//            pipe_output_gyro = mFFmpeg.getOutputStream(1);
+            pipe_output_acc = mFFmpeg.getOutputStream(0);
 
         } catch (Exception e) {
-
             e.printStackTrace();
         }
-//        try {
-//            Log.i("sensorrecorder", "Num Streams " + mFFmpeg.mStreams.size());
-//            pipe_output_acc = mFFmpeg.getOutputStream(0);
-//            Log.i("sensorrecorder", "Num Streams " + mFFmpeg.mStreams.size());
-//            pipe_output_gyro = mFFmpeg.getOutputStream(1);
-//            Log.i("sensorrecorder", "Num Streams " + mFFmpeg.mStreams.size());
-//        } catch (FileNotFoundException e){
-//            Log.e("Sensorrecorder", "Stream error");
-//            e.printStackTrace();
-//        }
-        pipe_output_acc = null;
-        pipe_output_gyro = null;
-
     }
 
 
@@ -429,27 +334,18 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     public void registerToManager(){
-        recording_timestamps_acc = new long[sensor_queue_size];
-        recording_values_acc = new float[sensor_queue_size][3];
-        recording_timestamps_gyro = new long[sensor_queue_size];
-        recording_values_gyro = new float[sensor_queue_size][3];
+        recording_timestamps_acc = new long[1000];
+        recording_values_acc = new float[1000][3];
+        recording_timestamps_gyro = new long[1000];
+        recording_values_gyro = new float[1000][3];
         pointer_acc = 0;
         pointer_gyro = 0;
 
         handWashEvents.add(new ArrayList<long[]>());
         OpenFileStream();
 
-        HandlerThread t_acc = new HandlerThread(acceleration_sensor.getName());
-        t_acc.start();
-        Handler h_acc = new Handler(t_acc.getLooper());
-        CopyListener acc_listener = new CopyListener(0, 50., acceleration_sensor.getName());
-
-        HandlerThread t_gyro = new HandlerThread(gyro_sensor.getName());
-        t_gyro.start();
-        Handler h_gyro = new Handler(t_gyro.getLooper());
-        CopyListener gyro_listener = new CopyListener(1, 50., gyro_sensor.getName());
-        boolean batchMode = sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate, h_gyro);
-        batchMode = batchMode && sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate, h_acc);
+        boolean batchMode = sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate);
+        batchMode = batchMode && sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate);
         if (!batchMode){
             Log.e("sensorinfo", "Could not register sensors to batch");
         } else {
@@ -482,7 +378,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             zip_output_gyro.close();
             file_output_gyro.close();
 
-        } catch (IOException | InterruptedException e){
+        } catch (IOException e){
             e.printStackTrace();
         }
 
@@ -546,17 +442,25 @@ public class SensorListenerService extends Service implements SensorEventListene
             recording_values_acc[pointer_acc][0] = event.values[0];
             recording_values_acc[pointer_acc][1] = event.values[1];
             recording_values_acc[pointer_acc][2] = event.values[2];
-
+            mBuf.clear();
+            for (float v : event.values)
+                mBuf.putFloat(v);
+            try {
+                pipe_output_acc.write(mBuf.array());
+                pipe_output_acc.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             if (event.timestamp == lastDoubleCheckTimeStamp){
                 doubleTimeStamps++;
             }
             lastDoubleCheckTimeStamp = event.timestamp;
             pointer_acc++;
             // Log.d("sensor", ""+pointer_acc);
-            if(pointer_acc == sensor_queue_size) {
+            if(pointer_acc == 1000) {
                 try {
                     SendSensorDataAcc();
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
                 recording_timestamps_acc[0] = recording_timestamps_acc[pointer_acc-1];
@@ -571,10 +475,10 @@ public class SensorListenerService extends Service implements SensorEventListene
             recording_values_gyro[pointer_gyro][2] = event.values[2];
             pointer_gyro++;
             // Log.d("sensor", ""+pointer_acc);
-            if(pointer_gyro == sensor_queue_size) {
+            if(pointer_gyro == 1000) {
                 try {
                     SendSensorDataGyro();
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
                 recording_timestamps_gyro[0] = recording_timestamps_gyro[pointer_gyro-1];
@@ -606,35 +510,16 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
-    private void SendSensorDataAcc() throws IOException, InterruptedException {
+    private void SendSensorDataAcc() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
-        long lastTimeStamp = recording_timestamps_acc[1];
-        long offset = 0;
-        // mSyncLatch.await();
-        if (pipe_output_acc == null)
-            pipe_output_acc = mFFmpeg.getOutputStream(0);
-
-        for(int i = 1; i < pointer_acc; i++) {
+        for(int i = 1; i < pointer_acc; i++){
             // Log.i("sensor", "RecordingService: " + timeStamp);
             data.append(recording_timestamps_acc[i]).append("\t");
             data.append(recording_values_acc[i][0]).append("\t");
             data.append(recording_values_acc[i][1]).append("\t");
             data.append(recording_values_acc[i][2]).append("\n");
-
-
-            offset += (recording_timestamps_acc[i] - lastTimeStamp);
-            lastTimeStamp = recording_timestamps_acc[i];
-
-            if (offset >= samplingRate) {
-                offset -= samplingRate;
-                mBuf.clear();
-                for (float v : recording_values_acc[i])
-                    mBuf.putFloat(v);
-                pipe_output_acc.write(mBuf.array());
-            }
         }
-        pipe_output_acc.flush();
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat <image path> > " + pipe1});
             //file_output_acc.write(data.toString().getBytes());
@@ -649,34 +534,19 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
-    private void SendSensorDataGyro() throws IOException, InterruptedException {
+    private void SendSensorDataGyro() throws IOException {
         Log.e("write", "Write File");
         StringBuilder data = new StringBuilder();
-        long lastTimeStamp = recording_timestamps_gyro[1];
-        long offset = 0;
-        // mSyncLatch.await();
-        if (pipe_output_gyro == null)
-            pipe_output_gyro = mFFmpeg.getOutputStream(1);
 
         for(int i = 1; i < pointer_gyro; i++){
             // Log.i("sensor", "RecordingService: " + timeStamp);
+            /*
             data.append(recording_timestamps_gyro[i]).append("\t");
             data.append(recording_values_gyro[i][0]).append("\t");
             data.append(recording_values_gyro[i][1]).append("\t");
             data.append(recording_values_gyro[i][2]).append("\n");
-
-            offset += (recording_timestamps_gyro[i] - lastTimeStamp);
-            lastTimeStamp = recording_timestamps_gyro[i];
-
-            if (offset >= samplingRate) {
-                offset -= samplingRate;
-                mBuf.clear();
-                for (float v : recording_values_gyro[i])
-                    mBuf.putFloat(v);
-                pipe_output_gyro.write(mBuf.array());
-            }
+            */
         }
-        pipe_output_gyro.flush();
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             zip_output_gyro.write(data.toString().getBytes());
             zip_output_gyro.flush();
@@ -723,10 +593,8 @@ public class SensorListenerService extends Service implements SensorEventListene
         File[] files = new File[2];
         networking.toBackupFiles.add(recording_file_acc.getName());
         networking.toBackupFiles.add(recording_file_gyro.getName());
-        networking.toBackupFiles.add(recording_file_mkv.getName());
         new FileBackupTask().execute(recording_file_acc);
         new FileBackupTask().execute(recording_file_gyro);
-        new FileBackupTask().execute(recording_file_mkv);
 
         return files;
     }
@@ -756,12 +624,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         public File backup_file(File src) throws IOException {
             String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
-            Log.e("sensorrecorder", "Backup file:" + src.getName());
-            String extension = src.getName().split("\\.")[1];
-            Log.e("sensorrecorder", "Extension: " + extension);
             File dst = null;
             for (int i = 0; i < 99; i++){
-                dst = new File(recording_file_path, backup_name + "_" + i + "." + extension);
+                dst = new File(recording_file_path, backup_name + "_" + i + ".zip");
                 if (!dst.exists())
                     break;
             }
@@ -801,123 +666,4 @@ public class SensorListenerService extends Service implements SensorEventListene
             networking.finishedFileBackup(filename);
         }
     }
-
-
-
-    private class CopyListener implements SensorEventListener, SensorEventListener2 {
-        private final int index;
-        private final long mDelayUS;
-        private long mSampleCount;
-        private long mOffsetUS;
-        private final String mName;
-
-        private OutputStream mOut;
-        private ByteBuffer mBuf;
-        private long mLastTimestamp = -1;
-        private boolean mFlushCompleted = false;
-
-        /**
-         * @param i
-         * @param rate
-         * @param name
-         */
-        public CopyListener(int i, double rate, String name) {
-            index = i;
-            mOut = null;
-            mName = name;
-            mDelayUS = (long) (1e6 / rate);
-            mSampleCount = 0;
-            mOffsetUS = 0;
-            Log.e("sensorrecorder", "new Sensor copy listener");
-        }
-
-        @Override
-        public void onSensorChanged(SensorEvent sensorEvent) {
-            // Log.e("sensorrecorder", "Sensor copy listener changed");
-            try {
-                /*
-                 * wait until the mStartTimeNS is cleared. This will be done by the SyncLockListener
-                 */
-                // Log.e("sensorrecorder", "wait for latch");
-                // mSyncLatch.await();
-                // Log.e("sensorrecorder", "finished wait for latch");
-
-                /*
-                 * if a flush was completed, the sensor process is done, and the recording
-                 * will be stopped. Hence the output channel is closed to let ffmpeg know,
-                 * that the recording is finished. This will then lead to an IOException,
-                 * which cleanly exits the whole process.
-                 */
-                if (mFlushCompleted)
-                    mOut.close();
-
-                /**
-                 *  multiple stream synchronization, wait until a global timestamp was set,
-                 *  and only start pushing events after this timestamp.
-                 */
-                if (sensorEvent.timestamp < mStartTimeNS)
-                    return;
-
-                if (mLastTimestamp != -1)
-                    mOffsetUS += (sensorEvent.timestamp - mLastTimestamp) / 1000;
-                mLastTimestamp = sensorEvent.timestamp;
-
-
-                /*
-                 * create an output buffer, once created only delete the last sample. Insert
-                 * values afterwards.
-                 */
-                if (mBuf == null) {
-                    mBuf = ByteBuffer.allocate(4 * sensorEvent.values.length);
-                    mBuf.order(ByteOrder.nativeOrder());
-                    Log.e("bgrec", String.format("%s started at %d", mName, sensorEvent.timestamp));
-                } else
-                    mBuf.clear();
-
-                /**
-                 * see https://stackoverflow.com/questions/30279065/how-to-get-the-euler-angles-from-the-rotation-vector-sensor-type-rotation-vecto
-                 * https://developer.android.com/reference/android/hardware/SensorEvent#sensor
-                 */
-
-                for (float v : sensorEvent.values)
-                    mBuf.putFloat(v);
-
-                /**
-                 * check whether or not interpolation is required
-                 */
-                if (Math.abs(mOffsetUS) - mDelayUS > mDelayUS)
-                    Log.e("bgrec", String.format(
-                            "sample delay too large %.4f %s", mOffsetUS / 1e6, mName));
-
-                if (mOut == null)
-                    //Log.i("sensorrecorder", "get new pipe " + index);
-                    mOut = mFFmpeg.getOutputStream(index);
-
-                if (mOffsetUS < mDelayUS)      // too fast -> remove
-                    return;
-                // Log.i("sensorrecorder", "write to pipe " + index);
-                while (mOffsetUS > mDelayUS) { // add new samples, might be too slow
-                    mOut.write(mBuf.array());
-                    mOffsetUS -= mDelayUS;
-                    mSampleCount++;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                SensorManager sm = (SensorManager) getSystemService(SENSOR_SERVICE);
-                sm.unregisterListener(this);
-                Log.e("bgrec", String.format("%d samples written %s", mSampleCount, mName));
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int i) {
-        }
-
-        @Override
-        public void onFlushCompleted(Sensor sensor) {
-            mFlushCompleted = true;
-        }
-    }
-
-
 }

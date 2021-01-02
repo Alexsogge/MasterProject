@@ -1,4 +1,4 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder2;
 
 import android.app.Activity;
 import android.net.ConnectivityManager;
@@ -127,17 +127,6 @@ public class Networking {
                         new Networking.HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
                         toUploadedFiles.add(tmp_file.getName());
                     }
-
-                    // Upload all mkv files
-                    file_name = sensorService.recording_file_mkv.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".mkv");
-                        if (!tmp_file.exists())
-                            break;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
                 } catch (Exception e) {
                     Log.e("sensorrecorder", "Error during multipart upload");
                     e.printStackTrace();
@@ -173,7 +162,6 @@ public class Networking {
 
         private final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
         private final MediaType MEDIA_TYPE_ZIP = MediaType.parse("application/zip, application/octet-stream");
-        private final MediaType MEDIA_TYPE_MKV = MediaType.parse("video/x-matroska, audio/x-matroska");
         private final OkHttpClient client = new OkHttpClient();
         private final String serverUrl = "http://192.168.0.101:8000";
 
@@ -192,6 +180,7 @@ public class Networking {
         protected String doInBackground(String... params) {
             String urlString = params[0]; // URL to call
             filename = params[1]; //data to post
+            Log.d("sensorrecorder", "Post sensorData " + filename);
 
             mainActivity.runOnUiThread(new Runnable() {
                 @Override
@@ -219,13 +208,10 @@ public class Networking {
         private void uploadMultipartFile(File file) throws Exception {
             // Use the imgur image upload API as documented at https://api.imgur.com/endpoints/image
             uploadProgressBar.setProgress(0);
-            MediaType media_type = MEDIA_TYPE_ZIP;
-            if (file.getName().substring(file.getName().length()-4).equals(".mkv"))
-                media_type = MEDIA_TYPE_MKV;
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     //.addFormDataPart("name", "file")
-                    .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(media_type, file))
+                    .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(MEDIA_TYPE_ZIP, file))
                     //.addFormDataPart("filename", file.getName(),
                     //        RequestBody.create(MEDIA_TYPE_CSV, file))
                     .build();

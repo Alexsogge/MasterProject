@@ -27,10 +27,12 @@ import java.util.concurrent.TimeUnit;
  *
  * Created by phil on 8/26/16.
  */
+
+
 public class FFMpegProcess {
     protected Process p;
     protected LinkedList<File> mFiles = new LinkedList<>();
-    protected HashMap<Integer,OutputStream> mStreams = new HashMap<>();
+    public HashMap<Integer,OutputStream> mStreams = new HashMap<>();
     protected FFMpegProcess.ExitCallback exit;
     protected static final ExecutorService THREAD_POOL_EXECUTOR = Executors.newCachedThreadPool();
     protected final AsyncTask<InputStream, Void, Void> verboseMonitor =
@@ -66,6 +68,9 @@ public class FFMpegProcess {
 
 
     protected FFMpegProcess(ProcessBuilder b, LinkedList<File> files) throws IOException {
+
+        // System.loadLibrary("ffmpegcustom");  // module name, without the trailing ".so" or leading "lib"
+
         p = b.start();
         mFiles = files;
         System.err.println("executing " + b.command().toString());
@@ -98,13 +103,20 @@ public class FFMpegProcess {
     }
 
     public OutputStream getOutputStream(int j) throws FileNotFoundException {
+        Log.i("ffmpeg", "ask for pipe" + j);
         OutputStream s = mStreams.get(j);
         if (s == null) {
+            Log.i("ffmpeg", "create pipe " + j);
             File f = mFiles.get(j);
+            Log.i("ffmpeg", "got file " + f.getPath() + " w-> " + f.canWrite() + " r-> " + f.canRead() + " e-> " + f.exists());
             FileOutputStream fos = new FileOutputStream(f);
+            Log.i("ffmpeg", "got stream " + fos.toString());
+
             f.delete();
+            Log.i("ffmpeg", "deleted file");
             mStreams.put(j, new BufferedOutputStream(fos));
         }
+        Log.i("ffmpeg", "return pipe " + j);
         return mStreams.get(j);
     }
 

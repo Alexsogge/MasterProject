@@ -8,19 +8,28 @@ import sys
 from os import listdir
 from os.path import isfile, join, splitext
 
+from mkv_decode import MKVDecoder
+
 nano_sec = 0.000000001
 offset = None
 
 
 class DataProcessor:
 
-    def __init__(self, folder_name):
+    def __init__(self, folder_name, use_mkv=False):
         self._offset = None
-        self.data_csv: Dict[str, List[List]] = self.read_folder(folder_name)
         self.data_dict: Dict[str, np.ndarray] = dict()
-        self.data_dict['Acceleration'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Acceleration']))
-        self.data_dict['Gyroscope'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Gyroscope']))
-        self.data_dict['time_stamps'] = self.sort_data_array(self.time_stamps_to_np_array(self.data_csv['time_stamps']))
+        self.data_csv: Dict[str, List[List]] = self.read_folder(folder_name)
+        if use_mkv:
+            self.data_dict = MKVDecoder.read_folder(folder_name)
+            self.data_dict['time_stamps'] = self.sort_data_array(
+                self.time_stamps_to_np_array(self.data_csv['time_stamps']))
+        else:
+            # self.data_csv: Dict[str, List[List]] = self.read_folder(folder_name)
+            self.data_dict['Acceleration'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Acceleration']))
+            self.data_dict['Gyroscope'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Gyroscope']))
+            self.data_dict['time_stamps'] = self.sort_data_array(self.time_stamps_to_np_array(self.data_csv['time_stamps']))
+            print(self.data_dict['Acceleration'].shape)
         # self.clean_data()
 
     @property
@@ -203,7 +212,11 @@ class DataProcessor:
 
 
 if __name__ == "__main__":
-    data_processor = DataProcessor(sys.argv[1])
+    use_mkv = False
+    if len(sys.argv) > 2:
+        if sys.argv[2] == 'mkv':
+            use_mkv = True
+    data_processor = DataProcessor(sys.argv[1], use_mkv)
     data_processor.plot_data()
     data_processor.plot_timings()
     print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",

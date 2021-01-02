@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -66,6 +67,14 @@ public class MainActivity extends WearableActivity {
                 new WearableLinearLayoutManager(this, customScrollingLayoutCallback));
 
         */
+
+        try {
+            PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), 0);
+            String version = pInfo.versionName;
+            Log.e("sensorrecorder", "Android version: " + version);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
 
         infoText = (TextView)findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
