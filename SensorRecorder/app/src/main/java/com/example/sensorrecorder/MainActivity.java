@@ -33,11 +33,16 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.wear.widget.WearableLinearLayoutManager;
 import androidx.wear.widget.WearableRecyclerView;
+
+import com.google.android.gms.common.util.ArrayUtils;
+
 import java.util.ArrayList;
 
 
+import static android.Manifest.permission.RECORD_AUDIO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
 public class MainActivity extends WearableActivity {
@@ -51,6 +56,11 @@ public class MainActivity extends WearableActivity {
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
+
+    // Requesting permission to RECORD_AUDIO and
+    private boolean permissionToRecordAccepted = false;
+    private String [] permissions = {Manifest.permission.RECORD_AUDIO};
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,9 +91,10 @@ public class MainActivity extends WearableActivity {
         uploadProgressBar.setMax(100);
         networking = new Networking(this, null);
 
-        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED){
+        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED ||
+                ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){
             ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
                     1);
 
         }else {
@@ -152,6 +163,10 @@ public class MainActivity extends WearableActivity {
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
             case 1: {
+
+                for (int i = 0; i < permissions.length; i++){
+                    Log.e("sensorrecorder", "Permission: " + permissions[i] + " -> " + grantResults[i]);
+                }
 
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0

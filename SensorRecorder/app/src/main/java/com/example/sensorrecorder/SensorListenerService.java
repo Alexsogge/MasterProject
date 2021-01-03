@@ -12,6 +12,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorEventListener2;
 import android.hardware.SensorManager;
+import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
@@ -124,6 +125,8 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     private Long mStartTimeNS = -1l;
     private CountDownLatch mSyncLatch = null;
+    private MediaRecorder mediaRecorder;
+    private File recording_file_mic;
 
 
 
@@ -165,6 +168,8 @@ public class SensorListenerService extends Service implements SensorEventListene
                 recording_file_gyro.createNewFile();
                 recording_file_mkv = new File(recording_file_path, "sensor_recording_android.mkv");
                 recording_file_mkv.createNewFile();
+                recording_file_mic = new File(recording_file_path, "sensor_recording_mic.3gp");
+                recording_file_mic.createNewFile();
 
                 //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
             } catch (FileNotFoundException e) {
@@ -206,8 +211,6 @@ public class SensorListenerService extends Service implements SensorEventListene
 
             Log.i(Config.TAG, String.format("Command execution failed with rc=%d and the output below.", rc));
             Config.printLastCommandOutput(Log.INFO);
-
-
 
             mBuf.order(ByteOrder.nativeOrder());
 
@@ -495,12 +498,32 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         startForeground(1, notificationBuilder.build());
         registerToManager();
+
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mediaRecorder.setOutputFile(recording_file_mic);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        mediaRecorder.setAudioEncodingBitRate(8000);
+        try {
+            mediaRecorder.prepare();
+        } catch (IOException e) {
+            Log.e("sensorrecorder", "prepare() failed");
+        }
+
+        mediaRecorder.start();
     }
 
     public void stopRecording(){
         unregisterfromManager();
         //Config.closeFFmpegPipe(ffmpegPipe);
         //FFmpeg.cancel();
+
+        mediaRecorder.stop();
+        mediaRecorder.release();
+        mediaRecorder = null;
+
+
         stopForeground(true);
         wakeLock.release();
     }
