@@ -1,0 +1,14 @@
+<html>
+<head>
+    <title>Sensor Recording Service</title>
+</head>
+
+<body>
+    <div style="align-content:center">
+        <p><h1>Open requests</h1></p>
+        {% for key, auth_request in open_requests.items() %}
+            <p>{{ auth_request.identifier }}: {{ auth_request.granted }} <a href="/auth/grant/{{ key }}/">Grant</a></p>
+        {% endfor %}
+    </div>
+</body>
+</html>
