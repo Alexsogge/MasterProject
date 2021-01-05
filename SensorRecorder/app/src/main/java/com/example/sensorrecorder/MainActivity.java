@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -46,6 +47,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
 public class MainActivity extends WearableActivity {
+    private static double FACTOR = 0.2; // c = a * sqrt(2)
 
     private TextView mTextView;
     private Intent intent;
@@ -56,6 +58,8 @@ public class MainActivity extends WearableActivity {
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
+    private SharedPreferences configs;
+    private Intent configIntent;
 
     // Requesting permission to RECORD_AUDIO and
     private boolean permissionToRecordAccepted = false;
@@ -78,6 +82,8 @@ public class MainActivity extends WearableActivity {
 
         */
 
+        adjustInset();
+
         try {
             PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), 0);
             String version = pInfo.versionName;
@@ -86,32 +92,42 @@ public class MainActivity extends WearableActivity {
             e.printStackTrace();
         }
 
-        infoText = (TextView)findViewById(R.id.infoText);
-        uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
-        uploadProgressBar.setMax(100);
-        networking = new Networking(this, null);
 
-        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED ||
-                ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){
+        initUI();
+
+
+        configs = this.getSharedPreferences(
+                getString(R.string.configs), Context.MODE_PRIVATE);
+        configIntent = new Intent(this, ConfActivity.class);
+        if (!configs.contains(getString(R.string.conf_serverName)) || !configs.contains(getString(R.string.conf_userIdentifier))){
+            startActivity(configIntent);
+        }
+
+        networking = new Networking(this, null, configs);
+
+
+        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED ||
+                ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED) {
             ActivityCompat.requestPermissions(MainActivity.this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
                     1);
 
-        }else {
+        } else {
             StartRecordService();
-            Button uploadButton = (Button)findViewById(R.id.uploadaButton);
+            Button uploadButton = (Button) findViewById(R.id.uploadaButton);
             uploadButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     // sensorService.UploadSensorData();
                     networking.DoFileUpload();
+
                 }
             });
-            final Button startStopButton = (Button)findViewById(R.id.startStopButton);
+            final Button startStopButton = (Button) findViewById(R.id.startStopButton);
             startStopButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if(sensorService.isRunning){
+                    if (sensorService.isRunning) {
                         sensorService.stopRecording();
                         startStopButton.setText("Start");
                     } else {
@@ -122,8 +138,23 @@ public class MainActivity extends WearableActivity {
             });
         }
 
+
         // Enables Always-on
         //setAmbientEnabled();
+    }
+
+    private void initUI(){
+        infoText = (TextView) findViewById(R.id.infoText);
+        uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
+        uploadProgressBar.setMax(100);
+
+        Button configButton = (Button)findViewById(R.id.buttonConfig);
+        configButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(configIntent);
+            }
+        });
     }
 
     private void StartRecordService(){
@@ -201,6 +232,14 @@ public class MainActivity extends WearableActivity {
                 intent.setData(Uri.parse("package:" + packageName));
             }
             context.startActivity(intent);
+        }
+    }
+
+    private void adjustInset() {
+        if (getResources().getConfiguration().isScreenRound()) {
+            int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
+            View layout = (View) findViewById(R.id.mainview);
+            layout.setPadding(inset, inset, inset, inset);
         }
     }
 }

@@ -6,8 +6,9 @@
     android:layout_height="match_parent"
     android:background="@color/dark_grey"
     android:padding="@dimen/box_inset_layout_padding"
-    tools:context=".MainActivity"
-    tools:deviceIds="wear">
+    tools:context=".ConfActivity"
+    tools:deviceIds="wear"
+    >
 
     <ScrollView
         android:id="@+id/mainview"
@@ -16,53 +17,47 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_horizontal"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/textView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="5dp"
-                android:gravity="center_horizontal"
-                android:text="Sensor Recorder"
-                android:textSize="12sp" />
+                android:text="Server address" />
 
-            <Button
-                android:id="@+id/uploadaButton"
+            <EditText
+                android:id="@+id/editTextServerName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="25dip"
-                android:text="Upload"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/startStopButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="25dip"
-                android:text="Stop" />
+                android:ems="10"
+                android:inputType="textPersonName" />
 
             <TextView
-                android:id="@+id/infoText"
+                android:id="@+id/textView2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal" />
+                android:text="User identifier" />
 
-            <ProgressBar
-                android:id="@+id/uploaadProgressBar"
-                style="?android:attr/progressBarStyleHorizontal"
+            <EditText
+                android:id="@+id/editTextUserIdentifier"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="0"
-                android:visibility="invisible" />
+                android:ems="10"
+                android:inputType="textPersonName" />
 
             <Button
-                android:id="@+id/buttonConfig"
+                android:id="@+id/buttonApply"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Config" />
+                android:text="Apply" />
+
+            <Button
+                android:id="@+id/buttonDeleteToken"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="DeleteToken"
+                tools:visibility="invisible" />
         </LinearLayout>
     </ScrollView>
 </androidx.wear.widget.BoxInsetLayout>

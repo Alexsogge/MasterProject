@@ -33,11 +33,9 @@ import androidx.core.content.ContextCompat;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -104,6 +102,8 @@ public class SensorListenerService extends Service implements SensorEventListene
     FileOutputStream file_output_gyro;
     ZipOutputStream zip_output_gyro;
     File recording_file_mkv;
+    File recording_file_time_stamps;
+    FileOutputStream file_output_time_stamps;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     public ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
@@ -170,6 +170,8 @@ public class SensorListenerService extends Service implements SensorEventListene
                 recording_file_mkv.createNewFile();
                 recording_file_mic = new File(recording_file_path, "sensor_recording_mic.3gp");
                 recording_file_mic.createNewFile();
+                recording_file_time_stamps = new File(recording_file_path, "sensor_recording_time_stamps.csv");
+                recording_file_time_stamps.createNewFile();
 
                 //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
             } catch (FileNotFoundException e) {
@@ -220,8 +222,11 @@ public class SensorListenerService extends Service implements SensorEventListene
             if (intent.getStringExtra("trigger") != null){
                 if (intent.getStringExtra("trigger").equals("testCall"))
                     TestCall();
-                if (intent.getStringExtra("trigger").equals("handWash"))
-                    AddHandWashEvent();
+                if (intent.getStringExtra("trigger").equals("handWash")) {
+                    try {
+                        AddHandWashEvent();
+                    } catch (IOException e) {e.printStackTrace();}
+                }
                 if (intent.getStringExtra("trigger").equals("open")){
                     Intent mainIntent = new Intent(this, MainActivity.class);
                     startActivity(mainIntent);
@@ -440,7 +445,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         pointer_gyro = 0;
 
         handWashEvents.add(new ArrayList<long[]>());
-        OpenFileStream();
+        openFileStream();
 
         HandlerThread t_acc = new HandlerThread(acceleration_sensor.getName());
         t_acc.start();
@@ -511,7 +516,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             Log.e("sensorrecorder", "prepare() failed");
         }
 
-        mediaRecorder.start();
+        // mediaRecorder.start();
     }
 
     public void stopRecording(){
@@ -611,7 +616,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     }
 
-    private void OpenFileStream(){
+    private void openFileStream(){
         try {
             file_output_acc = new FileOutputStream(recording_file_acc);
             zip_output_acc = new ZipOutputStream(file_output_acc);
@@ -622,6 +627,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
             fileName = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
             zip_output_gyro.putNextEntry(new ZipEntry(fileName + ".csv"));
+
+            file_output_time_stamps = new FileOutputStream(recording_file_time_stamps);
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -710,15 +718,17 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
-    private void AddHandWashEvent(){
+    private void AddHandWashEvent() throws IOException {
         Log.d("fgservice", "New handwash at " + (pointer_acc - 1) + "   " + (pointer_gyro - 1));
         flushSensor();
         if(pointer_acc == 0 || pointer_gyro == 0)
             return;
         long[] newEvent = {recording_timestamps_acc[pointer_acc - 1], recording_timestamps_gyro[pointer_gyro - 1]};
         handWashEvents.get(handWashEvents.size()-1).add(newEvent);
+        String lineContent = newEvent[0] + "\t" + newEvent[1] + "\n";
+        file_output_time_stamps.write(lineContent.getBytes());
+        file_output_time_stamps.flush();
         Log.d("fgservice", "New handwash at " + newEvent[0] + "   " + newEvent[1]);
-
     }
 
     private void createNotificationChannel() {
@@ -747,9 +757,11 @@ public class SensorListenerService extends Service implements SensorEventListene
         networking.toBackupFiles.add(recording_file_acc.getName());
         networking.toBackupFiles.add(recording_file_gyro.getName());
         networking.toBackupFiles.add(recording_file_mkv.getName());
+        networking.toBackupFiles.add(recording_file_time_stamps.getName());
         new FileBackupTask().execute(recording_file_acc);
         new FileBackupTask().execute(recording_file_gyro);
         new FileBackupTask().execute(recording_file_mkv);
+        new FileBackupTask().execute(recording_file_time_stamps);
 
         return files;
     }

@@ -1,11 +1,15 @@
 package com.example.sensorrecorder;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -14,11 +18,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
 import java.net.URL;
@@ -41,23 +47,35 @@ public class Networking {
     private ProgressBar uploadProgressBar;
     public ArrayList<String> toBackupFiles = new ArrayList<>();
     private ArrayList<String> toUploadedFiles = new ArrayList<>();
+    private SharedPreferences configs;
+    private Handler uiHandler;
 
+    private String serverAddress = "http://192.168.0.101:8000/recording/new/?uuid=219a88d0-9ad3-4c82-842c-ab5f2b5ff4de";
 
-    public Networking(Activity mainActivity, SensorListenerService sensorService){
+    private String uploadToken = null;
+
+    public Networking(final Activity mainActivity, SensorListenerService sensorService, SharedPreferences configs){
         this.mainActivity = mainActivity;
         this.sensorService = sensorService;
         infoText = (TextView)mainActivity.findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) mainActivity.findViewById(R.id.uploaadProgressBar);
         uploadProgressBar.setMax(100);
+        this.configs = configs;
+//        if(!this.configs.contains(mainActivity.getString(R.string.conf_serverToken)))
+//            requestServerToken();
     }
 
     public void DoFileUpload(){
-        mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        Log.d("sensorrecorder", "Upload sensorData");
-        sensorService.prepareUpload();
-
-
+        Log.d("sensorrecorder", "Pressed Upload, token:" + configs.getString(mainActivity.getString(R.string.conf_serverToken), ""));
+        if(configs.getString(mainActivity.getString(R.string.conf_serverToken), "").equals("")) {
+            requestServerToken();
+        } else {
+            mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            uploadToken = null;
+            new Networking.HTTPGetUploadToken().execute();
+            Log.d("sensorrecorder", "Upload sensorData");
+            sensorService.prepareUpload();
+        }
     }
 
     private void UploadFiles(){
@@ -82,38 +100,51 @@ public class Networking {
             public void run() {
                 try {
                     // upload hand wash events
-                    for(int j = sensorService.handWashEvents.size() - 1; j >= 0; j--) {
-                        JSONObject additional_data = new JSONObject();
-                        JSONArray array = new JSONArray();
-                        for (int i = 0; i < sensorService.handWashEvents.get(j).size(); i++) {
-                            array.put(sensorService.handWashEvents.get(j).get(i)[0]);
-                        }
-                        additional_data.put("hand_wash_events_acc_" + j, array);
-                        array = new JSONArray();
-                        for (int i = 0; i < sensorService.handWashEvents.get(j).size(); i++) {
-                            array.put(sensorService.handWashEvents.get(j).get(i)[1]);
-                        }
-                        Log.d("sensorrecorder", "upload: handwash events");
-                        infoText.setText("upload " + "hand_wash_events_gyro_" + j);
-                        infoText.invalidate();
-                        additional_data.put("hand_wash_events_gyro_" + j, array);
-                        CharSequence response = new Networking.HTTPPostJSON().execute("http://192.168.0.101:8000", additional_data.toString()).get();
-                        makeToast(response.toString());
-                        if(response.subSequence(0, "success:".length()).equals("success:")){
-                            sensorService.handWashEvents.remove(j);
-                        }
-                    }
+//                    for(int j = sensorService.handWashEvents.size() - 1; j >= 0; j--) {
+//                        JSONObject additional_data = new JSONObject();
+//                        JSONArray array = new JSONArray();
+//                        for (int i = 0; i < sensorService.handWashEvents.get(j).size(); i++) {
+//                            array.put(sensorService.handWashEvents.get(j).get(i)[0]);
+//                        }
+//                        additional_data.put("hand_wash_events_acc_" + j, array);
+//                        array = new JSONArray();
+//                        for (int i = 0; i < sensorService.handWashEvents.get(j).size(); i++) {
+//                            array.put(sensorService.handWashEvents.get(j).get(i)[1]);
+//                        }
+//                        Log.d("sensorrecorder", "upload: handwash events");
+//                        infoText.setText("upload " + "hand_wash_events_gyro_" + j);
+//                        infoText.invalidate();
+//                        additional_data.put("hand_wash_events_gyro_" + j, array);
+//                        CharSequence response = new Networking.HTTPPostJSON().execute(serverAddress, additional_data.toString()).get();
+//                        makeToast(response.toString());
+//                        if(response.subSequence(0, "success:".length()).equals("success:")){
+//                            sensorService.handWashEvents.remove(j);
+//                        }
+//                    }
                     uploadProgressBar.setVisibility(View.VISIBLE);
 
                     File tmp_file = null;
+                    // Upload all time stamp files
+                    String file_name = sensorService.recording_file_time_stamps.getName().replaceFirst("[.][^.]+$", "");
+                    for (int i = 0; i < 99; i++) {
+                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".csv");
+                        if (!tmp_file.exists())
+                            break;
+                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
+                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
+                        toUploadedFiles.add(tmp_file.getName());
+                    }
+
+
+                    tmp_file = null;
                     // Upload all acceleration files
-                    String file_name = sensorService.recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
+                    file_name = sensorService.recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
                     for (int i = 0; i < 99; i++) {
                         tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
+                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
                         toUploadedFiles.add(tmp_file.getName());
                     }
 
@@ -124,7 +155,7 @@ public class Networking {
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
+                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
                         toUploadedFiles.add(tmp_file.getName());
                     }
 
@@ -135,7 +166,7 @@ public class Networking {
                         if (!tmp_file.exists())
                             break;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute("http://192.168.0.101:8000", tmp_file.getName());
+                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
                         toUploadedFiles.add(tmp_file.getName());
                     }
                 } catch (Exception e) {
@@ -147,12 +178,24 @@ public class Networking {
     }
 
     private void makeToast(final String text){
-        Toast.makeText(mainActivity.getBaseContext(), text, Toast.LENGTH_LONG).show();
+        mainActivity.runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     public void finishedFileBackup(String fileName){
         toBackupFiles.remove(fileName);
-        if (toBackupFiles.size() == 0){
+       startUploadIfReady();
+    }
+
+    private void receivedUploadToken(){
+        startUploadIfReady();
+    }
+
+    private void startUploadIfReady(){
+        if (toBackupFiles.size() == 0 && uploadToken != null){
             UploadFiles();
         }
     }
@@ -169,13 +212,18 @@ public class Networking {
         }
     }
 
+    private void requestServerToken(){
+        Log.d("sensorrecorder", "Request Token");
+        new Networking.HTTPGetServerToken().execute();
+    }
+
     protected final class HTTPPostMultiPartFile extends AsyncTask<String, String, String> {
 
         private final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
         private final MediaType MEDIA_TYPE_ZIP = MediaType.parse("application/zip, application/octet-stream");
         private final MediaType MEDIA_TYPE_MKV = MediaType.parse("video/x-matroska, audio/x-matroska");
         private final OkHttpClient client = new OkHttpClient();
-        private final String serverUrl = "http://192.168.0.101:8000";
+        private final String serverUrlSuffix = "/recording/new/?uuid=";
 
         private String filename;
 
@@ -190,7 +238,6 @@ public class Networking {
 
         @Override
         protected String doInBackground(String... params) {
-            String urlString = params[0]; // URL to call
             filename = params[1]; //data to post
 
             mainActivity.runOnUiThread(new Runnable() {
@@ -222,6 +269,8 @@ public class Networking {
             MediaType media_type = MEDIA_TYPE_ZIP;
             if (file.getName().substring(file.getName().length()-4).equals(".mkv"))
                 media_type = MEDIA_TYPE_MKV;
+            if (file.getName().substring(file.getName().length()-4).equals(".csv"))
+                media_type = MEDIA_TYPE_CSV;
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     //.addFormDataPart("name", "file")
@@ -241,9 +290,12 @@ public class Networking {
                 }
             });
 
-
+            String serverUrl = configs.getString(mainActivity.getString(R.string.conf_serverName), "")
+                                + serverUrlSuffix
+                                + uploadToken;
             Request request = new Request.Builder()
                     .url(serverUrl)
+                    .addHeader("Authorization", "Bearer " + configs.getString(mainActivity.getString(R.string.conf_serverToken), ""))
                     .post(progressRequestBody)
                     .build();
 
@@ -334,6 +386,81 @@ public class Networking {
                 e.printStackTrace();
                 return "error: error";
             }
+        }
+    }
+
+    protected final class HTTPGetServerToken extends AsyncTask<String, String, String> {
+
+        private final OkHttpClient client = new OkHttpClient();
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
+            String userIdentifier = configs.getString(mainActivity.getString(R.string.conf_userIdentifier), "");
+            Request request = new Request.Builder()
+                    .url(serverName + "/auth/request/?identifier="+userIdentifier)
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()){
+                    throw new IOException("Unexpected code " + response);
+                } else {
+                    String jsonData = response.body().string();
+                    JSONObject Jobject = new JSONObject(jsonData);
+                    String status = Jobject.getString("status");
+                    if (status.equals("grant")){
+                        SharedPreferences.Editor configEditor = configs.edit();
+                        configEditor.putString(mainActivity.getString(R.string.conf_serverToken), Jobject.getString("token"));
+                        configEditor.apply();
+                        makeToast("Authentication granted");
+                    } else{
+                        makeToast("Not authenticated: " + Jobject.getString("msg"));
+                    }
+                }
+
+                //System.out.println(response.body().string());
+            } catch (ConnectException e){
+                makeToast("Can't connect to server");
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    protected final class HTTPGetUploadToken extends AsyncTask<String, String, String> {
+
+        private final OkHttpClient client = new OkHttpClient();
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
+            String serverToken = configs.getString(mainActivity.getString(R.string.conf_serverToken), "");
+            Request request = new Request.Builder()
+                    .url(serverName + "/recording/new/")
+                    .addHeader("Authorization", "Bearer " + serverToken)
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()){
+                    throw new IOException("Unexpected code " + response);
+                } else {
+                    String jsonData = response.body().string();
+                    JSONObject Jobject = new JSONObject(jsonData);
+                    String status = Jobject.getString("status");
+                    if (status.equals("success")){
+                        uploadToken = Jobject.getString("uuid");
+                        makeToast("Got Token");
+                    } else{
+                        makeToast("Error during request");
+                    }
+                }
+
+                //System.out.println(response.body().string());
+            } catch (ConnectException e){
+                makeToast("Can't connect to server");
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }

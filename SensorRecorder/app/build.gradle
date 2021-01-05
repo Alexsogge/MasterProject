@@ -30,6 +30,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
     implementation 'androidx.wear:wear:1.0.0'
     implementation project(path: ':ffmpeg')
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
     compileOnly 'com.google.android.wearable:wearable:2.5.0'
     implementation 'com.arthenica:mobile-ffmpeg-full:4.4'
 }
