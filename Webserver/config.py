@@ -7,7 +7,7 @@ version = 1.0
 secret_key_iterations = 42
 
 config_values = {'version': version, 'upload_directory': 'uploads',
-                 'client_secret': '', 'user': 'admin', 'user_pw': ''}
+                 'client_secret': '', 'user': 'admin', 'user_pw': 'admin'}
 
 class Config:
     config_file = './config.yml'
@@ -51,8 +51,6 @@ class Config:
                                                                     string.digits
                                                                     ) for _ in range(secret_key_iterations))
             local_config['client_secret'] = new_secret_token
-            new_user_pw = input("set new user pw: ")
-            local_config['user_pw'] = new_user_pw
             dump(local_config, config_file)
 
 

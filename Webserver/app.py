@@ -89,11 +89,14 @@ def new_recording():
     if request.method == 'GET':
         new_uuid = uuid.uuid4()
         print('Deliver new uuid:', new_uuid)
-        return jsonify({'uuid': new_uuid})
+        return jsonify({'status': 'success', 'uuid': new_uuid})
     elif request.method == 'POST':
         print('Get new records')
         request_uuid = request.args.get('uuid')
         print('Id: ', request_uuid)
+        if request_uuid is None or request_uuid == '':
+            print('No uuid')
+            return jsonify({'status': 'error, now uuid'})
         if 'file' not in request.files:
             print('No file part')
             return jsonify({'status': 'error, now file'})
@@ -110,6 +113,7 @@ def new_recording():
             return jsonify({'status': 'success, uploaded ' + file.filename})
 
         return jsonify({'status': 'success'})
+    return jsonify({'status': 'error'})
 
 
 if __name__ == '__main__':
