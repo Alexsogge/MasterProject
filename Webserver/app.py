@@ -40,8 +40,8 @@ def verify_password(username, password):
 
 
 @app.route('/')
-def hello_world():
-    return 'Hello World!'
+def index():
+    return render_template('index.html')
 
 
 @app.route('/auth/request/')
@@ -68,6 +68,7 @@ def get_open_auth_requests():
     return render_template('list_requests.html', open_requests=open_auth_requests.open_auth_requests)
 
 
+
 @app.route('/auth/grant/<int:auth_id>/')
 @basic_auth.login_required
 def grant_auth_request(auth_id):
@@ -76,6 +77,23 @@ def grant_auth_request(auth_id):
         auth_request.granted = True
     return redirect('/auth/check/')
 
+
+@app.route('/recording/list/')
+@basic_auth.login_required
+def list_recordings():
+
+    recording_directories = os.listdir(UPLOAD_FOLDER)
+
+    # recording_directories = [x[0] for x in os.walk(UPLOAD_FOLDER)]
+
+    return render_template('list_recordings.html', recordings=recording_directories)
+
+@app.route('/recording/get/<string:recording>/')
+@basic_auth.login_required
+def get_recording(recording):
+    recording_files = os.listdir(os.path.join(UPLOAD_FOLDER, recording))
+
+    return render_template('show_recording.html', recording_name=recording, files=recording_files)
 
 @app.route('/recording/new/', methods=['GET', 'POST'])
 @token_auth.login_required

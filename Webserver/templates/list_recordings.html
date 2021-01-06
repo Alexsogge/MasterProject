@@ -1,0 +1,14 @@
+<html>
+<head>
+    <title>Sensor Recording Service</title>
+</head>
+
+<body>
+    <div style="align-content:center">
+        <h1>Recordings</h1>
+        {% for record in recordings %}
+            <p><a href="/recording/get/{{ record }}/">{{ record }}</a> <a href="/uploads/{{ record }}/">Download</a></p>
+        {% endfor %}
+    </div>
+</body>
+</html>

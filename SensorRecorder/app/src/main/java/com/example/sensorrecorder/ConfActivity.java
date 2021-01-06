@@ -52,8 +52,11 @@ public class ConfActivity extends WearableActivity {
                 SharedPreferences.Editor configEditor = configs.edit();
                 String serverName = serverNameInput.getText().toString();
                 String userIdentifier = userIdentifierInput.getText().toString();
-                if (!serverName.equals(""))
+                if (!serverName.equals("")) {
+                    if (serverName.length() < 4 || !serverName.substring(0, 4).equals("http"))
+                        serverName = "https://" + serverName;
                     configEditor.putString(getString(R.string.conf_serverName), serverName);
+                }
                 Log.i("sensorrecorder", "Set servername to " + serverNameInput.getText().toString());
                 if (!userIdentifier.equals(""))
                     configEditor.putString(getString(R.string.conf_userIdentifier), userIdentifier);

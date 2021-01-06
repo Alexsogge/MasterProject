@@ -5,7 +5,7 @@
 
 <body>
     <div style="align-content:center">
-        <p><h1>Open requests</h1></p>
+        <h1>Open requests</h1>
         {% for key, auth_request in open_requests.items() %}
             <p>{{ auth_request.identifier }}: {{ auth_request.granted }} <a href="/auth/grant/{{ key }}/">Grant</a></p>
         {% endfor %}
