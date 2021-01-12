@@ -12,7 +12,7 @@ from config import Config
 from auth_requests import *
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv'}
+ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
