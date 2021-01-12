@@ -1,3 +1,6 @@
+from zipfile import ZipFile
+from datetime import datetime
+
 from flask import Flask, jsonify, request, render_template, redirect
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.utils import secure_filename
@@ -83,10 +86,15 @@ def grant_auth_request(auth_id):
 def list_recordings():
 
     recording_directories = os.listdir(UPLOAD_FOLDER)
+    recording_infos = dict()
+    for directory in recording_directories:
+        changed_time_stamp = os.path.getmtime(os.path.join(UPLOAD_FOLDER, directory))
+        change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
+        recording_infos[directory] = change_time_string
 
     # recording_directories = [x[0] for x in os.walk(UPLOAD_FOLDER)]
 
-    return render_template('list_recordings.html', recordings=recording_directories)
+    return render_template('list_recordings.html', recordings=recording_infos)
 
 @app.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
@@ -128,10 +136,20 @@ def new_recording():
             if not os.path.isdir(upload_path):
                 os.mkdir(upload_path)
             file.save(os.path.join(upload_path, filename))
+            add_file_to_zip(filename, upload_path, request_uuid)
             return jsonify({'status': 'success, uploaded ' + file.filename})
 
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error'})
+
+
+def add_file_to_zip(file_name, directory, directory_uuid):
+    zip_file_name = os.path.join(directory, directory_uuid + '.zip')
+
+    with ZipFile(zip_file_name, 'a') as zip_file:
+        sub_file = os.path.join(directory, file_name)
+        zip_file.write(sub_file, file_name)
+        print('added', file_name, ' to archive')
 
 
 if __name__ == '__main__':

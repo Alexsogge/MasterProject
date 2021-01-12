@@ -10,7 +10,7 @@ config_values = {'version': version, 'upload_directory': 'uploads',
                  'client_secret': '', 'user': 'admin', 'user_pw': 'admin'}
 
 class Config:
-    config_file = './config.yml'
+    config_file = 'conf/config.yml'
     file_encoding = 'utf-8'
 
     upload_directory = None
@@ -44,6 +44,8 @@ class Config:
     def create(self):
         global secret_key_iterations
         print('create config ', self.config_file)
+        if not os.path.exists(os.path.dirname(self.config_file)):
+            os.makedirs(os.path.dirname(self.config_file))
         with open(self.config_file, 'w', encoding=self.file_encoding) as config_file:
             local_config = config_values.copy()
             new_secret_token = ''.join(random.SystemRandom().choice(string.ascii_uppercase +

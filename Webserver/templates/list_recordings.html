@@ -6,8 +6,8 @@
 <body>
     <div style="align-content:center">
         <h1>Recordings</h1>
-        {% for record in recordings %}
-            <p><a href="/recording/get/{{ record }}/">{{ record }}</a> <a href="/uploads/{{ record }}/">Download</a></p>
+        {% for record, info in recordings.items() %}
+            <p><a href="/recording/get/{{ record }}/">{{ record }}</a> {{ info }} <a href="/uploads/{{ record }}/{{ record }}.zip">Download</a></p>
         {% endfor %}
     </div>
 </body>
