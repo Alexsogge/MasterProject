@@ -169,6 +169,17 @@ public class Networking {
                         new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
                         toUploadedFiles.add(tmp_file.getName());
                     }
+
+                    // Upload all 3gg files
+                    file_name = sensorService.recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
+                    for (int i = 0; i < 99; i++) {
+                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".3gp");
+                        if (!tmp_file.exists())
+                            break;
+                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
+                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
+                        toUploadedFiles.add(tmp_file.getName());
+                    }
                 } catch (Exception e) {
                     Log.e("sensorrecorder", "Error during multipart upload");
                     e.printStackTrace();
@@ -208,7 +219,8 @@ public class Networking {
             sensorService.doubleTimeStamps = 0;
             uploadProgressBar.setVisibility(View.INVISIBLE);
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            sensorService.registerToManager();
+            // sensorService.registerToManager();
+            sensorService.startRecording();
         }
     }
 
@@ -222,6 +234,7 @@ public class Networking {
         private final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
         private final MediaType MEDIA_TYPE_ZIP = MediaType.parse("application/zip, application/octet-stream");
         private final MediaType MEDIA_TYPE_MKV = MediaType.parse("video/x-matroska, audio/x-matroska");
+        private final MediaType MEDIA_TYPE_3GP = MediaType.parse("video/3gpp, audio/3gpp, video/3gpp2, audio/3gpp2");
         private final OkHttpClient client = new OkHttpClient();
         private final String serverUrlSuffix = "/recording/new/?uuid=";
 
@@ -271,6 +284,8 @@ public class Networking {
                 media_type = MEDIA_TYPE_MKV;
             if (file.getName().substring(file.getName().length()-4).equals(".csv"))
                 media_type = MEDIA_TYPE_CSV;
+            if (file.getName().substring(file.getName().length()-4).equals(".3gp"))
+                media_type = MEDIA_TYPE_3GP;
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     //.addFormDataPart("name", "file")

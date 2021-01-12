@@ -24,6 +24,7 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -104,6 +105,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     File recording_file_mkv;
     File recording_file_time_stamps;
     FileOutputStream file_output_time_stamps;
+    public File recording_file_mic;
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     public ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
@@ -126,7 +128,10 @@ public class SensorListenerService extends Service implements SensorEventListene
     private Long mStartTimeNS = -1l;
     private CountDownLatch mSyncLatch = null;
     private MediaRecorder mediaRecorder;
-    private File recording_file_mic;
+
+    private long last_mic_record;
+    private boolean ongoing_mic_record = false;
+    private Handler micHandler;
 
 
 
@@ -215,6 +220,9 @@ public class SensorListenerService extends Service implements SensorEventListene
             Config.printLastCommandOutput(Log.INFO);
 
             mBuf.order(ByteOrder.nativeOrder());
+
+
+            micHandler = new Handler();
 
             startRecording();
 
@@ -502,7 +510,6 @@ public class SensorListenerService extends Service implements SensorEventListene
         wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
 
         startForeground(1, notificationBuilder.build());
-        registerToManager();
 
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -515,8 +522,17 @@ public class SensorListenerService extends Service implements SensorEventListene
         } catch (IOException e) {
             Log.e("sensorrecorder", "prepare() failed");
         }
+        mediaRecorder.start();
+        // micTriggerStart();
+
+        Log.i("sensorrecorder", "Initialized mic recorder " + mediaRecorder.toString());
+
+        setupFFMPEGfromLocal();
+
+        registerToManager();
 
         // mediaRecorder.start();
+
     }
 
     public void stopRecording(){
@@ -528,6 +544,15 @@ public class SensorListenerService extends Service implements SensorEventListene
         mediaRecorder.release();
         mediaRecorder = null;
 
+        try {
+            // mFFmpeg.waitFor();
+            mFFmpeg.terminate();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+        mFFmpeg = null;
 
         stopForeground(true);
         wakeLock.release();
@@ -609,6 +634,19 @@ public class SensorListenerService extends Service implements SensorEventListene
                 pointer_gyro = 1;
             }
         }
+
+
+        if (!ongoing_mic_record && System.currentTimeMillis() > last_mic_record + 10000){
+            ongoing_mic_record = true;
+            last_mic_record = System.currentTimeMillis();
+            mediaRecorder.resume();
+        }
+        if (ongoing_mic_record && System.currentTimeMillis() > last_mic_record + 1000){
+            ongoing_mic_record = false;
+            last_mic_record = System.currentTimeMillis();
+            mediaRecorder.pause();
+        }
+
     }
 
     @Override
@@ -746,7 +784,8 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void prepareUpload(){
         flushSensor();
-        unregisterfromManager();
+        // unregisterfromManager();
+        stopRecording();
         setInfoText("Backup files");
         Log.d("sensorrecorder", "Backup files");
         backup_recording_files();
@@ -758,10 +797,12 @@ public class SensorListenerService extends Service implements SensorEventListene
         networking.toBackupFiles.add(recording_file_gyro.getName());
         networking.toBackupFiles.add(recording_file_mkv.getName());
         networking.toBackupFiles.add(recording_file_time_stamps.getName());
+        networking.toBackupFiles.add(recording_file_mic.getName());
         new FileBackupTask().execute(recording_file_acc);
         new FileBackupTask().execute(recording_file_gyro);
         new FileBackupTask().execute(recording_file_mkv);
         new FileBackupTask().execute(recording_file_time_stamps);
+        new FileBackupTask().execute(recording_file_mic);
 
         return files;
     }
@@ -784,6 +825,35 @@ public class SensorListenerService extends Service implements SensorEventListene
                 Toast.makeText(getBaseContext(), text, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private void micTriggerStart(){
+        mediaRecorder.resume();
+        ongoing_mic_record = true;
+        last_mic_record = System.currentTimeMillis();
+
+        Log.i("sensorrecorder", "started mic");
+        micHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                micTriggerStop();
+            }
+        }, 2000); //the time you want to delay in milliseconds
+    }
+
+    private void micTriggerStop(){
+        ongoing_mic_record = false;
+        last_mic_record = System.currentTimeMillis();
+        mediaRecorder.pause();
+
+        Log.i("sensorrecorder", "stopped mic");
+
+        micHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                micTriggerStart();
+            }
+        }, 5000); //the time you want to delay in milliseconds
     }
 
     protected final class FileBackupTask extends AsyncTask<File, File, String>{

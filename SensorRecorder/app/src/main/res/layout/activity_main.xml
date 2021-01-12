@@ -28,6 +28,14 @@
                 android:text="Sensor Recorder"
                 android:textSize="12sp" />
 
+
+            <Button
+                android:id="@+id/startStopButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="25dip"
+                android:text="Start" />
+
             <Button
                 android:id="@+id/uploadaButton"
                 android:layout_width="match_parent"
@@ -35,14 +43,6 @@
                 android:minHeight="25dip"
                 android:text="Upload"
                 android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/startStopButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="25dip"
-                android:text="Stop" />
-
 
 
             <TextView
