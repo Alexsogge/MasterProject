@@ -90,9 +90,9 @@ def list_recordings():
     for directory in recording_directories:
         changed_time_stamp = os.path.getmtime(os.path.join(UPLOAD_FOLDER, directory))
         change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
-        recording_infos[directory] = change_time_string
+        recording_infos[directory] = [change_time_string, changed_time_stamp]
 
-    recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key], reverse=True)
+    recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
 
     # recording_directories = [x[0] for x in os.walk(UPLOAD_FOLDER)]
