@@ -92,9 +92,12 @@ def list_recordings():
         change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
         recording_infos[directory] = change_time_string
 
+    recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key], reverse=True)
+
+
     # recording_directories = [x[0] for x in os.walk(UPLOAD_FOLDER)]
 
-    return render_template('list_recordings.html', recordings=recording_infos)
+    return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort)
 
 @app.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
