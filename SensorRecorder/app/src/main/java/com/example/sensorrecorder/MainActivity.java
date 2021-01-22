@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -64,6 +65,9 @@ public class MainActivity extends WearableActivity {
     // Requesting permission to RECORD_AUDIO and
     private boolean permissionToRecordAccepted = false;
     private String [] permissions = {Manifest.permission.RECORD_AUDIO};
+    private BatteryEventHandler batteryEventHandler;
+    private Button startStopButton;
+    private Button uploadButton;
 
 
     @Override
@@ -104,6 +108,9 @@ public class MainActivity extends WearableActivity {
         }
 
         networking = new Networking(this, null, configs);
+        batteryEventHandler = new BatteryEventHandler();
+
+
 
 
         if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED ||
@@ -113,8 +120,12 @@ public class MainActivity extends WearableActivity {
                     1);
 
         } else {
+            IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+            filter.addAction(Intent.ACTION_BATTERY_LOW);
+            this.registerReceiver(batteryEventHandler, filter);
+
+
             StartRecordService();
-            Button uploadButton = (Button) findViewById(R.id.uploadaButton);
             uploadButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -123,16 +134,15 @@ public class MainActivity extends WearableActivity {
 
                 }
             });
-            final Button startStopButton = (Button) findViewById(R.id.startStopButton);
+
             startStopButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (sensorService.isRunning) {
                         sensorService.stopRecording();
-                        startStopButton.setText("Start");
+                        sensorService.backup_recording_files();
                     } else {
                         sensorService.startRecording();
-                        startStopButton.setText("Stop");
                     }
                 }
             });
@@ -147,6 +157,9 @@ public class MainActivity extends WearableActivity {
         infoText = (TextView) findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
         uploadProgressBar.setMax(100);
+
+        startStopButton = (Button) findViewById(R.id.startStopButton);
+        uploadButton = (Button) findViewById(R.id.uploadaButton);
 
         Button configButton = (Button)findViewById(R.id.buttonConfig);
         configButton.setOnClickListener(new View.OnClickListener() {
@@ -178,8 +191,10 @@ public class MainActivity extends WearableActivity {
             sensorService = binder.getService();
             mBound = true;
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
+            sensorService.startStopButton = startStopButton;
             networking.sensorService = sensorService;
             sensorService.networking = networking;
+            batteryEventHandler.sensorListenerService = sensorService;
         }
 
         @Override

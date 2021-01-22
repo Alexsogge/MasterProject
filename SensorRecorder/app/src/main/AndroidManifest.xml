@@ -33,6 +33,15 @@
         <uses-library
             android:name="com.google.android.wearable"
             android:required="true" />
+
+
+<!--        <receiver android:name=".BatteryEventHandler">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.BATTERY_LOW"/>-->
+<!--                <action android:name="android.intent.action.BATTERY_OKAY"/>-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
+
     </application>
 
     <uses-feature android:name="android.hardware.type.watch" />
