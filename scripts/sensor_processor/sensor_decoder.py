@@ -5,10 +5,9 @@ from os.path import join, isfile, splitext
 from typing import Dict, List
 
 import numpy as np
-from helpers import *
+from sensor_processor.helpers import *
 
 nano_sec = 0.000000001
-
 
 
 class SensorDecoder:

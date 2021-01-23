@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 from typing import Dict, List
 
 import numpy as np
@@ -8,11 +9,11 @@ import sys
 from os import listdir
 from os.path import isfile, join, splitext
 
-from helpers import *
-from sensor_decoder import SensorDecoder
-from mic_decoder import MicDecoder
-from battery_decoder import BatteryDecoder
-from handwash_decoder import HandwashDecoder
+from sensor_processor.helpers import *
+from sensor_processor.sensor_decoder import SensorDecoder
+from sensor_processor.mic_decoder import MicDecoder
+from sensor_processor.battery_decoder import BatteryDecoder
+from sensor_processor.handwash_decoder import HandwashDecoder
 
 if len(sys.argv) > 2 and sys.argv[2] == 'mkv':
     from mkv_decode import MKVDecoder
@@ -23,6 +24,7 @@ nano_sec = 0.000000001
 class DataProcessor:
 
     def __init__(self, folder_name, use_mkv=False):
+        self.folder_name = folder_name
         self.sensor_decoder = SensorDecoder(folder_name)
         self.data_dict: Dict[str, np.ndarray] = dict()
         self.data_dict['mic_time_stamps'] = MicDecoder.read_folder(folder_name)
@@ -93,7 +95,7 @@ class DataProcessor:
             self.plot_hand_wash_events((np.amin(data[:, 1:]), np.amax(data[:, 1:])), ax)
 
 
-    def plot_data(self):
+    def plot_data(self, generate_image=False):
 
         fig, axs = plt.subplots(3, 1, sharex=True)
 
@@ -107,9 +109,11 @@ class DataProcessor:
         axs[2].set_title('Battery')
 
         fig.tight_layout()
+        if generate_image:
+            fig.savefig(os.path.join(self.folder_name, "data_plot.png"))
         plt.show()
 
-    def plot_timings(self):
+    def plot_timings(self, generate_image=False):
         data = self.data_dict['Acceleration']
         y = np.zeros(data.shape[0])
         for i, timing in enumerate(data[1:,0]):

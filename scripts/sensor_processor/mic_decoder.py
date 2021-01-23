@@ -7,7 +7,7 @@ from typing import Dict, List
 import numpy as np
 
 
-from helpers import *
+from sensor_processor.helpers import *
 
 
 class MicDecoder:
