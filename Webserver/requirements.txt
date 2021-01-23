@@ -2,3 +2,6 @@ Flask
 Flask-HTTPAuth
 PyYAML
 gunicorn
+numpy
+matplotlib
+file:../scripts

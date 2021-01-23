@@ -11,6 +11,8 @@ import os
 from config import Config
 from auth_requests import *
 
+from preview_builder import generate_plot_data
+
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp'}
 
@@ -99,12 +101,26 @@ def list_recordings():
 
     return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort)
 
+
 @app.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
 def get_recording(recording):
     recording_files = os.listdir(os.path.join(UPLOAD_FOLDER, recording))
 
     return render_template('show_recording.html', recording_name=recording, files=recording_files)
+
+
+@app.route('/recording/plot/<string:recording>/')
+@basic_auth.login_required
+def plot_recording(recording):
+    plot_file = os.path.join(os.path.join(UPLOAD_FOLDER, recording), 'data_plot.png')
+    if not os.path.exists(plot_file):
+        generate_plot_data(os.path.join(UPLOAD_FOLDER, recording))
+
+    if os.path.exists(plot_file):
+        return render_template('show_recording_plot.html', recording_name=recording, plot=plot_file)
+
+    return render_template('error_show_recording_plot.html', recording_name=recording)
 
 @app.route('/recording/new/', methods=['GET', 'POST'])
 @token_auth.login_required
