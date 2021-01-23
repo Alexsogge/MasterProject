@@ -4,4 +4,5 @@ PyYAML
 gunicorn
 numpy
 matplotlib
+git+https://github.com/Alexsogge/MasterProject.git#subdirectory=scripts
 
