@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="handwash_spinner_values">
+        <item>now</item>
+        <item>5 min ago</item>
+        <item>10 min ago</item>
+        <item>15 min ago</item>
+        <item>20 min ago</item>
+    </string-array>
+</resources>

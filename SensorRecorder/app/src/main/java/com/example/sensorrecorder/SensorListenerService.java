@@ -248,9 +248,7 @@ public class SensorListenerService extends Service implements SensorEventListene
                 if (intent.getStringExtra("trigger").equals("testCall"))
                     TestCall();
                 if (intent.getStringExtra("trigger").equals("handWash")) {
-                    try {
-                        AddHandWashEvent();
-                    } catch (IOException e) {e.printStackTrace();}
+                    addHandWashEventNow();
                 }
                 if (intent.getStringExtra("trigger").equals("open")){
                     Intent mainIntent = new Intent(this, MainActivity.class);
@@ -819,6 +817,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
         if(useMKVStream)
             pipe_output_acc.flush();
+        // Log.i("sensorrecorder", "current time:" + recording_timestamps_acc[pointer_acc-1]);
         if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat <image path> > " + pipe1});
             //file_output_acc.write(data.toString().getBytes());
@@ -874,17 +873,28 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
-    private void AddHandWashEvent() throws IOException {
-        Log.d("fgservice", "New handwash at " + (pointer_acc - 1) + "   " + (pointer_gyro - 1));
-        flushSensor();
-        if(pointer_acc == 0 || pointer_gyro == 0)
-            return;
-        long[] newEvent = {recording_timestamps_acc[pointer_acc - 1], recording_timestamps_gyro[pointer_gyro - 1]};
-        handWashEvents.get(handWashEvents.size()-1).add(newEvent);
-        String lineContent = newEvent[0] + "\t" + newEvent[1] + "\n";
+    public void addHandWashEventNow(){
+        long timestamp = SystemClock.elapsedRealtimeNanos();
+        try {
+            addHandWashEvent(timestamp);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void addHandWashEventBefore(long past_seconds){
+        long timestamp = (SystemClock.elapsedRealtimeNanos() - (past_seconds * 1000 * 1000000));
+        try {
+            addHandWashEvent(timestamp);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addHandWashEvent(long time_stamp) throws IOException {
+        // Log.i("sensorrecorder", "Add handwash:" + time_stamp);
+        String lineContent = time_stamp + "\n";
         file_output_time_stamps.write(lineContent.getBytes());
         file_output_time_stamps.flush();
-        Log.d("fgservice", "New handwash at " + newEvent[0] + "   " + newEvent[1]);
     }
 
     private void createNotificationChannel() {

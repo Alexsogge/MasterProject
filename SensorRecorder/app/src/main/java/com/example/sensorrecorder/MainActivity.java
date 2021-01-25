@@ -25,8 +25,12 @@ import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,6 +39,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.wear.widget.WearableLinearLayoutManager;
 import androidx.wear.widget.WearableRecyclerView;
+import androidx.wear.widget.drawer.WearableNavigationDrawerView;
 
 import com.google.android.gms.common.util.ArrayUtils;
 
@@ -69,6 +74,8 @@ public class MainActivity extends WearableActivity {
     private Button startStopButton;
     private Button uploadButton;
 
+    private ScrollView mainScrollView;
+    private CustomSpinner handWashSpinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,6 +137,7 @@ public class MainActivity extends WearableActivity {
                 @Override
                 public void onClick(View v) {
                     // sensorService.UploadSensorData();
+                    mainScrollView.scrollTo(0, 150);
                     networking.DoFileUpload();
 
                 }
@@ -154,6 +162,8 @@ public class MainActivity extends WearableActivity {
     }
 
     private void initUI(){
+        mainScrollView = (ScrollView)findViewById(R.id.mainview);
+
         infoText = (TextView) findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
         uploadProgressBar.setMax(100);
@@ -166,6 +176,43 @@ public class MainActivity extends WearableActivity {
             @Override
             public void onClick(View v) {
                 startActivity(configIntent);
+            }
+        });
+
+        handWashSpinner = (CustomSpinner) findViewById(R.id.handwash_spinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.handwash_spinner_values, android.R.layout.simple_spinner_item);
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        handWashSpinner.setAdapter(adapter);
+
+        handWashSpinner.setSpinnerEventsListener(new CustomSpinner.OnSpinnerEventsListener(){
+
+            @Override
+            public void onSpinnerOpened(Spinner spin) {
+                mainScrollView.scrollTo(0, 100);
+            }
+
+            @Override
+            public void onSpinnerClosed(Spinner spin) {
+
+            }
+        });
+
+        handWashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+               if (sensorService != null){
+                    sensorService.addHandWashEventBefore(position * 60 * 5);
+                    handWashSpinner.setNoSelection();
+               }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+                // sometimes you need nothing here
             }
         });
     }

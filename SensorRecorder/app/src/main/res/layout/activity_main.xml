@@ -36,6 +36,14 @@
                 android:minHeight="25dip"
                 android:text="Stop" />
 
+            <com.example.sensorrecorder.CustomSpinner
+                android:id="@+id/handwash_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="5dip"
+                android:prompt="@string/ui_new_handwash"/>
+
+
             <Button
                 android:id="@+id/uploadaButton"
                 android:layout_width="match_parent"
