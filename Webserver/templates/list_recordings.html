@@ -7,7 +7,7 @@
     <div style="align-content:center">
         <h1>Recordings</h1>
         {% for record in sorting %}
-            <p><a href="/recording/get/{{ record }}/">{{ record }}</a> {{ recordings[record][0] }} <a href="/uploads/{{ record }}/{{ record }}.zip">Download</a></p>
+            <p><a href="/recording/get/{{ record }}/">{{ record }}</a> {{ recordings[record][0] }} <a href="/uploads/{{ record }}/{{ record }}.zip">Download</a>  <a href="/recording/delete/{{ record }}/">Delete</a></p>
         {% endfor %}
     </div>
 </body>

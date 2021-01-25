@@ -1,3 +1,5 @@
+import random
+import string
 from zipfile import ZipFile
 from datetime import datetime
 
@@ -7,6 +9,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import os
+import shutil
 
 from config import Config
 from auth_requests import *
@@ -15,6 +18,7 @@ from preview_builder import generate_plot_data
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp'}
+PACK_MIC_FILES = False
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -30,6 +34,9 @@ def is_allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+def generate_random_string(string_length: int):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=string_length))
 
 @token_auth.verify_token
 def verify_token(token):
@@ -105,7 +112,11 @@ def list_recordings():
 @app.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
 def get_recording(recording):
-    recording_files = os.listdir(os.path.join(UPLOAD_FOLDER, recording))
+    recording_files = [] 
+    for file in os.listdir(os.path.join(UPLOAD_FOLDER, recording)):
+        if '.3gp' not in file:
+            recording_files.append(file)
+    
 
     return render_template('show_recording.html', recording_name=recording, files=recording_files)
 
@@ -151,6 +162,8 @@ def new_recording():
             return jsonify({'status': 'error, now selected file'})
         if file and is_allowed_file(file.filename):
             filename = secure_filename(file.filename)
+            if os.path.splitext(filename)[1] == '.3gp':
+                filename = generate_random_string(16) + '.3gp'
             upload_path = os.path.join(app.config['UPLOAD_FOLDER'], request_uuid)
             if not os.path.isdir(upload_path):
                 os.mkdir(upload_path)
@@ -162,7 +175,19 @@ def new_recording():
     return jsonify({'status': 'error'})
 
 
+@app.route('/recording/delete/<string:recording>/')
+@basic_auth.login_required
+def delete_recording(recording):
+    file = os.path.join(UPLOAD_FOLDER, recording)
+    if os.path.exists(file):
+        shutil.rmtree(file)
+    return redirect('/recording/list/')
+
+
 def add_file_to_zip(file_name, directory, directory_uuid):
+    if not PACK_MIC_FILES and os.path.splitext(file_name)[1] == '.3gp':
+        return
+
     zip_file_name = os.path.join(directory, directory_uuid + '.zip')
 
     with ZipFile(zip_file_name, 'a') as zip_file:
