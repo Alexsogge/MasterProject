@@ -185,6 +185,15 @@ def delete_recording(recording):
     return redirect('/recording/list/')
 
 
+@app.route('/recordingfile/delete/<string:recording>/<string:file_name>/')
+@basic_auth.login_required
+def delete_recording_file(recording, file_name):
+    file = os.path.join(UPLOAD_FOLDER, os.path.join(recording, file_name))
+    if os.path.exists(file):
+        os.remove(file)
+    return redirect(f'/recording/get/{recording}/')
+
+
 def add_file_to_zip(file_name, directory, directory_uuid):
     if not PACK_MIC_FILES and os.path.splitext(file_name)[1] == '.3gp':
         return

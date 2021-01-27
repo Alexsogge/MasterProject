@@ -1,15 +1,18 @@
-<html>
-<head>
-    <title>Sensor Recording Service</title>
-</head>
+{% extends "base.html" %}
 
-<body>
-    <div style="align-content:center">
+{% block content %}
+    <div class="row mb-3">
         <h1>Recording: {{ recording_name }}</h1>
-        {% for file in files %}
-            <p><a href="/uploads/{{ recording_name }}/{{ file }}">{{ file }}</a></p>
-        {% endfor %}
-        <h4><a href="/recording/plot/{{ recording_name }}/">Data plot</a></h4>
     </div>
-</body>
-</html>
+
+        {% for file in files %}
+            <div class="row">
+                <div class="col"><a href="/uploads/{{ recording_name }}/{{ file }}">{{ file }}</a></div>
+                <div class="col"><a class="btn btn-danger" href="/recordingfile/delete/{{ recording_name }}/{{ file }}/">Delete</a></div>
+            </div>
+        {% endfor %}
+    <div class="row mt-3">
+        <h4><a class="btn btn-primary" href="/recording/plot/{{ recording_name }}/">Data plot</a></h4>
+    </div>
+
+{% endblock %}

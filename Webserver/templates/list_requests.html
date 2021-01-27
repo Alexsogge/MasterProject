@@ -1,14 +1,14 @@
-<html>
-<head>
-    <title>Sensor Recording Service</title>
-</head>
+{% extends "base.html" %}
 
-<body>
-    <div style="align-content:center">
+{% block content %}
+    <div class="row mb-3">
         <h1>Open requests</h1>
-        {% for key, auth_request in open_requests.items() %}
-            <p>{{ auth_request.identifier }}: {{ auth_request.granted }} <a href="/auth/grant/{{ key }}/">Grant</a></p>
-        {% endfor %}
     </div>
-</body>
-</html>
+        {% for key, auth_request in open_requests.items() %}
+            <div class="row">
+                <div class="col">{{ auth_request.identifier }}</div>
+                <div class="col">{{ auth_request.granted }}</div>
+                <div class="col"><a class="btn btn-primary" href="/auth/grant/{{ key }}/">Grant</a></div>
+            </div>
+        {% endfor %}
+{% endblock %}

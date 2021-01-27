@@ -1,14 +1,15 @@
-<html>
-<head>
-    <title>Sensor Recording Service</title>
-</head>
+{% extends "base.html" %}
 
-<body>
-    <div style="align-content:center">
+{% block content %}
+    <div class="row mb-3">
         <h1>Recordings</h1>
-        {% for record in sorting %}
-            <p><a href="/recording/get/{{ record }}/">{{ record }}</a> {{ recordings[record][0] }} <a href="/uploads/{{ record }}/{{ record }}.zip">Download</a>  <a href="/recording/delete/{{ record }}/">Delete</a></p>
-        {% endfor %}
     </div>
-</body>
-</html>
+        {% for record in sorting %}
+            <div class="row">
+                <div class="col"><a href="/recording/get/{{ record }}/">{{ record }}</a></div>
+                <div class="col md-3">{{ recordings[record][0] }}</div>
+                <div class="col-auto mr-auto"><a class="btn btn-primary" href="/uploads/{{ record }}/{{ record }}.zip">Download</a></div>
+                <div class="col-auto mr-auto"><a class="btn btn-danger" href="/recording/delete/{{ record }}/">Delete</a></div>
+            </div>
+        {% endfor %}
+{% endblock %}

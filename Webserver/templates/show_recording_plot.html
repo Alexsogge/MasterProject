@@ -1,12 +1,8 @@
-<html>
-<head>
-    <title>Sensor Recording Service</title>
-</head>
+{% extends "base.html" %}
 
-<body>
-    <div style="align-content:center">
+{% block content %}
+    <div class="row mb-3">
         <h1>Plot {{ recording_name }}</h1>
-        <img src="/{{ plot }}" alt="Plot">
     </div>
-</body>
-</html>
+        <img src="/{{ plot }}" class="img-fluid" alt="Plot">
+{% endblock %}
