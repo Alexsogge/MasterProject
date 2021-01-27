@@ -97,7 +97,7 @@ class DataProcessor:
 
     def plot_data(self, generate_image=False):
 
-        fig, axs = plt.subplots(3, 1, sharex=True, figsize=(20, 15))
+        fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 7))
 
         self.sub_plot_data(self.data_dict['Acceleration'], axs[0])
         self.sub_plot_data(self.data_dict['Gyroscope'], axs[1])
@@ -110,7 +110,7 @@ class DataProcessor:
 
         fig.tight_layout()
         if generate_image:
-            fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=500)
+            fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=300)
         plt.show()
 
     def plot_timings(self, generate_image=False):
