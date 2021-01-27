@@ -163,7 +163,8 @@ def new_recording():
         if file and is_allowed_file(file.filename):
             filename = secure_filename(file.filename)
             if os.path.splitext(filename)[1] == '.3gp':
-                filename = generate_random_string(16) + '.3gp'
+                numbering = filename.split('_')[-1]
+                filename = generate_random_string(16) + '_' + numbering
             upload_path = os.path.join(app.config['UPLOAD_FOLDER'], request_uuid)
             if not os.path.isdir(upload_path):
                 os.mkdir(upload_path)
