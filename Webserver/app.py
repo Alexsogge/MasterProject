@@ -96,10 +96,22 @@ def list_recordings():
 
     recording_directories = os.listdir(UPLOAD_FOLDER)
     recording_infos = dict()
+
     for directory in recording_directories:
-        changed_time_stamp = os.path.getmtime(os.path.join(UPLOAD_FOLDER, directory))
+        short_description = ""
+        description_file = os.path.join(UPLOAD_FOLDER, os.path.join(directory, "README.md"))
+        if os.path.exists(description_file):
+            short_description = open(description_file, 'r').readline()
+        changed_time_stamp = os.stat(os.path.join(UPLOAD_FOLDER, directory)).st_ctime
+
+        # since directories creation time changes if a file was edited, we have to find the oldest file within them
+        for file in os.listdir(os.path.join(UPLOAD_FOLDER, directory)):
+            tmp_c_time = os.stat(os.path.join(UPLOAD_FOLDER, os.path.join(directory, file))).st_ctime
+            if tmp_c_time < changed_time_stamp:
+                changed_time_stamp = tmp_c_time
+
         change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
-        recording_infos[directory] = [change_time_string, changed_time_stamp]
+        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description]
 
     recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
