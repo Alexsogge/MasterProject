@@ -5,6 +5,21 @@
         <h1>Recording: {{ recording_name }}</h1>
     </div>
 
+    <div class="row mb-6">
+        <div class="col md-6">
+            <form action="/recording/description/{{ recording_name}}/" method="post">
+                <div class="form-group">
+                    <label for="descriptionInput">Description</label>
+                    <textarea class="form-control" id="descriptionInput" name="description">{{ description}}</textarea>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary mt-1" value="Submit">New description</button>
+            </form>
+        </div>
+        <div class="col md-6">
+    </div>
+    <div class="row mt-3"></div>
+    <div class="row mt-2"><h3>Files</h3></div>
+
         {% for file in files %}
             <div class="row">
                 <div class="col"><a href="/uploads/{{ recording_name }}/{{ file }}">{{ file }}</a></div>

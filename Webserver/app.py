@@ -112,13 +112,17 @@ def list_recordings():
 @app.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
 def get_recording(recording):
-    recording_files = [] 
+    recording_files = []
+    description = ""
     for file in os.listdir(os.path.join(UPLOAD_FOLDER, recording)):
-        if '.3gp' not in file:
-            recording_files.append(file)
-    
+        if '.3gp' in file:
+            continue
+        if file == 'README.md':
+            description = open(os.path.join(UPLOAD_FOLDER, os.path.join(recording, "README.md")), 'r').read()
+        recording_files.append(file)
 
-    return render_template('show_recording.html', recording_name=recording, files=recording_files)
+    return render_template('show_recording.html', recording_name=recording, files=recording_files,
+                           description=description)
 
 
 @app.route('/recording/plot/<string:recording>/')
@@ -168,6 +172,8 @@ def new_recording():
             upload_path = os.path.join(app.config['UPLOAD_FOLDER'], request_uuid)
             if not os.path.isdir(upload_path):
                 os.mkdir(upload_path)
+                description_file = open(os.path.join(upload_path, "README.md"), 'x')
+
             file.save(os.path.join(upload_path, filename))
             add_file_to_zip(filename, upload_path, request_uuid)
             return jsonify({'status': 'success, uploaded ' + file.filename})
@@ -192,6 +198,27 @@ def delete_recording_file(recording, file_name):
     if os.path.exists(file):
         os.remove(file)
     return redirect(f'/recording/get/{recording}/')
+
+
+@app.route('/recording/description/<string:recording>/', methods=['GET', 'POST'])
+@basic_auth.login_required
+def recording_description(recording):
+    print('User: ', token_auth.current_user())
+
+    description_file_path = os.path.join(UPLOAD_FOLDER, os.path.join(recording, "README.md"))
+
+    if request.method == 'GET':
+        description_file = open(description_file_path, 'r')
+        return jsonify({'description': description_file.read()})
+    elif request.method == 'POST':
+        print('Get new description')
+        new_description = request.form.get('description')
+        description_file = open(description_file_path, 'w')
+        description_file.write(new_description)
+        description_file.close()
+
+    return redirect(f'/recording/get/{recording}/')
+
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):
