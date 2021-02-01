@@ -144,6 +144,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
 
     private boolean useMKVStream = false;
+    private boolean useZIPStream = true;
 
 
     @Override
@@ -506,13 +507,15 @@ public class SensorListenerService extends Service implements SensorEventListene
             SendSensorDataAcc();
             SendSensorDataGyro();
 
-            zip_output_acc.closeEntry();
-            zip_output_acc.close();
-            file_output_acc.close();
+            if (useZIPStream) {
+                zip_output_acc.closeEntry();
+                zip_output_acc.close();
+                file_output_acc.close();
 
-            zip_output_gyro.closeEntry();
-            zip_output_gyro.close();
-            file_output_gyro.close();
+                zip_output_gyro.closeEntry();
+                zip_output_gyro.close();
+                file_output_gyro.close();
+            }
 
         } catch (IOException | InterruptedException e){
             e.printStackTrace();
@@ -527,8 +530,8 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         startForeground(1, notificationBuilder.build());
 
-        startMediaRecorder();
-        mediaRecorder.pause();
+        //startMediaRecorder();
+        //mediaRecorder.pause();
         // micTriggerStart();
 
         // Log.i("sensorrecorder", "Initialized mic recorder " + mediaRecorder.toString());
@@ -574,7 +577,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
 
     private void initMediaRecorder(){
-        /*
+
         try {
             recording_file_mic = new File(recording_file_path, "sensor_recording_mic_" + micCounter + ".3gp");
             recording_file_mic.createNewFile();
@@ -582,7 +585,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         } catch (IOException e) {
             e.printStackTrace();
         }
-        */
+
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
@@ -662,8 +665,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             if (ongoing_mic_record && System.currentTimeMillis() > last_mic_record + 2000){
                 ongoing_mic_record = false;
                 last_mic_record = System.currentTimeMillis();
-                mediaRecorder.pause();
-                //stopMediaRecorder();
+                //mediaRecorder.pause();
+                stopMediaRecorder();
             }
 
             pointer_acc++;
@@ -721,8 +724,8 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         // Log.i("sensorrecorder", "Test: " + (max_val - min_val));
         if (activateMic){
-            // startMediaRecorder();
-            mediaRecorder.resume();
+            startMediaRecorder();
+            // mediaRecorder.resume();
             ongoing_mic_record = true;
             last_mic_record = System.currentTimeMillis();
             String lineContent = recording_timestamps_acc[pointer_acc] + "\n";
@@ -765,15 +768,17 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     private void openFileStream(){
         try {
-            file_output_acc = new FileOutputStream(recording_file_acc);
-            zip_output_acc = new ZipOutputStream(file_output_acc);
-            file_output_gyro = new FileOutputStream(recording_file_gyro);
-            zip_output_gyro = new ZipOutputStream(file_output_gyro);
-            String fileName = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
-            zip_output_acc.putNextEntry(new ZipEntry(fileName + ".csv"));
+            if (useZIPStream) {
+                file_output_acc = new FileOutputStream(recording_file_acc);
+                zip_output_acc = new ZipOutputStream(file_output_acc);
+                file_output_gyro = new FileOutputStream(recording_file_gyro);
+                zip_output_gyro = new ZipOutputStream(file_output_gyro);
+                String fileName = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
+                zip_output_acc.putNextEntry(new ZipEntry(fileName + ".csv"));
 
-            fileName = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
-            zip_output_gyro.putNextEntry(new ZipEntry(fileName + ".csv"));
+                fileName = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
+                zip_output_gyro.putNextEntry(new ZipEntry(fileName + ".csv"));
+            }
 
             file_output_time_stamps = new FileOutputStream(recording_file_time_stamps);
             file_output_mic_time_stamps = new FileOutputStream(recording_file_mic_time_stamps);
@@ -797,11 +802,13 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         for(int i = 1; i < pointer_acc; i++) {
             // Log.i("sensor", "RecordingService: " + timeStamp);
-            data.append(recording_timestamps_acc[i]).append("\t");
-            data.append(recording_values_acc[i][0]).append("\t");
-            data.append(recording_values_acc[i][1]).append("\t");
-            data.append(recording_values_acc[i][2]).append("\n");
 
+            if(useZIPStream) {
+                data.append(recording_timestamps_acc[i]).append("\t");
+                data.append(recording_values_acc[i][0]).append("\t");
+                data.append(recording_values_acc[i][1]).append("\t");
+                data.append(recording_values_acc[i][2]).append("\n");
+            }
             if (useMKVStream) {
                 offset += (recording_timestamps_acc[i] - lastTimeStamp);
                 lastTimeStamp = recording_timestamps_acc[i];
@@ -818,7 +825,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         if(useMKVStream)
             pipe_output_acc.flush();
         // Log.i("sensorrecorder", "current time:" + recording_timestamps_acc[pointer_acc-1]);
-        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+        if(useZIPStream && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat <image path> > " + pipe1});
             //file_output_acc.write(data.toString().getBytes());
             //file_output_acc.flush();
@@ -827,8 +834,6 @@ public class SensorListenerService extends Service implements SensorEventListene
             // pipe_output_acc.write(data.toString().getBytes());
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat " + recording_file_acc.getPath() + " > " + ffmpegPipe});
             Log.e("write", "Flushed File acc");
-        } else {
-            Log.e("write", "Can't write file");
         }
     }
 
@@ -843,11 +848,12 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         for(int i = 1; i < pointer_gyro; i++){
             // Log.i("sensor", "RecordingService: " + timeStamp);
-            data.append(recording_timestamps_gyro[i]).append("\t");
-            data.append(recording_values_gyro[i][0]).append("\t");
-            data.append(recording_values_gyro[i][1]).append("\t");
-            data.append(recording_values_gyro[i][2]).append("\n");
-
+            if(useZIPStream) {
+                data.append(recording_timestamps_gyro[i]).append("\t");
+                data.append(recording_values_gyro[i][0]).append("\t");
+                data.append(recording_values_gyro[i][1]).append("\t");
+                data.append(recording_values_gyro[i][2]).append("\n");
+            }
             if(useMKVStream) {
                 offset += (recording_timestamps_gyro[i] - lastTimeStamp);
                 lastTimeStamp = recording_timestamps_gyro[i];
@@ -863,13 +869,11 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
         if(useMKVStream)
             pipe_output_gyro.flush();
-        if(ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+        if(useZIPStream && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             zip_output_gyro.write(data.toString().getBytes());
             zip_output_gyro.flush();
             //pipe_output_acc.write(data.toString().getBytes());
             Log.e("write", "Flushed File gyro");
-        } else {
-            Log.e("write", "Can't write file");
         }
     }
 
@@ -921,23 +925,27 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     private void queue_backup_files(){
-        networking.toBackupFiles.add(recording_file_acc.getName());
-        networking.toBackupFiles.add(recording_file_gyro.getName());
+        if(useZIPStream) {
+            networking.toBackupFiles.add(recording_file_acc.getName());
+            networking.toBackupFiles.add(recording_file_gyro.getName());
+        }
         if(useMKVStream)
             networking.toBackupFiles.add(recording_file_mkv.getName());
         networking.toBackupFiles.add(recording_file_time_stamps.getName());
-        networking.toBackupFiles.add(recording_file_mic.getName());
+        //networking.toBackupFiles.add(recording_file_mic.getName());
         networking.toBackupFiles.add(recording_file_mic_time_stamps.getName());
         networking.toBackupFiles.add(recording_file_battery.getName());
     }
 
     public void backup_recording_files(){
-        new FileBackupTask().execute(recording_file_acc);
-        new FileBackupTask().execute(recording_file_gyro);
+        if(useZIPStream) {
+            new FileBackupTask().execute(recording_file_acc);
+            new FileBackupTask().execute(recording_file_gyro);
+        }
         if(useMKVStream)
             new FileBackupTask().execute(recording_file_mkv);
         new FileBackupTask().execute(recording_file_time_stamps);
-        new FileBackupTask().execute(recording_file_mic);
+        //new FileBackupTask().execute(recording_file_mic);
         new FileBackupTask().execute(recording_file_mic_time_stamps);
         new FileBackupTask().execute(recording_file_battery);
     }

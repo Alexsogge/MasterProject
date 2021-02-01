@@ -127,33 +127,7 @@ public class MainActivity extends WearableActivity {
                     1);
 
         } else {
-            IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-            filter.addAction(Intent.ACTION_BATTERY_LOW);
-            this.registerReceiver(batteryEventHandler, filter);
-
-
-            StartRecordService();
-            uploadButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // sensorService.UploadSensorData();
-                    mainScrollView.scrollTo(0, 150);
-                    networking.DoFileUpload();
-
-                }
-            });
-
-            startStopButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (sensorService.isRunning) {
-                        sensorService.stopRecording();
-                        sensorService.backup_recording_files();
-                    } else {
-                        sensorService.startRecording();
-                    }
-                }
-            });
+            InitializeServices();
         }
 
 
@@ -217,6 +191,36 @@ public class MainActivity extends WearableActivity {
         });
     }
 
+    private void InitializeServices(){
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+        this.registerReceiver(batteryEventHandler, filter);
+
+
+        StartRecordService();
+        uploadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // sensorService.UploadSensorData();
+                mainScrollView.scrollTo(0, 150);
+                networking.DoFileUpload();
+
+            }
+        });
+
+        startStopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (sensorService.isRunning) {
+                    sensorService.stopRecording();
+                    sensorService.backup_recording_files();
+                } else {
+                    sensorService.startRecording();
+                }
+            }
+        });
+    }
+
     private void StartRecordService(){
         intent = new Intent(this, SensorListenerService.class );
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
@@ -254,6 +258,7 @@ public class MainActivity extends WearableActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
+        Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
         switch (requestCode) {
             case 1: {
 
@@ -262,17 +267,21 @@ public class MainActivity extends WearableActivity {
                 }
 
                 // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 1
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                        && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
+                    InitializeServices();
                     StartRecordService();
                 } else {
-
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
+                            1);
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast.makeText(MainActivity.this, "Permission denied to read your External storage", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(MainActivity.this, "Permission denied to read your External storage", Toast.LENGTH_SHORT).show();
                 }
                 return;
             }

@@ -20,6 +20,7 @@ public class ConfActivity extends WearableActivity {
     private EditText serverNameInput;
     private EditText userIdentifierInput;
     private Button deleteTokenButton;
+    private Networking networking;
 
 
     @Override
@@ -32,9 +33,11 @@ public class ConfActivity extends WearableActivity {
         configs = this.getSharedPreferences(
                 getString(R.string.configs), Context.MODE_PRIVATE);
 
+        networking = new Networking(this, null, configs);
 
         serverNameInput = (EditText)findViewById(R.id.editTextServerName);
         userIdentifierInput = (EditText)findViewById(R.id.editTextUserIdentifier);
+        userIdentifierInput.setText(android.os.Build.MODEL);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
 
         if (configs.contains(getString(R.string.conf_serverName)))
@@ -64,6 +67,11 @@ public class ConfActivity extends WearableActivity {
 
 
                 configEditor.apply();
+
+                if (configs.getString(getString(R.string.conf_serverToken), "").equals("")){
+                    networking.requestServerToken();
+                }
+
                 finish();
             }
         });

@@ -58,8 +58,6 @@ public class Networking {
         this.mainActivity = mainActivity;
         this.sensorService = sensorService;
         infoText = (TextView)mainActivity.findViewById(R.id.infoText);
-        uploadProgressBar = (ProgressBar) mainActivity.findViewById(R.id.uploaadProgressBar);
-        uploadProgressBar.setMax(100);
         this.configs = configs;
 //        if(!this.configs.contains(mainActivity.getString(R.string.conf_serverToken)))
 //            requestServerToken();
@@ -92,6 +90,8 @@ public class Networking {
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             return;
         }
+        uploadProgressBar = (ProgressBar) mainActivity.findViewById(R.id.uploaadProgressBar);
+        uploadProgressBar.setMax(100);
 
         // Upload files after short time to ensure that everything has written
         Handler postHandler = new Handler();
@@ -191,8 +191,8 @@ public class Networking {
                     }
 
                     // Upload all 3gg files
-                    file_name = sensorService.recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
-                    //file_name = "sensor_recording_mic";
+                    //file_name = sensorService.recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
+                    file_name = "sensor_recording_mic";
                     for (int i = 0; i < 999; i++) {
                         tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".3gp");
                         if (!tmp_file.exists())
@@ -245,7 +245,7 @@ public class Networking {
         }
     }
 
-    private void requestServerToken(){
+    public void requestServerToken(){
         Log.d("sensorrecorder", "Request Token");
         new Networking.HTTPGetServerToken().execute();
     }
@@ -423,6 +423,7 @@ public class Networking {
                 return "error: error";
             }
         }
+
     }
 
     protected final class HTTPGetServerToken extends AsyncTask<String, String, String> {
@@ -448,6 +449,15 @@ public class Networking {
                         configEditor.putString(mainActivity.getString(R.string.conf_serverToken), Jobject.getString("token"));
                         configEditor.apply();
                         makeToast("Authentication granted");
+
+
+                        mainActivity.runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                DoFileUpload();
+                            }
+                        });
                     } else{
                         makeToast("Not authenticated: " + Jobject.getString("msg"));
                     }
