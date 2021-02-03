@@ -14,7 +14,7 @@ import shutil
 from config import Config
 from auth_requests import *
 
-from preview_builder import generate_plot_data
+from preview_builder import generate_plot_data, get_data_array
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp'}
@@ -231,6 +231,36 @@ def recording_description(recording):
 
     return redirect(f'/recording/get/{recording}/')
 
+
+@app.route('/recording/data/<string:recording>/')
+def recording_data(recording):
+    print('User: ', token_auth.current_user())
+    recording_folder = os.path.join(UPLOAD_FOLDER, recording)
+    recording_data_array, hand_wash_time_stamps = get_data_array(recording_folder)
+    # print(recording_data_array.shape)
+
+    series = []
+    for i in range(3):
+        series_entry = dict()
+        series_entry['name'] = 'axis ' + str(i)
+
+        series_entry['data'] = recording_data_array[:, [0, i+1]].tolist()
+        series.append(series_entry)
+
+    annotations = []
+    time_stamp_series = dict()
+    time_stamp_series['name'] = 'hand wash'
+    time_stamp_series['data'] = []
+    for i, time_stamp in enumerate(hand_wash_time_stamps[:, 0]):
+        time_stamp_series['data'].append({'x': time_stamp, 'y': 13, 'id': f'ts_{i}', 'marker': { 'fillColor': '#BF0B23', 'radius': 10 }})
+        annotation_entry = {'type': 'verticalLine', 'typeOptions': {'point': f'ts_{i}'}}
+        annotations.append(annotation_entry)
+
+    series.append(time_stamp_series)
+    # print(time_stamp_series)
+
+
+    return jsonify({'data': {'series': series, 'annotations': annotations}})
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):

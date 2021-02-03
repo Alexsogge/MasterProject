@@ -1,8 +1,46 @@
 {% extends "base.html" %}
 
+{% block head %}
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/data.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/annotations-advanced.js"></script>
+{% endblock %}
+
 {% block content %}
     <div class="row mb-3">
         <h1>Plot {{ recording_name }}</h1>
     </div>
+    <div class="row">
         <img src="/{{ plot }}" class="img-fluid" alt="Plot">
+    </div>
+    <div class="row">
+        <div id="chart">Loading interactive chart...</div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Highcharts.getJSON('/recording/data/{{recording_name}}/', function (data) {
+            // Create the chart
+            console.log(data);
+            Highcharts.stockChart('chart', {
+
+                rangeSelector: {
+                    selected: 1
+                },
+
+                title: {
+                    text: 'Accelerometer'
+                },
+                annotations: data['data']['annotations'],
+
+                series: data['data']['series']
+            });
+        });
+    });
+
+    </script>
+
 {% endblock %}

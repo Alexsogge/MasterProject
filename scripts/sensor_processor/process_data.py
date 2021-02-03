@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import json
 import os
 from typing import Dict, List
 
@@ -146,6 +147,13 @@ class DataProcessor:
     def calc_total_time(self):
         return (np.max(self.data_dict['Acceleration'][:, 0]) - np.min(self.data_dict['Acceleration'][:, 0])) * nano_sec
 
+    def get_acceleration_data(self, as_json=False):
+        if not as_json:
+            return self.data_dict['Acceleration']
+        else:
+            return json.dumps(self.data_dict['Acceleration'])
+
+
 
 
 if __name__ == "__main__":
@@ -154,7 +162,7 @@ if __name__ == "__main__":
         if sys.argv[2] == 'mkv':
             use_mkv = True
     data_processor = DataProcessor(sys.argv[1], use_mkv)
-    data_processor.plot_data()
+    data_processor.plot_data(True)
     # data_processor.plot_timings()
     print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
           data_processor.calc_total_time()/60, " min \t -> ",
