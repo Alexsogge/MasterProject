@@ -11,7 +11,9 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.Switch;
 
 public class ConfActivity extends WearableActivity {
 
@@ -19,6 +21,9 @@ public class ConfActivity extends WearableActivity {
     private SharedPreferences configs;
     private EditText serverNameInput;
     private EditText userIdentifierInput;
+    private CheckBox useZipsCheckbox;
+    private CheckBox useMKVCheckbox;
+    private Switch multipleMicSwitch;
     private Button deleteTokenButton;
     private Networking networking;
 
@@ -38,14 +43,27 @@ public class ConfActivity extends WearableActivity {
         serverNameInput = (EditText)findViewById(R.id.editTextServerName);
         userIdentifierInput = (EditText)findViewById(R.id.editTextUserIdentifier);
         userIdentifierInput.setText(android.os.Build.MODEL);
+
+        useZipsCheckbox = (CheckBox) findViewById(R.id.useZipCheckbox);
+        useMKVCheckbox = (CheckBox) findViewById(R.id.useMKVCheckbox);
+        multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
+
+
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
 
         if (configs.contains(getString(R.string.conf_serverName)))
-            serverNameInput.setText(configs.getString(getString(R.string.conf_serverName), ""));
+            serverNameInput.setText(configs.getString(getString(R.string.conf_serverName), getString(R.string.predefined_serverName)));
         if (configs.contains(getString(R.string.conf_userIdentifier)))
             userIdentifierInput.setText(configs.getString(getString(R.string.conf_userIdentifier), ""));
         if(configs.contains(getString(R.string.conf_serverToken)))
             deleteTokenButton.setVisibility(View.VISIBLE);
+
+        if(configs.contains(getString(R.string.conf_useZip)))
+            useZipsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useZip), true));
+        if(configs.contains(getString(R.string.conf_useMKV)))
+            useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
+        if(configs.contains(getString(R.string.conf_multipleMic)))
+            multipleMicSwitch.setChecked(configs.getBoolean(getString(R.string.conf_multipleMic), true));
 
 
         Button applyButton = (Button)findViewById(R.id.buttonApply);
@@ -65,6 +83,9 @@ public class ConfActivity extends WearableActivity {
                     configEditor.putString(getString(R.string.conf_userIdentifier), userIdentifier);
                 Log.i("sensorrecorder", "Set user to " + userIdentifierInput.getText().toString());
 
+                configEditor.putBoolean(getString(R.string.conf_useZip), useZipsCheckbox.isChecked());
+                configEditor.putBoolean(getString(R.string.conf_useMKV), useMKVCheckbox.isChecked());
+                configEditor.putBoolean(getString(R.string.conf_multipleMic), multipleMicSwitch.isChecked());
 
                 configEditor.apply();
 

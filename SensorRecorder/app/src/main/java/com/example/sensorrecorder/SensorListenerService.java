@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -142,9 +143,11 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public Button startStopButton;
 
-
+    private SharedPreferences configs;
     private boolean useMKVStream = false;
     private boolean useZIPStream = true;
+    private boolean useMultipleMic = true;
+
 
 
     @Override
@@ -239,6 +242,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             Config.printLastCommandOutput(Log.INFO);
             */
 
+            configs = this.getSharedPreferences(getString(R.string.configs), Context.MODE_PRIVATE);
 
             micHandler = new Handler();
 
@@ -530,8 +534,15 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         startForeground(1, notificationBuilder.build());
 
-        //startMediaRecorder();
-        //mediaRecorder.pause();
+
+        useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true);
+        useMKVStream = configs.getBoolean(getString(R.string.conf_useMKV), false);
+        useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
+
+        if(!useMultipleMic) {
+            startMediaRecorder();
+            mediaRecorder.pause();
+        }
         // micTriggerStart();
 
         // Log.i("sensorrecorder", "Initialized mic recorder " + mediaRecorder.toString());
@@ -604,8 +615,23 @@ public class SensorListenerService extends Service implements SensorEventListene
         mediaRecorder.start();
     }
 
+    private void resumeMediaRecorder(){
+        if(useMultipleMic) {
+            initMediaRecorder();
+            mediaRecorder.start();
+        } else
+            mediaRecorder.resume();
+    }
+
+    private void pauseMediaRecorder(){
+        if(useMultipleMic)
+            stopMediaRecorder();
+        else
+            mediaRecorder.pause();
+    }
+
     private void stopMediaRecorder(){
-        // mediaRecorder.stop();
+        mediaRecorder.stop();
         mediaRecorder.release();
         mediaRecorder = null;
     }
@@ -665,8 +691,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             if (ongoing_mic_record && System.currentTimeMillis() > last_mic_record + 2000){
                 ongoing_mic_record = false;
                 last_mic_record = System.currentTimeMillis();
-                //mediaRecorder.pause();
-                stopMediaRecorder();
+               pauseMediaRecorder();
             }
 
             pointer_acc++;
@@ -724,7 +749,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         // Log.i("sensorrecorder", "Test: " + (max_val - min_val));
         if (activateMic){
-            startMediaRecorder();
+            resumeMediaRecorder();
             // mediaRecorder.resume();
             ongoing_mic_record = true;
             last_mic_record = System.currentTimeMillis();

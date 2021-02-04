@@ -9,5 +9,9 @@
     <string name="conf_serverName">serverName</string>
     <string name="conf_userIdentifier">userIdentifier</string>
     <string name="conf_serverToken">serverToken</string>
+    <string name="conf_useZip">useZip</string>
+    <string name="conf_useMKV">useMKV</string>
+    <string name="conf_multipleMic">multipleMic</string>
     <string name="ui_new_handwash">New hand wash</string>
+    <string name="predefined_serverName"></string>
 </resources>
