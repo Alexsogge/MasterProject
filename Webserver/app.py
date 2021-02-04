@@ -50,6 +50,18 @@ def verify_password(username, password):
     if username == config.user and password == config.user_pw:
         return username
 
+@app.template_filter()
+def is_boolean(input):
+    return type(input) is bool or input == 'True' or input == 'False' or input == 'on' or input == 'off'
+
+@app.template_filter()
+def render_is_checked(input):
+    if bool(input):
+        return 'checked'
+    return ''
+
+
+
 
 @app.route('/')
 def index():
@@ -78,6 +90,26 @@ def request_token():
 @basic_auth.login_required
 def get_open_auth_requests():
     return render_template('list_requests.html', open_requests=open_auth_requests.open_auth_requests)
+
+
+@app.route('/settings/', methods=['GET', 'POST'])
+@basic_auth.login_required
+def settings():
+
+    if request.method == 'POST':
+        print('Save new settings')
+        settings_values = config.get_config_values().copy()
+        for key in settings_values.keys():
+            settings_values[key] = request.form.get(key)
+            if is_boolean(settings_values[key]):
+                settings_values[key] = bool(settings_values[key])
+            if settings_values[key] is None and is_boolean(config.get_config_values()[key]):
+                settings_values[key] = False
+        print(settings_values)
+        config.save_config(settings_values)
+
+    return render_template('settings.html', setting_entries=config.get_config_values())
+
 
 
 
@@ -127,7 +159,7 @@ def get_recording(recording):
     recording_files = []
     description = ""
     for file in os.listdir(os.path.join(UPLOAD_FOLDER, recording)):
-        if '.3gp' in file:
+        if '.3gp' in file and config.hide_mic_files:
             continue
         if file == 'README.md':
             description = open(os.path.join(UPLOAD_FOLDER, os.path.join(recording, "README.md")), 'r').read()
@@ -178,7 +210,7 @@ def new_recording():
             return jsonify({'status': 'error, now selected file'})
         if file and is_allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            if os.path.splitext(filename)[1] == '.3gp':
+            if os.path.splitext(filename)[1] == '.3gp' and config.rename_mic_files:
                 numbering = filename.split('_')[-1]
                 filename = generate_random_string(16) + '_' + numbering
             upload_path = os.path.join(app.config['UPLOAD_FOLDER'], request_uuid)
@@ -264,7 +296,7 @@ def recording_data(recording):
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):
-    if not PACK_MIC_FILES and os.path.splitext(file_name)[1] == '.3gp':
+    if os.path.splitext(file_name)[1] == '.3gp' and not config.pack_mick_files:
         return
 
     zip_file_name = os.path.join(directory, directory_uuid + '.zip')
