@@ -62,6 +62,14 @@
                 android:text="Save in MKV"
                 android:textAlignment="center" />
 
+            <CheckBox
+                android:id="@+id/useMicCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Record microphone"
+                android:textAlignment="center" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

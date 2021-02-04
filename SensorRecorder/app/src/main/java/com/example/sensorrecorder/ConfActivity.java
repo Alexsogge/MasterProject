@@ -12,7 +12,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.Switch;
 
 public class ConfActivity extends WearableActivity {
@@ -23,6 +25,7 @@ public class ConfActivity extends WearableActivity {
     private EditText userIdentifierInput;
     private CheckBox useZipsCheckbox;
     private CheckBox useMKVCheckbox;
+    private CheckBox useMicCheckbox;
     private Switch multipleMicSwitch;
     private Button deleteTokenButton;
     private Networking networking;
@@ -46,6 +49,7 @@ public class ConfActivity extends WearableActivity {
 
         useZipsCheckbox = (CheckBox) findViewById(R.id.useZipCheckbox);
         useMKVCheckbox = (CheckBox) findViewById(R.id.useMKVCheckbox);
+        useMicCheckbox = (CheckBox) findViewById(R.id.useMicCheckbox);
         multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
 
 
@@ -62,11 +66,31 @@ public class ConfActivity extends WearableActivity {
             useZipsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useZip), true));
         if(configs.contains(getString(R.string.conf_useMKV)))
             useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
+        if(configs.contains(getString(R.string.conf_useMic))) {
+            boolean useMic = configs.getBoolean(getString(R.string.conf_useMic), true);
+            useMKVCheckbox.setChecked(useMic);
+            if (!useMic)
+                multipleMicSwitch.setEnabled(false);
+
+        }
         if(configs.contains(getString(R.string.conf_multipleMic)))
             multipleMicSwitch.setChecked(configs.getBoolean(getString(R.string.conf_multipleMic), true));
 
-
         Button applyButton = (Button)findViewById(R.id.buttonApply);
+
+
+        useMicCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
+                if(isChecked){
+                    multipleMicSwitch.setEnabled(true);
+                } else {
+                    multipleMicSwitch.setEnabled(false);
+                }
+            }
+        });
+
+
         applyButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -85,6 +109,7 @@ public class ConfActivity extends WearableActivity {
 
                 configEditor.putBoolean(getString(R.string.conf_useZip), useZipsCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_useMKV), useMKVCheckbox.isChecked());
+                configEditor.putBoolean(getString(R.string.conf_useMic), useMicCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_multipleMic), multipleMicSwitch.isChecked());
 
                 configEditor.apply();
@@ -106,8 +131,6 @@ public class ConfActivity extends WearableActivity {
                 deleteTokenButton.setVisibility(View.INVISIBLE);
             }
         });
-
-
 
     }
 

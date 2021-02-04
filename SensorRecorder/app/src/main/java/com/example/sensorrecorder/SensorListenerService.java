@@ -146,6 +146,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     private SharedPreferences configs;
     private boolean useMKVStream = false;
     private boolean useZIPStream = true;
+    private boolean useMic = true;
     private boolean useMultipleMic = true;
 
 
@@ -537,9 +538,10 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true);
         useMKVStream = configs.getBoolean(getString(R.string.conf_useMKV), false);
+        useMic= configs.getBoolean(getString(R.string.conf_useMic), true);
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
 
-        if(!useMultipleMic) {
+        if(useMic && !useMultipleMic) {
             startMediaRecorder();
             mediaRecorder.pause();
         }
@@ -684,7 +686,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             // recording_values_acc[pointer_acc][3] = Math.min(event.values[0], Math.min(event.values[1], event.values[2]));
             // recording_values_acc[pointer_acc][4] = Math.max(event.values[0], Math.max(event.values[1], event.values[2]));
 
-            if (!ongoing_mic_record){
+            if (useMic && !ongoing_mic_record){
                 checkForMicStart();
             }
 
