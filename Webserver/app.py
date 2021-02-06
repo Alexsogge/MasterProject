@@ -296,7 +296,7 @@ def recording_data(recording):
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):
-    if os.path.splitext(file_name)[1] == '.3gp' and not config.pack_mick_files:
+    if os.path.splitext(file_name)[1] == '.3gp' and not config.pack_mic_files:
         return
 
     zip_file_name = os.path.join(directory, directory_uuid + '.zip')
