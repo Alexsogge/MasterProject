@@ -27,7 +27,7 @@ basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth('Bearer')
 
 config = Config()
-open_auth_requests = AuthRequests()
+open_auth_requests: AuthRequests = AuthRequests()
 
 
 def is_allowed_file(filename):
@@ -83,6 +83,7 @@ def request_token():
         if not auth_request.granted:
             return jsonify({'status': 'pending', 'msg': 'waiting for confirmation'})
         else:
+            open_auth_requests.remove_request(auth_request)
             return jsonify({'status': 'grant', 'token': config.client_secret})
 
 

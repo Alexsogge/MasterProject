@@ -33,3 +33,6 @@ class AuthRequests:
             if request.identifier == identifier:
                 return request
         return None
+
+    def remove_request(self, request: AuthRequest):
+        del self.open_auth_requests[request.id]
