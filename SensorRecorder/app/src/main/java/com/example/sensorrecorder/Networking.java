@@ -191,10 +191,10 @@ public class Networking {
                     }
 
                     // Upload all 3gg files
-                    //file_name = sensorService.recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
-                    file_name = "sensor_recording_mic";
+                    file_name = sensorService.recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
+                    //file_name = "sensor_recording_mic";
                     for (int i = 0; i < 999; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".3gp");
+                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
                         if (!tmp_file.exists())
                             continue;
                         Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());

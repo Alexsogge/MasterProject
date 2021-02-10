@@ -68,7 +68,7 @@ public class ConfActivity extends WearableActivity {
             useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
         if(configs.contains(getString(R.string.conf_useMic))) {
             boolean useMic = configs.getBoolean(getString(R.string.conf_useMic), true);
-            useMKVCheckbox.setChecked(useMic);
+            useMicCheckbox.setChecked(useMic);
             if (!useMic)
                 multipleMicSwitch.setEnabled(false);
 

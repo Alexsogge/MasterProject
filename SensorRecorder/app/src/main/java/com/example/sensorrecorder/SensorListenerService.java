@@ -36,6 +36,7 @@ import androidx.core.content.ContextCompat;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -193,7 +194,7 @@ public class SensorListenerService extends Service implements SensorEventListene
                 recording_file_time_stamps.createNewFile();
                 recording_file_mic_time_stamps = new File(recording_file_path, "sensor_recording_mic_time_stamps.csv");
                 recording_file_mic_time_stamps.createNewFile();
-                recording_file_mic = new File(recording_file_path, "sensor_recording_mic.3gp");
+                recording_file_mic = new File(recording_file_path, "sensor_recording_mic.zip");
                 recording_file_mic.createNewFile();
                 recording_file_battery = new File(recording_file_path, "sensor_recording_battery.csv");
                 recording_file_battery.createNewFile();
@@ -576,9 +577,13 @@ public class SensorListenerService extends Service implements SensorEventListene
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-
         mFFmpeg = null;
+
+        try {
+            packMicFilesIntoZip();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         isRunning = false;
         if (startStopButton != null)
@@ -590,25 +595,21 @@ public class SensorListenerService extends Service implements SensorEventListene
 
 
     private void initMediaRecorder(){
-
+        File new_recording_mic_file;
         try {
-            recording_file_mic = new File(recording_file_path, "sensor_recording_mic_" + micCounter + ".3gp");
-            recording_file_mic.createNewFile();
+            String file_name =  recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
+            new_recording_mic_file = new File(recording_file_path, file_name + "_" + micCounter + ".3gp");
+            new_recording_mic_file.createNewFile();
             micCounter++;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        mediaRecorder = new MediaRecorder();
-        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mediaRecorder.setOutputFile(recording_file_mic);
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-        mediaRecorder.setAudioEncodingBitRate(8000);
-        try {
+            mediaRecorder = new MediaRecorder();
+            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            mediaRecorder.setOutputFile(new_recording_mic_file);
+            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+            mediaRecorder.setAudioEncodingBitRate(8000);
             mediaRecorder.prepare();
         } catch (IOException e) {
-            Log.e("sensorrecorder", "prepare() failed");
+            e.printStackTrace();
         }
     }
 
@@ -941,6 +942,33 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
+    private void packMicFilesIntoZip() throws IOException {
+        FileOutputStream fileOut = new FileOutputStream(recording_file_mic);
+        ZipOutputStream zipOut = new ZipOutputStream(fileOut);
+
+
+        String mic_file_name = recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
+        for (int i = 0; i < 9999; i++) {
+            File tmp_file = new File(recording_file_path, mic_file_name + "_" + i + ".3gp");
+            if (!tmp_file.exists())
+                continue;
+            FileInputStream fis = new FileInputStream(tmp_file);
+            ZipEntry zipEntry = new ZipEntry(tmp_file.getName());
+            zipOut.putNextEntry(zipEntry);
+
+            byte[] bytes = new byte[1024];
+            int length;
+            while((length = fis.read(bytes)) >= 0) {
+                zipOut.write(bytes, 0, length);
+            }
+            fis.close();
+            tmp_file.delete();
+        }
+        zipOut.close();
+        fileOut.close();
+    }
+
+
     public void prepareUpload(){
         flushSensor();
         // unregisterfromManager();
@@ -959,7 +987,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         if(useMKVStream)
             networking.toBackupFiles.add(recording_file_mkv.getName());
         networking.toBackupFiles.add(recording_file_time_stamps.getName());
-        //networking.toBackupFiles.add(recording_file_mic.getName());
+        networking.toBackupFiles.add(recording_file_mic.getName());
         networking.toBackupFiles.add(recording_file_mic_time_stamps.getName());
         networking.toBackupFiles.add(recording_file_battery.getName());
     }
@@ -972,7 +1000,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         if(useMKVStream)
             new FileBackupTask().execute(recording_file_mkv);
         new FileBackupTask().execute(recording_file_time_stamps);
-        //new FileBackupTask().execute(recording_file_mic);
+        new FileBackupTask().execute(recording_file_mic);
         new FileBackupTask().execute(recording_file_mic_time_stamps);
         new FileBackupTask().execute(recording_file_battery);
     }
