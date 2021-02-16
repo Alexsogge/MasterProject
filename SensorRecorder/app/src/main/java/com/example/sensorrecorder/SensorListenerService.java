@@ -26,6 +26,7 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
+import android.util.Pair;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -95,25 +96,12 @@ public class SensorListenerService extends Service implements SensorEventListene
     boolean initialized = false;
     boolean isRunning = true;
 
-    File recording_file_acc;
-    FileOutputStream file_output_acc;
-    ZipOutputStream zip_output_acc;
-    File recording_file_gyro;
-    FileOutputStream file_output_gyro;
-    ZipOutputStream zip_output_gyro;
-    File recording_file_mkv;
-    File recording_file_time_stamps;
-    FileOutputStream file_output_time_stamps;
-    File recording_file_mic_time_stamps;
-    FileOutputStream file_output_mic_time_stamps;
-    File recording_file_battery;
-    FileOutputStream file_output_battery;
-    public File recording_file_mic;
+
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     public ArrayList<ArrayList<long[]>> handWashEvents;
     private NotificationCompat.Builder notificationBuilder;
     private PowerManager.WakeLock wakeLock;
-    public final File recording_file_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
+
     public TextView infoText;
     private Handler mainLoopHandler;
     private long lastDoubleCheckTimeStamp = 0;
@@ -146,6 +134,16 @@ public class SensorListenerService extends Service implements SensorEventListene
     private boolean useMic = true;
     private boolean useMultipleMic = true;
 
+    public ArrayList<DataContainer> allDataContainers;
+    private ArrayList<OutputStreamContainer> streamContainers;
+
+    private ZipContainer containerSensorAcc;
+    private ZipContainer containerSensorGyro;
+    private DataContainer containerMKV;
+    private OutputStreamContainer containerHandWashTimeStamps;
+    private DataContainer containerMic;
+    private OutputStreamContainer containerMicTimeStamps;
+    private OutputStreamContainer containerBattery;
 
 
     @Override
@@ -173,35 +171,7 @@ public class SensorListenerService extends Service implements SensorEventListene
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                     "SensorRecorder::WakelockTag");
 
-            try {
-
-                if(!recording_file_path.exists())
-                {
-                    // Make it, if it doesn't exit
-                    recording_file_path.mkdirs();
-                }
-                recording_file_acc = new File(recording_file_path, "sensor_recording_android_acc.zip");
-                recording_file_acc.createNewFile();
-                recording_file_gyro = new File(recording_file_path, "sensor_recording_android_gyro.zip");
-                recording_file_gyro.createNewFile();
-                recording_file_mkv = new File(recording_file_path, "sensor_recording_android.mkv");
-                recording_file_mkv.createNewFile();
-                recording_file_time_stamps = new File(recording_file_path, "sensor_recording_hand_wash_time_stamps.csv");
-                recording_file_time_stamps.createNewFile();
-                recording_file_mic_time_stamps = new File(recording_file_path, "sensor_recording_mic_time_stamps.csv");
-                recording_file_mic_time_stamps.createNewFile();
-                recording_file_mic = new File(recording_file_path, "sensor_recording_mic.zip");
-                recording_file_mic.createNewFile();
-                recording_file_battery = new File(recording_file_path, "sensor_recording_battery.csv");
-                recording_file_battery.createNewFile();
-
-
-                //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            LoadDataContainers();
 
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.getFifoMaxEventCount()));
             Log.i("sensorinfo", String.valueOf(acceleration_sensor.getFifoReservedEventCount()));
@@ -262,65 +232,43 @@ public class SensorListenerService extends Service implements SensorEventListene
         return START_STICKY;
     }
 
-    public String addPipedInput() throws IOException, InterruptedException {
-        File dir = this.getFilesDir().getParentFile();
-        File f = File.createTempFile("ffmpeg", "", dir);
-
-        String pipename = f.getAbsolutePath();
-
-
-        /** create named pipe */
-        f.delete();
-        Process p = new ProcessBuilder().command("mknod", f.getAbsolutePath(), "p").start();
-        int result = p.waitFor();
-
-        if (result != 0)
-            throw new IOException("mknod failed");
-
-        /** open and store for later use */
-        f = new File(f.getAbsolutePath());
-        f.deleteOnExit();
-
-        return pipename;
-    }
-
-    private void setupFFMPEGfromPackage(){
-        ffmpegPipe = Config.registerNewFFmpegPipe(this);
-        /*
+    private void LoadDataContainers(){
+        allDataContainers = new ArrayList<DataContainer>();
+        streamContainers = new ArrayList<OutputStreamContainer>();
         try {
-            ffmpegPipe = addPipedInput();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        */
-        Log.d("sensorrecorder", "Created pipe at " + ffmpegPipe);
-        // -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg3167575985090850597, -f, f32le, -ar, 50.0, -ac, 3.0, -i, async:file:/data/user/0/de.uni_freiburg.automotion/ffmpeg5454277153717897251, -nostdin, -c:a, wavpack, -shortest, -metadata, recorder=automotion 1.21, -metadata, android_id=68a002a0eadad863, -metadata, platform=skipjack skipjack 28, -metadata, fingerprint=mobvoi/skipjack/skipjack:9/PWDS.190618.001.C5/6826145:user/release-keys, -metadata, beginning=2020-12-09T14:20Z, -metadata:s:0, name=LSM6DS3 Accelerometer -Wakeup Secondary, -metadata:s:1, name=LSM6DS3 Gyroscope -Wakeup Secondary, -map, 0, -map, 1, -f, matroska, -y, /storage/emulated/0/DCIM/2020-12-09T14:20+0000_68a002a0eadad863.mkv
-        ffmpegCommand = "-f f32le -ar 50.0 -ac 3.0 -i async:file:" + ffmpegPipe + " -nostdin -c:a wavpack -shortest -map 0 -f matroska -y " + recording_file_path+"/recording.mkv";
-        Log.i("sensorrecorder", "Start ffmpeeg " + ffmpegCommand);
-        FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback(){
-            @Override
-            public void apply(final long executionId, final int returnCode) {
-                Log.i(Config.TAG, "Async command execution completed.");
-            }
-        });
+            containerSensorAcc = new ZipContainer("sensor_recording_android_acc", "csv");
+            streamContainers.add(containerSensorAcc);
+            containerSensorGyro = new ZipContainer("sensor_recording_android_gyro", "csv");
+            streamContainers.add(containerSensorGyro);
 
-        recording_pipe_acc = new File(ffmpegPipe);
-        try {
-            FileOutputStream fout = new FileOutputStream(ffmpegPipe);
-            recording_pipe_acc.delete();
-            pipe_output_acc = new BufferedOutputStream(fout);
+            containerMKV = new DataContainer("sensor_recording_android", "mkv");
+            allDataContainers.add(containerMKV);
+
+            containerHandWashTimeStamps = new OutputStreamContainer("sensor_recording_hand_wash_time_stamps", "csv");
+            streamContainers.add(containerHandWashTimeStamps);
+
+            containerMicTimeStamps = new OutputStreamContainer("sensor_recording_mic_time_stamps", "csv");
+            streamContainers.add(containerMicTimeStamps);
+
+            containerMic = new ZipContainer("sensor_recording_mic", "zip");
+            allDataContainers.add(containerMic);
+
+            containerBattery = new OutputStreamContainer("sensor_recording_battery", "csv");
+            streamContainers.add(containerBattery);
+
+            //recording_file_acc = new File(String.valueOf(this.openFileOutput("sensor_recording_android.csv", Context.MODE_PRIVATE)));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        allDataContainers.addAll(streamContainers);
     }
-
 
     private void setupFFMPEGfromLocal(){
         String platform = Build.BOARD + " " + Build.DEVICE + " " + Build.VERSION.SDK_INT,
                 output = getDefaultOutputPath(getApplicationContext()),
-                output2 = recording_file_mkv.getAbsolutePath(),
+                output2 = containerMKV.recordingFile.getAbsolutePath(),
                 android_id = Settings.Secure.getString(
                         getContentResolver(), Settings.Secure.ANDROID_ID),
                 format = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN ? "f32le" : "f32be";
@@ -400,7 +348,6 @@ public class SensorListenerService extends Service implements SensorEventListene
         pipe_output_acc = null;
         pipe_output_gyro = null;
         mBuf.order(ByteOrder.nativeOrder());
-
     }
 
 
@@ -472,7 +419,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         pointer_gyro = 0;
 
         handWashEvents.add(new ArrayList<long[]>());
-        openFileStream();
+
 
         HandlerThread t_acc = new HandlerThread(acceleration_sensor.getName());
         t_acc.start();
@@ -510,13 +457,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             SendSensorDataGyro();
 
             if (useZIPStream) {
-                zip_output_acc.closeEntry();
-                zip_output_acc.close();
-                file_output_acc.close();
-
-                zip_output_gyro.closeEntry();
-                zip_output_gyro.close();
-                file_output_gyro.close();
+                containerSensorAcc.Close();
+                containerSensorGyro.Close();
             }
 
         } catch (IOException | InterruptedException e){
@@ -537,6 +479,12 @@ public class SensorListenerService extends Service implements SensorEventListene
         useMKVStream = configs.getBoolean(getString(R.string.conf_useMKV), false);
         useMic= configs.getBoolean(getString(R.string.conf_useMic), true);
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
+        DeactivateAllContainer();
+        try {
+            ActivateUsedContainer();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         micCounter = 0;
         if(useMic && !useMultipleMic) {
@@ -550,6 +498,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         if (useMKVStream)
             setupFFMPEGfromLocal();
 
+        openFileStream();
         registerToManager();
         isRunning = true;
         if (startStopButton != null)
@@ -582,6 +531,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             e.printStackTrace();
         }
 
+        FlushAllContainer();
+
         isRunning = false;
         if (startStopButton != null)
             startStopButton.setText("Start");
@@ -591,11 +542,44 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
 
+    private void ActivateUsedContainer() throws IOException {
+        if(useZIPStream) {
+            containerSensorAcc.SetActive();
+            containerSensorGyro.SetActive();
+        }
+        if(useMKVStream)
+            containerMKV.SetActive();
+
+        if(useMic) {
+            containerMic.SetActive();
+            containerMicTimeStamps.SetActive();
+        }
+
+        containerHandWashTimeStamps.SetActive();
+        containerBattery.SetActive();
+    }
+
+    private void DeactivateAllContainer(){
+        for(DataContainer container: allDataContainers){
+            container.Deactivate();
+        }
+    }
+
+    private void FlushAllContainer(){
+        for(OutputStreamContainer container: streamContainers){
+            try {
+                container.Flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void initMediaRecorder(){
         File new_recording_mic_file;
         try {
-            String file_name =  recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
-            new_recording_mic_file = new File(recording_file_path, file_name + "_" + micCounter + ".3gp");
+            // String file_name =  recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
+            new_recording_mic_file = new File(DataContainer.recordingFilePath, containerMic.name + "_" + micCounter + ".3gp");
             new_recording_mic_file.createNewFile();
             micCounter++;
             mediaRecorder = new MediaRecorder();
@@ -755,8 +739,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             last_mic_record = System.currentTimeMillis();
             String lineContent = recording_timestamps_acc[pointer_acc] + "\n";
             try {
-                file_output_mic_time_stamps.write(lineContent.getBytes());
-                file_output_mic_time_stamps.flush();
+                containerMicTimeStamps.WriteData(lineContent);
+                // containerMic.Flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -781,8 +765,8 @@ public class SensorListenerService extends Service implements SensorEventListene
     public void addBatteryState(float percent) throws IOException {
         long timestamp = SystemClock.elapsedRealtimeNanos();
         String line = timestamp + "\t"+ percent + "\n";
-        file_output_battery.write(line.getBytes());
-        file_output_battery.flush();
+        containerBattery.WriteData(line);
+        // containerBattery.Flush();
     }
 
 
@@ -793,22 +777,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     private void openFileStream(){
         try {
-            if (useZIPStream) {
-                file_output_acc = new FileOutputStream(recording_file_acc);
-                zip_output_acc = new ZipOutputStream(file_output_acc);
-                file_output_gyro = new FileOutputStream(recording_file_gyro);
-                zip_output_gyro = new ZipOutputStream(file_output_gyro);
-                String fileName = recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
-                zip_output_acc.putNextEntry(new ZipEntry(fileName + ".csv"));
-
-                fileName = recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
-                zip_output_gyro.putNextEntry(new ZipEntry(fileName + ".csv"));
+            for (OutputStreamContainer container: streamContainers) {
+                container.OpenStream();
             }
-
-            file_output_time_stamps = new FileOutputStream(recording_file_time_stamps);
-            file_output_mic_time_stamps = new FileOutputStream(recording_file_mic_time_stamps);
-            file_output_battery = new FileOutputStream(recording_file_battery);
-
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -854,8 +825,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat <image path> > " + pipe1});
             //file_output_acc.write(data.toString().getBytes());
             //file_output_acc.flush();
-            zip_output_acc.write(data.toString().getBytes());
-            zip_output_acc.flush();
+            containerSensorAcc.WriteData(data.toString());
+            // containerSensorAcc.Flush();
             // pipe_output_acc.write(data.toString().getBytes());
             // Runtime.getRuntime().exec(new String[]{"sh", "-c", "cat " + recording_file_acc.getPath() + " > " + ffmpegPipe});
             Log.e("write", "Flushed File acc");
@@ -895,8 +866,8 @@ public class SensorListenerService extends Service implements SensorEventListene
         if(useMKVStream)
             pipe_output_gyro.flush();
         if(useZIPStream && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
-            zip_output_gyro.write(data.toString().getBytes());
-            zip_output_gyro.flush();
+            containerSensorGyro.WriteData(data.toString());
+            // containerSensorGyro.Flush();
             //pipe_output_acc.write(data.toString().getBytes());
             Log.e("write", "Flushed File gyro");
         }
@@ -922,8 +893,8 @@ public class SensorListenerService extends Service implements SensorEventListene
     private void addHandWashEvent(long time_stamp) throws IOException {
         // Log.i("sensorrecorder", "Add handwash:" + time_stamp);
         String lineContent = time_stamp + "\n";
-        file_output_time_stamps.write(lineContent.getBytes());
-        file_output_time_stamps.flush();
+        containerHandWashTimeStamps.WriteData(lineContent);
+        // containerHandWashTimeStamps.Flush();
     }
 
     private void createNotificationChannel() {
@@ -940,13 +911,11 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     private void packMicFilesIntoZip() throws IOException {
-        FileOutputStream fileOut = new FileOutputStream(recording_file_mic);
+        FileOutputStream fileOut = new FileOutputStream(containerMic.recordingFile);
         ZipOutputStream zipOut = new ZipOutputStream(fileOut);
 
-
-        String mic_file_name = recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
         for (int i = 0; i < 9999; i++) {
-            File tmp_file = new File(recording_file_path, mic_file_name + "_" + i + ".3gp");
+            File tmp_file = new File(DataContainer.recordingFilePath, containerMic.name + "_" + i + ".3gp");
             if (!tmp_file.exists())
                 continue;
             FileInputStream fis = new FileInputStream(tmp_file);
@@ -978,16 +947,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void backup_recording_files(){
 
-        if(useZIPStream) {
-            backupFile(recording_file_acc);
-            backupFile(recording_file_gyro);
-        }
-        if(useMKVStream)
-            backupFile(recording_file_mkv);
-        backupFile(recording_file_time_stamps);
-        backupFile(recording_file_mic);
-        backupFile(recording_file_mic_time_stamps);
-        backupFile(recording_file_battery);
+       for(DataContainer container: allDataContainers){
+           container.BackupFile();
+       }
     }
 
 
@@ -1011,22 +973,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
 
-    private void backupFile(File src){
-        String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
-        Log.e("sensorrecorder", "Backup file:" + src.getName());
-        String extension = src.getName().split("\\.")[1];
-        Log.e("sensorrecorder", "Extension: " + extension);
-        File dst = null;
-        for (int i = 0; i < 99; i++){
-            dst = new File(recording_file_path, backup_name + "_" + i + "." + extension);
-            if (!dst.exists())
-                break;
-        }
-        Log.d("sensorrecorder", "Backup " + dst.getName());
-        //dst.createNewFile();
 
-        src.renameTo(dst);
-    }
 
     private void micTriggerStart(){
         mediaRecorder.resume();

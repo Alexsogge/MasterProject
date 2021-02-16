@@ -99,112 +99,12 @@ public class Networking {
         postHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                try {
-                    // upload hand wash events
-//                    for(int j = sensorService.handWashEvents.size() - 1; j >= 0; j--) {
-//                        JSONObject additional_data = new JSONObject();
-//                        JSONArray array = new JSONArray();
-//                        for (int i = 0; i < sensorService.handWashEvents.get(j).size(); i++) {
-//                            array.put(sensorService.handWashEvents.get(j).get(i)[0]);
-//                        }
-//                        additional_data.put("hand_wash_events_acc_" + j, array);
-//                        array = new JSONArray();
-//                        for (int i = 0; i < sensorService.handWashEvents.get(j).size(); i++) {
-//                            array.put(sensorService.handWashEvents.get(j).get(i)[1]);
-//                        }
-//                        Log.d("sensorrecorder", "upload: handwash events");
-//                        infoText.setText("upload " + "hand_wash_events_gyro_" + j);
-//                        infoText.invalidate();
-//                        additional_data.put("hand_wash_events_gyro_" + j, array);
-//                        CharSequence response = new Networking.HTTPPostJSON().execute(serverAddress, additional_data.toString()).get();
-//                        makeToast(response.toString());
-//                        if(response.subSequence(0, "success:".length()).equals("success:")){
-//                            sensorService.handWashEvents.remove(j);
-//                        }
-//                    }
-                    uploadProgressBar.setVisibility(View.VISIBLE);
-
-                    File tmp_file = null;
-                    // Upload all time stamp files
-                    String file_name = sensorService.recording_file_time_stamps.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".csv");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
+                uploadProgressBar.setVisibility(View.VISIBLE);
+                for(DataContainer container: sensorService.allDataContainers){
+                    for(File dataFile: container.GetAllVariants()){
+                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, dataFile.getName());
+                        toUploadedFiles.add(dataFile.getName());
                     }
-
-                    // Upload all battery files
-                    file_name = sensorService.recording_file_battery.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".csv");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
-
-                    file_name = sensorService.recording_file_mic_time_stamps.getName().replaceFirst("[.][^.]+$", "");
-                    // file_name = "sensor_recording_mic";
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".csv");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
-
-                    // Upload all acceleration files
-                    file_name = sensorService.recording_file_acc.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
-
-                    // Upload all gyroscope files
-                    file_name = sensorService.recording_file_gyro.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
-
-                    // Upload all mkv files
-                    file_name = sensorService.recording_file_mkv.getName().replaceFirst("[.][^.]+$", "");
-                    for (int i = 0; i < 99; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".mkv");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
-
-                    // Upload all 3gg files
-                    file_name = sensorService.recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
-                    //file_name = "sensor_recording_mic";
-                    for (int i = 0; i < 999; i++) {
-                        tmp_file = new File(sensorService.recording_file_path, file_name + "_" + i + ".zip");
-                        if (!tmp_file.exists())
-                            continue;
-                        Log.d("sensorrecorder", "upload: " + tmp_file.getName() + " of size " + tmp_file.length());
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, tmp_file.getName());
-                        toUploadedFiles.add(tmp_file.getName());
-                    }
-                } catch (Exception e) {
-                    Log.e("sensorrecorder", "Error during multipart upload");
-                    e.printStackTrace();
                 }
             }
         }, 2000);
