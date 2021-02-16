@@ -73,6 +73,7 @@ public class Networking {
             new Networking.HTTPGetUploadToken().execute();
             Log.d("sensorrecorder", "Upload sensorData");
             sensorService.prepareUpload();
+            startUploadIfReady();
         }
     }
 
@@ -227,7 +228,7 @@ public class Networking {
     }
 
     private void startUploadIfReady(){
-        if (toBackupFiles.size() == 0 && uploadToken != null){
+        if (uploadToken != null){
             UploadFiles();
         }
     }
@@ -455,7 +456,7 @@ public class Networking {
 
                             @Override
                             public void run() {
-                                DoFileUpload();
+                                startUploadIfReady();
                             }
                         });
                     } else{

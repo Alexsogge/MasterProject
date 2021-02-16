@@ -244,7 +244,6 @@ public class MainActivity extends WearableActivity {
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
             sensorService.startStopButton = startStopButton;
             networking.sensorService = sensorService;
-            sensorService.networking = networking;
             batteryEventHandler.sensorListenerService = sensorService;
         }
 

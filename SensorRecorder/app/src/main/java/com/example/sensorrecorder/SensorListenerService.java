@@ -66,10 +66,6 @@ import com.arthenica.mobileffmpeg.FFmpeg;
 
 
 public class SensorListenerService extends Service implements SensorEventListener{
-
-
-    public Networking networking;
-
     private final IBinder binder = new LocalBinder();
 
     SensorManager sensorManager;
@@ -542,6 +538,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         useMic= configs.getBoolean(getString(R.string.conf_useMic), true);
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
 
+        micCounter = 0;
         if(useMic && !useMultipleMic) {
             startMediaRecorder();
             mediaRecorder.pause();
@@ -975,34 +972,22 @@ public class SensorListenerService extends Service implements SensorEventListene
         stopRecording();
         setInfoText("Backup files");
         Log.d("sensorrecorder", "Backup files");
-        queue_backup_files();
         backup_recording_files();
     }
 
-    private void queue_backup_files(){
-        if(useZIPStream) {
-            networking.toBackupFiles.add(recording_file_acc.getName());
-            networking.toBackupFiles.add(recording_file_gyro.getName());
-        }
-        if(useMKVStream)
-            networking.toBackupFiles.add(recording_file_mkv.getName());
-        networking.toBackupFiles.add(recording_file_time_stamps.getName());
-        networking.toBackupFiles.add(recording_file_mic.getName());
-        networking.toBackupFiles.add(recording_file_mic_time_stamps.getName());
-        networking.toBackupFiles.add(recording_file_battery.getName());
-    }
 
     public void backup_recording_files(){
+
         if(useZIPStream) {
-            new FileBackupTask().execute(recording_file_acc);
-            new FileBackupTask().execute(recording_file_gyro);
+            backupFile(recording_file_acc);
+            backupFile(recording_file_gyro);
         }
         if(useMKVStream)
-            new FileBackupTask().execute(recording_file_mkv);
-        new FileBackupTask().execute(recording_file_time_stamps);
-        new FileBackupTask().execute(recording_file_mic);
-        new FileBackupTask().execute(recording_file_mic_time_stamps);
-        new FileBackupTask().execute(recording_file_battery);
+            backupFile(recording_file_mkv);
+        backupFile(recording_file_time_stamps);
+        backupFile(recording_file_mic);
+        backupFile(recording_file_mic_time_stamps);
+        backupFile(recording_file_battery);
     }
 
 
@@ -1023,6 +1008,24 @@ public class SensorListenerService extends Service implements SensorEventListene
                 Toast.makeText(getBaseContext(), text, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+
+    private void backupFile(File src){
+        String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
+        Log.e("sensorrecorder", "Backup file:" + src.getName());
+        String extension = src.getName().split("\\.")[1];
+        Log.e("sensorrecorder", "Extension: " + extension);
+        File dst = null;
+        for (int i = 0; i < 99; i++){
+            dst = new File(recording_file_path, backup_name + "_" + i + "." + extension);
+            if (!dst.exists())
+                break;
+        }
+        Log.d("sensorrecorder", "Backup " + dst.getName());
+        //dst.createNewFile();
+
+        src.renameTo(dst);
     }
 
     private void micTriggerStart(){
@@ -1053,59 +1056,6 @@ public class SensorListenerService extends Service implements SensorEventListene
             }
         }, 5000); //the time you want to delay in milliseconds
     }
-
-    protected final class FileBackupTask extends AsyncTask<File, File, String>{
-        String filename;
-
-        public File backup_file(File src) throws IOException {
-            String backup_name = src.getName().replaceFirst("[.][^.]+$", "");
-            Log.e("sensorrecorder", "Backup file:" + src.getName());
-            String extension = src.getName().split("\\.")[1];
-            Log.e("sensorrecorder", "Extension: " + extension);
-            File dst = null;
-            for (int i = 0; i < 99; i++){
-                dst = new File(recording_file_path, backup_name + "_" + i + "." + extension);
-                if (!dst.exists())
-                    break;
-            }
-            Log.d("sensorrecorder", "Backup " + dst.getName());
-            //dst.createNewFile();
-
-            src.renameTo(dst);
-
-            /*
-            try (InputStream in = new FileInputStream(src)) {
-                try (OutputStream out = new FileOutputStream(dst)) {
-                    // Transfer bytes from in to out
-                    byte[] buf = new byte[1024];
-                    int len;
-                    while ((len = in.read(buf)) > 0) {
-                        out.write(buf, 0, len);
-                    }
-                }
-            }
-            */
-            return dst;
-        }
-
-        @Override
-        protected String doInBackground(File... files) {
-            try {
-                filename = files[0].getName();
-                backup_file(files[0]);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            networking.finishedFileBackup(filename);
-        }
-    }
-
-
 
     private class CopyListener implements SensorEventListener, SensorEventListener2 {
         private final int index;
