@@ -1,30 +1,22 @@
 package com.example.sensorrecorder;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.Network;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -36,20 +28,11 @@ import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.wear.widget.WearableLinearLayoutManager;
-import androidx.wear.widget.WearableRecyclerView;
-import androidx.wear.widget.drawer.WearableNavigationDrawerView;
-
-import com.google.android.gms.common.util.ArrayUtils;
-
-import java.util.ArrayList;
 
 
 import static android.Manifest.permission.RECORD_AUDIO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
 public class MainActivity extends WearableActivity {
@@ -82,31 +65,14 @@ public class MainActivity extends WearableActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         turnOffDozeMode(this);
-        /*
-        WearableRecyclerView myView = (WearableRecyclerView)findViewById(R.id.recycler_launcher_view);
-        myView.setEdgeItemsCenteringEnabled(true);
-        // myView.setLayoutManager(new WearableLinearLayoutManager(this));
-        CustomScrollingLayoutCallback customScrollingLayoutCallback =
-                new CustomScrollingLayoutCallback();
-        myView.setLayoutManager(
-                new WearableLinearLayoutManager(this, customScrollingLayoutCallback));
 
-        */
-
+        // set scroll view to correct size
         adjustInset();
 
-        try {
-            PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), 0);
-            String version = pInfo.versionName;
-            Log.e("sensorrecorder", "Android version: " + version);
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-
-
+        // initialize user interface elements
         initUI();
 
-
+        // get settings. If not already set open config activity
         configs = this.getSharedPreferences(
                 getString(R.string.configs), Context.MODE_PRIVATE);
         configIntent = new Intent(this, ConfActivity.class);
@@ -117,9 +83,7 @@ public class MainActivity extends WearableActivity {
         networking = new Networking(this, null, configs);
         batteryEventHandler = new BatteryEventHandler();
 
-
-
-
+        // check if needed permissions are granted
         if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED ||
                 ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED) {
             ActivityCompat.requestPermissions(MainActivity.this,
@@ -127,7 +91,7 @@ public class MainActivity extends WearableActivity {
                     1);
 
         } else {
-            InitializeServices();
+            initializeServices();
         }
 
 
@@ -180,6 +144,7 @@ public class MainActivity extends WearableActivity {
                if (sensorService != null){
                     sensorService.addHandWashEventBefore(position * 60 * 5);
                     handWashSpinner.setNoSelection();
+                    Toast.makeText(MainActivity.this, "Added hand wash\n" + ((TextView)view).getText(), Toast.LENGTH_SHORT).show();
                }
             }
 
@@ -191,13 +156,14 @@ public class MainActivity extends WearableActivity {
         });
     }
 
-    private void InitializeServices(){
+    private void initializeServices(){
+        // set system calls for battery changes
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(Intent.ACTION_BATTERY_LOW);
         this.registerReceiver(batteryEventHandler, filter);
 
 
-        StartRecordService();
+        startRecordService();
         uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -221,7 +187,7 @@ public class MainActivity extends WearableActivity {
         });
     }
 
-    private void StartRecordService(){
+    private void startRecordService(){
         intent = new Intent(this, SensorListenerService.class );
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -237,10 +203,11 @@ public class MainActivity extends WearableActivity {
         @Override
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            // get SensorService instance when ready
             SensorListenerService.LocalBinder binder = (SensorListenerService.LocalBinder) service;
             sensorService = binder.getService();
             mBound = true;
+            // initialize services components
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
             sensorService.startStopButton = startStopButton;
             networking.sensorService = sensorService;
@@ -260,33 +227,23 @@ public class MainActivity extends WearableActivity {
         Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
         switch (requestCode) {
             case 1: {
-
-                for (int i = 0; i < permissions.length; i++){
-                    Log.e("sensorrecorder", "Permission: " + permissions[i] + " -> " + grantResults[i]);
-                }
-
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 1
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED
                         && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                    InitializeServices();
-                    StartRecordService();
+                    // permission was granted, start services
+                    initializeServices();
+                    startRecordService();
                 } else {
                     ActivityCompat.requestPermissions(MainActivity.this,
                             new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
                             1);
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    //Toast.makeText(MainActivity.this, "Permission denied to read your External storage", Toast.LENGTH_SHORT).show();
+                    // permission denied
+                    Toast.makeText(MainActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
                 }
                 return;
             }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
         }
     }
 
@@ -313,30 +270,3 @@ public class MainActivity extends WearableActivity {
         }
     }
 }
-
-
-class CustomScrollingLayoutCallback extends WearableLinearLayoutManager.LayoutCallback {
-    /**
-     * How much should we scale the icon at most.
-     */
-    private static final float MAX_ICON_PROGRESS = 0.65f;
-
-    private float progressToCenter;
-
-    @Override
-    public void onLayoutFinished(View child, RecyclerView parent) {
-
-        // Figure out % progress from top to bottom
-        float centerOffset = ((float) child.getHeight() / 2.0f) / (float) parent.getHeight();
-        float yRelativeToCenterOffset = (child.getY() / parent.getHeight()) + centerOffset;
-
-        // Normalize for center
-        progressToCenter = Math.abs(0.5f - yRelativeToCenterOffset);
-        // Adjust to the maximum scale
-        progressToCenter = Math.min(progressToCenter, MAX_ICON_PROGRESS);
-
-        child.setScaleX(1 - progressToCenter);
-        child.setScaleY(1 - progressToCenter);
-    }
-}
-

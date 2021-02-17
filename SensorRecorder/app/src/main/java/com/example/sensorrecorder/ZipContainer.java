@@ -13,25 +13,25 @@ public class ZipContainer extends OutputStreamContainer{
         innerFileExtension = extension;
     }
 
-    public void OpenStream() throws IOException {
+    public void openStream() throws IOException {
         if(isActive) {
-            super.OpenStream();
+            super.openStream();
             zipOutputStream = new ZipOutputStream(outputStream);
             zipOutputStream.putNextEntry(new ZipEntry(name + "." + innerFileExtension));
         }
     }
 
-    public void WriteData(String data) throws IOException {
+    public void writeData(String data) throws IOException {
         if(isActive)
             zipOutputStream.write(data.getBytes());
     }
 
-    public void Flush() throws IOException {
+    public void flush() throws IOException {
         if(isActive)
             zipOutputStream.flush();
     }
 
-    public void Close() throws IOException {
+    public void close() throws IOException {
         zipOutputStream.closeEntry();
         zipOutputStream.close();
         outputStream.close();

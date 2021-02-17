@@ -1,7 +1,6 @@
 package com.example.sensorrecorder;
 
 import android.os.Environment;
-import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,32 +19,33 @@ public class DataContainer {
         this.name = name;
         this.extension = extension;
         fileName = name + "." + extension;
-        InitFilePath();
+        initFilePath();
 
         recordingFile = new File(recordingFilePath, fileName);
     }
 
-    public void SetActive() throws IOException {
+    public void setActive() throws IOException {
         isActive = true;
         recordingFile.createNewFile();
     }
 
-    public void Deactivate(){
+    public void deactivate(){
         isActive = false;
     }
 
-    public void Close() throws IOException {
+    public void close() throws IOException {
 
     }
 
-    private void InitFilePath(){
+    private void initFilePath(){
         if(!recordingFilePath.exists())
         {
             recordingFilePath.mkdirs();
         }
     }
 
-    public void BackupFile(){
+    public void backupFile(){
+        // search next available index for file and rename current
         if (isActive) {
             File dst = null;
             for (int i = 0; i < 999; i++) {
@@ -57,7 +57,8 @@ public class DataContainer {
         }
     }
 
-    public ArrayList<File> GetAllVariants(){
+    public ArrayList<File> getAllVariants(){
+        // search for all files which are created during backup process
         ArrayList<File> variants = new ArrayList<File>();
 
         File tmp_file = null;

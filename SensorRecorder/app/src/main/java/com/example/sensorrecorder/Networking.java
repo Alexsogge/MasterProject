@@ -2,14 +2,11 @@ package com.example.sensorrecorder;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -17,7 +14,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -45,7 +41,6 @@ public class Networking {
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
-    public ArrayList<String> toBackupFiles = new ArrayList<>();
     private ArrayList<String> toUploadedFiles = new ArrayList<>();
     private SharedPreferences configs;
     private Handler uiHandler;
@@ -59,38 +54,45 @@ public class Networking {
         this.sensorService = sensorService;
         infoText = (TextView)mainActivity.findViewById(R.id.infoText);
         this.configs = configs;
-//        if(!this.configs.contains(mainActivity.getString(R.string.conf_serverToken)))
-//            requestServerToken();
     }
 
     public void DoFileUpload(){
-        Log.d("sensorrecorder", "Pressed Upload, token:" + configs.getString(mainActivity.getString(R.string.conf_serverToken), ""));
+        // check if server token exists. If not request it, else proceed upload
         if(configs.getString(mainActivity.getString(R.string.conf_serverToken), "").equals("")) {
             requestServerToken();
         } else {
+            // keep the screen on to prevent system goes to sleep and interrupts process
             mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+            // we need an upload token from the server to signalise which files belong together
             uploadToken = null;
             new Networking.HTTPGetUploadToken().execute();
-            Log.d("sensorrecorder", "Upload sensorData");
+
+            // stop recording and create backup
             sensorService.prepareUpload();
+
             startUploadIfReady();
         }
     }
 
     private void UploadFiles(){
+        // update info text
         infoText.setText("Check connection");
         infoText.invalidate();
-        Log.d("sensorrecorder", "Check connection");
+
+        // check if there is network connection
         ConnectivityManager connectivityManager =
                 (ConnectivityManager) mainActivity.getSystemService(mainActivity.CONNECTIVITY_SERVICE);
-        Log.d("sensorrecorder", "Get active connection");
+
         Network activeNetwork = connectivityManager.getActiveNetwork();
-        Log.d("sensorrecorder", "active connection is: " + activeNetwork.toString());
+
+        // signalise if there is no network connection and abort upload
         if (activeNetwork == null) {
             Toast.makeText(mainActivity.getBaseContext(), "No connection to internet", Toast.LENGTH_LONG).show();
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             return;
         }
+        // initialize progress bar for upload status uf current file
         uploadProgressBar = (ProgressBar) mainActivity.findViewById(R.id.uploaadProgressBar);
         uploadProgressBar.setMax(100);
 
@@ -100,8 +102,9 @@ public class Networking {
             @Override
             public void run() {
                 uploadProgressBar.setVisibility(View.VISIBLE);
+                // go through all stored data files and upload them
                 for(DataContainer container: sensorService.allDataContainers){
-                    for(File dataFile: container.GetAllVariants()){
+                    for(File dataFile: container.getAllVariants()){
                         new Networking.HTTPPostMultiPartFile().execute(serverAddress, dataFile.getName());
                         toUploadedFiles.add(dataFile.getName());
                     }
@@ -118,11 +121,6 @@ public class Networking {
         });
     }
 
-    public void finishedFileBackup(String fileName){
-        toBackupFiles.remove(fileName);
-        startUploadIfReady();
-    }
-
     private void receivedUploadToken(){
         startUploadIfReady();
     }
@@ -133,16 +131,17 @@ public class Networking {
         }
     }
 
-    private void FinishedFileUpload(String filename, String result){
+    private void finishedFileUpload(String filename, String result){
+        // get uploaded file and remove it from queue
         toUploadedFiles.remove(filename);
+        // show status of uploaded file
         makeToast(filename + ": " + result);
+
+        // check if upload of all files is done
         if(toUploadedFiles.size() == 0){
-            infoText.setText("upload finished\n" + sensorService.doubleTimeStamps + " doubles");
-            sensorService.doubleTimeStamps = 0;
+            infoText.setText("upload finished");
             uploadProgressBar.setVisibility(View.INVISIBLE);
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            // sensorService.registerToManager();
-            // sensorService.startRecording();
         }
     }
 
@@ -183,12 +182,9 @@ public class Networking {
             });
 
             File file = null;
-            //String[] q = recording_file_acc.pat.split("/");
-            //int idx = q.length - 1;
             try {
-                final File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
+                final File path = DataContainer.recordingFilePath;
                 file = new File(path, filename);
-                Log.d("sensorrecorder", "Load File "+ filename + " of size:" + file.length());
                 uploadMultipartFile(file);
                 return "success: uploaded";
 
@@ -199,7 +195,6 @@ public class Networking {
         }
 
         private void uploadMultipartFile(File file) throws Exception {
-            // Use the imgur image upload API as documented at https://api.imgur.com/endpoints/image
             uploadProgressBar.setProgress(0);
             MediaType media_type = MEDIA_TYPE_ZIP;
             if (file.getName().substring(file.getName().length()-4).equals(".mkv"))
@@ -210,18 +205,14 @@ public class Networking {
                 media_type = MEDIA_TYPE_3GP;
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
-                    //.addFormDataPart("name", "file")
                     .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(media_type, file))
-                    //.addFormDataPart("filename", file.getName(),
-                    //        RequestBody.create(MEDIA_TYPE_CSV, file))
                     .build();
 
-
+            // we use a ProgressRequestBody to get events for current upload status and visualize this with a progressbar
             ProgressRequestBody progressRequestBody = new ProgressRequestBody(requestBody, new ProgressRequestBody.Listener() {
                 @Override
                 public void onRequestProgress(long bytesWritten, long contentLength) {
                     float percentage = 100f * bytesWritten / contentLength;
-                    // Log.d("sensorrecorder", "Progress2: " + percentage);
                     uploadProgressBar.setProgress((int)percentage);
                     publishProgress(String.valueOf(Math.round(percentage)));
                 }
@@ -240,10 +231,9 @@ public class Networking {
                 if (!response.isSuccessful()){
                     throw new IOException("Unexpected code " + response);
                 } else {
+                    // remove file after upload
                     file.delete();
                 }
-
-                //System.out.println(response.body().string());
             }
         }
 
@@ -253,78 +243,15 @@ public class Networking {
 
                 @Override
                 public void run() {
-
-                    // infoText.setText(values[0] + "%");
                     uploadProgressBar.setProgress(Integer.parseInt(values[0]));
-
                 }
             });
         }
 
         @Override
         protected void onPostExecute(String result) {
-            FinishedFileUpload(filename, result);
+            finishedFileUpload(filename, result);
         }
-    }
-
-
-    protected final class HTTPPostJSON extends AsyncTask<String, String, String> {
-
-        public HTTPPostJSON(){
-            //set context variables if required
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected String doInBackground(String... params) {
-            Log.d("sensorrecorder", "Post sensorData");
-            String urlString = params[0]; // URL to call
-            String data = params[1]; //data to post
-            HttpURLConnection connection = null;
-            String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
-
-            try {
-                URL url = new URL(urlString);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                // conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8;boundary=\"+boundary");
-                conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
-                conn.setRequestProperty("Accept","application/json");
-                conn.setDoOutput(true);
-                conn.setDoInput(true);
-
-                JSONObject jsonParam = new JSONObject(data);
-
-                Log.i("JSON", jsonParam.toString());
-                DataOutputStream os = new DataOutputStream(conn.getOutputStream());
-                // os.writeBytes("--" + boundary + "\r\n");
-                //os.writeBytes(URLEncoder.encode(jsonParam.toString(), "UTF-8"));
-                os.writeBytes(jsonParam.toString());
-
-                os.flush();
-                os.close();
-
-                Log.i("STATUS", String.valueOf(conn.getResponseCode()));
-                Log.i("MSG" , conn.getResponseMessage());
-
-                conn.disconnect();
-                return "success: uploaded data";
-            } catch (ProtocolException ex) {
-                ex.printStackTrace();
-                return "error: ProtocolException";
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                return "error: IOExeception";
-            } catch (Exception e) {
-                e.printStackTrace();
-                return "error: error";
-            }
-        }
-
     }
 
     protected final class HTTPGetServerToken extends AsyncTask<String, String, String> {

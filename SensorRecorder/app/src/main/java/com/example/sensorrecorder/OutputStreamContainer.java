@@ -10,22 +10,22 @@ public class OutputStreamContainer extends DataContainer{
         super(name, extension);
     }
 
-    public void OpenStream() throws IOException {
+    public void openStream() throws IOException {
         if(isActive)
             outputStream = new FileOutputStream(recordingFile);
     }
 
-    public void WriteData(String data) throws IOException {
+    public void writeData(String data) throws IOException {
         if (isActive)
             outputStream.write(data.getBytes());
     }
 
-    public void Flush() throws IOException {
+    public void flush() throws IOException {
         if(isActive)
             outputStream.flush();
     }
 
-    public void Close() throws IOException {
+    public void close() throws IOException {
         outputStream.close();
     }
 }
