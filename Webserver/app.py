@@ -1,9 +1,11 @@
+import math
 import random
 import string
+from typing import Dict
 from zipfile import ZipFile
 from datetime import datetime
 
-from flask import Flask, jsonify, request, render_template, redirect
+from flask import Flask, jsonify, request, render_template, redirect, send_from_directory
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,6 +17,7 @@ from config import Config
 from auth_requests import *
 
 from preview_builder import generate_plot_data, get_data_array
+from plot_data import PlotData
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp'}
@@ -29,6 +32,8 @@ token_auth = HTTPTokenAuth('Bearer')
 config = Config()
 open_auth_requests: AuthRequests = AuthRequests()
 
+prepared_plot_data: Dict[str, PlotData] = dict()
+
 
 def is_allowed_file(filename):
     return '.' in filename and \
@@ -37,6 +42,7 @@ def is_allowed_file(filename):
 
 def generate_random_string(string_length: int):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=string_length))
+
 
 @token_auth.verify_token
 def verify_token(token):
@@ -50,17 +56,17 @@ def verify_password(username, password):
     if username == config.user and password == config.user_pw:
         return username
 
+
 @app.template_filter()
 def is_boolean(input):
     return type(input) is bool or input == 'True' or input == 'False' or input == 'on' or input == 'off'
+
 
 @app.template_filter()
 def render_is_checked(input):
     if bool(input):
         return 'checked'
     return ''
-
-
 
 
 @app.route('/')
@@ -159,8 +165,9 @@ def list_recordings():
 def get_recording(recording):
     recording_files = []
     description = ""
-    for file in os.listdir(os.path.join(UPLOAD_FOLDER, recording)):
-        if '.3gp' in file and config.hide_mic_files:
+    path = os.path.join(UPLOAD_FOLDER, recording)
+    for file in os.listdir(path):
+        if config.hide_mic_files and '.zip' in file and contains_mic_files(file, path):
             continue
         if file == 'README.md':
             description = open(os.path.join(UPLOAD_FOLDER, os.path.join(recording, "README.md")), 'r').read()
@@ -178,6 +185,9 @@ def plot_recording(recording):
         generate_plot_data(os.path.join(UPLOAD_FOLDER, recording))
 
     if os.path.exists(plot_file):
+        if recording not in prepared_plot_data:
+            get_plot_data(recording)
+
         return render_template('show_recording_plot.html', recording_name=recording, plot=plot_file)
 
     return render_template('error_show_recording_plot.html', recording_name=recording)
@@ -211,7 +221,7 @@ def new_recording():
             return jsonify({'status': 'error, now selected file'})
         if file and is_allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            if os.path.splitext(filename)[1] == '.3gp' and config.rename_mic_files:
+            if config.rename_mic_files and 'mic' in filename and '.zip' in filename:
                 numbering = filename.split('_')[-1]
                 filename = generate_random_string(16) + '_' + numbering
             upload_path = os.path.join(app.config['UPLOAD_FOLDER'], request_uuid)
@@ -268,36 +278,22 @@ def recording_description(recording):
 @app.route('/recording/data/<string:recording>/')
 def recording_data(recording):
     print('User: ', token_auth.current_user())
-    recording_folder = os.path.join(UPLOAD_FOLDER, recording)
-    recording_data_array, hand_wash_time_stamps = get_data_array(recording_folder)
-    # print(recording_data_array.shape)
+    plot_data = get_plot_data(recording)
 
-    series = []
-    for i in range(3):
-        series_entry = dict()
-        series_entry['name'] = 'axis ' + str(i)
+    start_point = float(request.args.get('start'))
+    end_point = float(request.args.get('end'))
 
-        series_entry['data'] = recording_data_array[:, [0, i+1]].tolist()
-        series.append(series_entry)
+    series = plot_data.get_series(start_point, end_point)
 
-    annotations = []
-    time_stamp_series = dict()
-    time_stamp_series['name'] = 'hand wash'
-    time_stamp_series['data'] = []
-    for i, time_stamp in enumerate(hand_wash_time_stamps[:, 0]):
-        time_stamp_series['data'].append({'x': time_stamp, 'y': 13, 'id': f'ts_{i}', 'marker': { 'fillColor': '#BF0B23', 'radius': 10 }})
-        annotation_entry = {'type': 'verticalLine', 'typeOptions': {'point': f'ts_{i}'}}
-        annotations.append(annotation_entry)
-
-    series.append(time_stamp_series)
+    series.append(plot_data.time_stamp_series)
     # print(time_stamp_series)
 
 
-    return jsonify({'data': {'series': series, 'annotations': annotations}})
+    return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):
-    if os.path.splitext(file_name)[1] == '.3gp' and not config.pack_mic_files:
+    if not config.pack_mic_files and '.zip' in file_name and contains_mic_files(file_name, directory):
         return
 
     zip_file_name = os.path.join(directory, directory_uuid + '.zip')
@@ -306,6 +302,39 @@ def add_file_to_zip(file_name, directory, directory_uuid):
         sub_file = os.path.join(directory, file_name)
         zip_file.write(sub_file, file_name)
         print('added', file_name, ' to archive')
+
+
+def contains_mic_files(file, path):
+    zip = ZipFile(os.path.join(path, file))
+    for containing_file in zip.namelist():
+        if 'mic' in containing_file:
+            return True
+    return False
+
+
+def get_plot_data(recording):
+    if recording not in prepared_plot_data:
+        if len(prepared_plot_data) > 2:
+            oldest_data = None
+            oldest_ts = math.inf
+            for key, data in prepared_plot_data.items():
+                if data.last_access < oldest_ts:
+                    oldest_ts = data.last_access
+                    oldest_data = key
+                del prepared_plot_data[oldest_data]
+        prepared_plot_data[recording] = PlotData(recording, os.path.join(UPLOAD_FOLDER, recording))
+    return prepared_plot_data[recording]
+
+# just for debug
+@app.route('/static/<path:path>')
+def send_js(path):
+    return send_from_directory('js', path)
+
+
+@app.route('/uploads/<path:path>')
+def send_png(path):
+    print("send png", path)
+    return send_from_directory('uploads', path)
 
 
 if __name__ == '__main__':
