@@ -185,7 +185,7 @@ def plot_recording(recording):
         generate_plot_data(os.path.join(UPLOAD_FOLDER, recording))
 
     if os.path.exists(plot_file):
-        if recording not in prepared_plot_data:
+        if recording not in prepared_plot_data.copy():
             get_plot_data(recording)
 
         return render_template('show_recording_plot.html', recording_name=recording, plot=plot_file)
@@ -285,11 +285,14 @@ def recording_data(recording):
 
     series = plot_data.get_series(start_point, end_point)
 
-    series.append(plot_data.time_stamp_series)
+    # series.append(plot_data.annotations)
+    #series.append(plot_data.time_stamp_series)
+
     # print(time_stamp_series)
 
 
     return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
+    #return jsonify({'data': {'series': series}})
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):
@@ -317,11 +320,12 @@ def get_plot_data(recording):
         if len(prepared_plot_data) > 2:
             oldest_data = None
             oldest_ts = math.inf
-            for key, data in prepared_plot_data.items():
+            for key, data in prepared_plot_data.copy().items():
                 if data.last_access < oldest_ts:
                     oldest_ts = data.last_access
                     oldest_data = key
-                del prepared_plot_data[oldest_data]
+                if oldest_data in prepared_plot_data:
+                    del prepared_plot_data[oldest_data]
         prepared_plot_data[recording] = PlotData(recording, os.path.join(UPLOAD_FOLDER, recording))
     return prepared_plot_data[recording]
 

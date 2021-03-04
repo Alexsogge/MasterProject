@@ -21,7 +21,7 @@
     <div class="row mt-2"><h3>Files</h3></div>
 
         {% for file in files %}
-            <div class="row">
+            <div class="row mt-1">
                 <div class="col"><a href="/uploads/{{ recording_name }}/{{ file }}">{{ file }}</a></div>
                 <div class="col"><a class="btn btn-danger" href="/recordingfile/delete/{{ recording_name }}/{{ file }}/">Delete</a></div>
             </div>

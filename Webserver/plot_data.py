@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List
 
 from preview_builder import generate_plot_data, get_data_array
@@ -11,10 +12,24 @@ class PlotData:
         self.path = path
         self.last_access = time.time()
 
-        self.recording_data_array, self.hand_wash_time_stamps = get_data_array(path)
+        if (os.path.exists(os.path.join(path, 'data_array_acc.npy'))):
+            self.recording_data_array, self.hand_wash_time_stamps = self.load_data_array()
+        else:
+            self.recording_data_array, self.hand_wash_time_stamps = self.create_new_data_array()
         self.time_range = self.recording_data_array[-1, 0] - self.recording_data_array[0, 0]
         self.annotations, self.time_stamp_series = self.build_annotations()
 
+
+    def load_data_array(self):
+        recording_array = np.load(os.path.join(self.path, 'data_array_acc.npy'))
+        hand_wash_array = np.load(os.path.join(self.path, 'data_array_hand_wash.npy'))
+        return recording_array, hand_wash_array
+
+    def create_new_data_array(self):
+        recording_array, hand_wash_array = get_data_array(self.path)
+        np.save(os.path.join(self.path, 'data_array_acc.npy'), recording_array)
+        np.save(os.path.join(self.path, 'data_array_hand_wash.npy'), hand_wash_array)
+        return recording_array, hand_wash_array
 
     def get_index_of_ts(self, time_stamp):
         return np.searchsorted(self.recording_data_array[:, 0], time_stamp)
@@ -36,7 +51,9 @@ class PlotData:
             series_entry = dict()
             series_entry['name'] = 'axis ' + str(i)
 
+
             series_entry['data'] = data_array[:, [0, i + 1]].tolist()
+            series_entry['id'] = str(i)
             series.append(series_entry)
 
         self.last_access = time.time()
@@ -44,17 +61,24 @@ class PlotData:
 
     def build_annotations(self):
         annotations = []
+        labels = []
         time_stamp_series = dict()
         time_stamp_series['name'] = 'hand wash'
         time_stamp_series['data'] = []
         for i, time_stamp in enumerate(self.hand_wash_time_stamps[:, 0]):
             time_stamp_series['data'].append(
                 {'x': time_stamp, 'y': 13, 'id': f'ts_{i}', 'marker': {'fillColor': '#BF0B23', 'radius': 10}})
-            annotation_entry = {'type': 'verticalLine', 'typeOptions': {'point': f'ts_{i}'}}
-            annotations.append(annotation_entry)
+            #annotation_entry = {'type': 'verticalLine', 'typeOptions': {'point': f'ts_{i}'}}
+            #annotations.append(annotation_entry)
+            labels.append({'point': {'xAxis': 0, 'yAxis': 0, 'x': time_stamp, 'y': 15}, 'text': f'hand wash {i}'})
+
+        annotations.append({'draggable': '', 'labelOptions': {'backgroundColor': 'rgba(255,255,255,0.5)',
+                                                              'verticalAlign': 'top', 'y': 15},
+                           'labels': labels})
+
 
         return annotations, time_stamp_series
-
+        # return {'type': 'flags', 'data': annotations, 'onSeries': '0', 'shape': 'circlepin', 'width': 16,}, time_stamp_series
 
 
 

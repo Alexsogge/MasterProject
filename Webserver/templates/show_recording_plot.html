@@ -49,8 +49,8 @@
     }
 
     function requestNewPlotData(){
-        const offsetStart = 900;
-        const offsetEnd = 600;
+        const offsetStart = 365;
+        const offsetEnd = 75;
         let x = cropper.getData().x - offsetStart;
         let width = cropper.getData().width;
         var imageWidth = cropper.getImageData().naturalWidth - offsetStart - offsetEnd;
@@ -75,6 +75,7 @@
             rotatable: false,
             scalable: false,
             zoomable: false,
+            viewMode: 3,
             cropend(event) {
                 console.log(cropper.getData());
                 console.log(event.detail.originalEvent);
