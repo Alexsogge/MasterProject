@@ -109,6 +109,9 @@ class DataProcessor:
         axs[1].set_title('Gyroscope')
         axs[2].set_title('Battery')
 
+
+        plt.xlim([0, self.data_dict['Acceleration'][-1, 0]*nano_sec])
+
         fig.tight_layout()
         if generate_image:
             fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=500)
@@ -131,8 +134,10 @@ class DataProcessor:
         ax.scatter(data[1:,0]*nano_sec/60, y[1:], color=colors)
         ax.set_xlabel('timestamp min')
         ax.set_ylabel('difference sec')
+
         self.plot_mic_events((np.amin(y[1:]), np.amax(y[1:])), ax, 1 / 60)
         self.plot_hand_wash_events((np.amin(y[1:]), np.amax(y[1:])), ax, 1/60)
+
         plt.show()
 
     def calc_idle_time(self):
