@@ -265,6 +265,7 @@ public class Networking {
             Request request = new Request.Builder()
                     .url(serverName + "/auth/request/?identifier="+userIdentifier)
                     .build();
+            Log.d("http", "request token from " + serverName + "/auth/request/?identifier="+userIdentifier);
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()){
                     throw new IOException("Unexpected code " + response);
@@ -296,6 +297,7 @@ public class Networking {
                 makeToast("Can't connect to server");
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
+                makeToast("Can't connect to server");
             }
             return null;
         }

@@ -50,9 +50,9 @@ import java.util.zip.ZipOutputStream;
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
 
-
-
+import static android.Manifest.permission.RECORD_AUDIO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
@@ -405,7 +405,8 @@ public class SensorListenerService extends Service implements SensorEventListene
         // load config
         useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true);
         useMKVStream = configs.getBoolean(getString(R.string.conf_useMKV), false);
-        useMic= configs.getBoolean(getString(R.string.conf_useMic), true);
+        useMic = configs.getBoolean(getString(R.string.conf_useMic), true);
+        useMic &= ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_GRANTED;
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
 
         // reset all containers before we activate the new ones

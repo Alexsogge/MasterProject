@@ -30,7 +30,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 
-import static android.Manifest.permission.RECORD_AUDIO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
@@ -43,7 +42,8 @@ public class MainActivity extends WearableActivity {
     private SensorListenerService sensorService;
     private Networking networking;
 
-    boolean mBound = false;
+    private boolean mBound = false;
+    private boolean waitForConfigs = false;
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
@@ -73,30 +73,28 @@ public class MainActivity extends WearableActivity {
         initUI();
 
         // get settings. If not already set open config activity
+        loadConfigs();
+
+        if(!waitForConfigs)
+            initServices();
+
+        // Enables Always-on
+        //setAmbientEnabled();
+    }
+
+    private void loadConfigs(){
         configs = this.getSharedPreferences(
                 getString(R.string.configs), Context.MODE_PRIVATE);
         configIntent = new Intent(this, ConfActivity.class);
         if (!configs.contains(getString(R.string.conf_serverName)) || !configs.contains(getString(R.string.conf_userIdentifier))){
-            startActivity(configIntent);
-        }
-
-        networking = new Networking(this, null, configs);
-        batteryEventHandler = new BatteryEventHandler();
-
-        // check if needed permissions are granted
-        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED ||
-                ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED) {
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
-                    1);
-
+            Log.d("config", configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
+            if(!waitForConfigs) {
+                waitForConfigs = true;
+                startActivity(configIntent);
+            }
         } else {
-            initializeServices();
+            waitForConfigs = false;
         }
-
-
-        // Enables Always-on
-        //setAmbientEnabled();
     }
 
     private void initUI(){
@@ -156,14 +154,26 @@ public class MainActivity extends WearableActivity {
         });
     }
 
-    private void initializeServices(){
+    private void initServices(){
+        networking = new Networking(this, null, configs);
+        batteryEventHandler = new BatteryEventHandler();
+
+        // check if needed permissions are granted
+        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    1);
+        } else {
+            startServices();
+        }
+    }
+
+    private void startServices(){
         // set system calls for battery changes
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(Intent.ACTION_BATTERY_LOW);
         this.registerReceiver(batteryEventHandler, filter);
 
-
-        startRecordService();
         uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -185,9 +195,11 @@ public class MainActivity extends WearableActivity {
                 }
             }
         });
+
+        startRecording();
     }
 
-    private void startRecordService(){
+    private void startRecording(){
         intent = new Intent(this, SensorListenerService.class );
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -228,16 +240,14 @@ public class MainActivity extends WearableActivity {
         switch (requestCode) {
             case 1: {
                 // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 1
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED
-                        && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // permission was granted, start services
-                    initializeServices();
-                    startRecordService();
+                    startServices();
+                    startRecording();
                 } else {
                     ActivityCompat.requestPermissions(MainActivity.this,
-                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                             1);
                     // permission denied
                     Toast.makeText(MainActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
@@ -268,5 +278,20 @@ public class MainActivity extends WearableActivity {
             View layout = (View) findViewById(R.id.mainview);
             layout.setPadding(inset, inset, inset, inset);
         }
+    }
+
+    protected void onResume () {
+        super.onResume();
+        Log.d("sensorrecorderevent", "Resume main actitvity");
+        if(waitForConfigs){
+            loadConfigs();
+            if(!waitForConfigs)
+                initServices();
+        }
+    }
+
+    protected void onPause () {
+        super.onPause();
+        Log.d("sensorrecorderevent", "Pause main actitvity");
     }
 }

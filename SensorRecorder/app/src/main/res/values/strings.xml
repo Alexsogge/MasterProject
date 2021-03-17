@@ -14,5 +14,5 @@
     <string name="conf_useMic">useMic</string>
     <string name="conf_multipleMic">multipleMic</string>
     <string name="ui_new_handwash">New hand wash</string>
-    <string name="predefined_serverName"></string>
+    <string name="predefined_serverName">https://records.henkela.de</string>
 </resources>

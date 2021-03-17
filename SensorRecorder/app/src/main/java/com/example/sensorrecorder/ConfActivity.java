@@ -1,10 +1,18 @@
 package com.example.sensorrecorder;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.OnLifecycleEvent;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Debug;
 import android.support.wearable.activity.WearableActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -16,10 +24,15 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Switch;
+import android.widget.Toast;
+
+import static android.Manifest.permission.RECORD_AUDIO;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 public class ConfActivity extends WearableActivity {
 
     private static double FACTOR = 0.2; // c = a * sqrt(2)
+    private Activity confActivity;
     private SharedPreferences configs;
     private EditText serverNameInput;
     private EditText userIdentifierInput;
@@ -35,6 +48,7 @@ public class ConfActivity extends WearableActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conf);
+        confActivity = this;
 
         adjustInset();
 
@@ -66,12 +80,19 @@ public class ConfActivity extends WearableActivity {
             useZipsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useZip), true));
         if(configs.contains(getString(R.string.conf_useMKV)))
             useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
+
+        if(ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){
+            useMicCheckbox.setChecked(false);
+            SharedPreferences.Editor configEditor = configs.edit();
+            configEditor.putBoolean(getString(R.string.conf_useMic), false);
+            configEditor.apply();
+        }
+
         if(configs.contains(getString(R.string.conf_useMic))) {
             boolean useMic = configs.getBoolean(getString(R.string.conf_useMic), true);
             useMicCheckbox.setChecked(useMic);
             if (!useMic)
                 multipleMicSwitch.setEnabled(false);
-
         }
         if(configs.contains(getString(R.string.conf_multipleMic)))
             multipleMicSwitch.setChecked(configs.getBoolean(getString(R.string.conf_multipleMic), true));
@@ -83,7 +104,14 @@ public class ConfActivity extends WearableActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
                 if(isChecked){
-                    multipleMicSwitch.setEnabled(true);
+                    if(ContextCompat.checkSelfPermission(confActivity, RECORD_AUDIO) == PERMISSION_DENIED){
+                        useMicCheckbox.setChecked(false);
+                        ActivityCompat.requestPermissions(confActivity,
+                                new String[]{RECORD_AUDIO},
+                                1);
+                    } else {
+                        multipleMicSwitch.setEnabled(true);
+                    }
                 } else {
                     multipleMicSwitch.setEnabled(false);
                 }
@@ -139,6 +167,24 @@ public class ConfActivity extends WearableActivity {
             int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
             View layout = (View) findViewById(R.id.mainview);
             layout.setPadding(inset, inset, inset, inset);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
+        switch (requestCode) {
+            case 1: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("Sensorrecorder", "permission: " + permissions[0]);
+                    useMicCheckbox.setChecked(true);
+                } else {
+                    useMicCheckbox.setChecked(false);
+                }
+                return;
+            }
         }
     }
 }
