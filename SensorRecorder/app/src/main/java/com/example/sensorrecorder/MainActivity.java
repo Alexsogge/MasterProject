@@ -95,6 +95,7 @@ public class MainActivity extends WearableActivity {
         } else {
             waitForConfigs = false;
         }
+        updateUploadButton();
     }
 
     private void initUI(){
@@ -154,6 +155,14 @@ public class MainActivity extends WearableActivity {
         });
     }
 
+    private void updateUploadButton(){
+        if(configs.getString(getString(R.string.conf_serverName), "").equals("")){
+            uploadButton.setEnabled(false);
+        } else {
+            uploadButton.setEnabled(true);
+        }
+    }
+
     private void initServices(){
         networking = new Networking(this, null, configs);
         batteryEventHandler = new BatteryEventHandler();
@@ -178,9 +187,10 @@ public class MainActivity extends WearableActivity {
             @Override
             public void onClick(View v) {
                 // sensorService.UploadSensorData();
-                mainScrollView.scrollTo(0, 150);
-                networking.DoFileUpload();
-
+                if(!configs.getString(getString(R.string.conf_serverName), "").equals("")) {
+                    mainScrollView.scrollTo(0, 150);
+                    networking.DoFileUpload();
+                }
             }
         });
 
@@ -288,6 +298,7 @@ public class MainActivity extends WearableActivity {
             if(!waitForConfigs)
                 initServices();
         }
+        updateUploadButton();
     }
 
     protected void onPause () {

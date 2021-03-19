@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
@@ -57,6 +59,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
 public class SensorListenerService extends Service implements SensorEventListener{
+    public final String recordSubDirectoryPrefix = "recording";
     private final IBinder binder = new LocalBinder();
     private final int samplingRate = 20000;
     private final int reportRate = 1000000;
@@ -208,6 +211,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         // add stream containers to all
         allDataContainers.addAll(streamContainers);
     }
+
 
     private void setupFFMPEGfromLocal(){
         String platform = Build.BOARD + " " + Build.DEVICE + " " + Build.VERSION.SDK_INT,
@@ -515,7 +519,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         File new_recording_mic_file;
         try {
             // String file_name =  recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
-            new_recording_mic_file = new File(DataContainer.recordingFilePath, containerMic.name + "_" + micCounter + ".3gp");
+            new_recording_mic_file = new File(containerMic.recordingFilePath, containerMic.name + "_" + micCounter + ".3gp");
             new_recording_mic_file.createNewFile();
             micCounter++;
             mediaRecorder = new MediaRecorder();
@@ -579,8 +583,9 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     public void backup_recording_files(){
+        String subDirectory = DataContainer.getNewRecordSubdirectory();
         for(DataContainer container: allDataContainers){
-            container.backupFile();
+            container.backupFile(subDirectory);
         }
     }
 
@@ -629,7 +634,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         ZipOutputStream zipOut = new ZipOutputStream(fileOut);
 
         for (int i = 0; i < 9999; i++) {
-            File tmp_file = new File(DataContainer.recordingFilePath, containerMic.name + "_" + i + ".3gp");
+            File tmp_file = new File(containerMic.recordingFilePath, containerMic.name + "_" + i + ".3gp");
             if (!tmp_file.exists())
                 continue;
             FileInputStream fis = new FileInputStream(tmp_file);
@@ -644,7 +649,12 @@ public class SensorListenerService extends Service implements SensorEventListene
             fis.close();
             tmp_file.delete();
         }
-        zipOut.close();
+
+        try {zipOut.close();}
+        catch (ZipException e){
+            fileOut.close();
+            containerMic.delete();
+        }
         fileOut.close();
     }
 

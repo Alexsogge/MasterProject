@@ -129,6 +129,8 @@ public class ConfActivity extends WearableActivity {
                     if (serverName.length() < 4 || !serverName.substring(0, 4).equals("http"))
                         serverName = "https://" + serverName;
                     configEditor.putString(getString(R.string.conf_serverName), serverName);
+                } else{
+                    configEditor.putString(getString(R.string.conf_serverName), "");
                 }
                 Log.i("sensorrecorder", "Set servername to " + serverNameInput.getText().toString());
                 if (!userIdentifier.equals(""))
@@ -142,7 +144,8 @@ public class ConfActivity extends WearableActivity {
 
                 configEditor.apply();
 
-                if (configs.getString(getString(R.string.conf_serverToken), "").equals("")){
+                if (configs.getString(getString(R.string.conf_serverToken), "").equals("") &&
+                        !configs.getString(getString(R.string.conf_serverName), "").equals("")){
                     networking.requestServerToken();
                 }
 

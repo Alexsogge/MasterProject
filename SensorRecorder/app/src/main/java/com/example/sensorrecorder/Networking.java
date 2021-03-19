@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
@@ -17,14 +16,11 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.ProtocolException;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import okhttp3.Headers;
 import okhttp3.MediaType;
@@ -41,13 +37,15 @@ public class Networking {
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
+    private ArrayList<String> toUploadDirectories = new ArrayList<>();
+    private HashMap<String, String> directoryUploadTokens = new HashMap<String, String>();
+
     private ArrayList<String> toUploadedFiles = new ArrayList<>();
     private SharedPreferences configs;
     private Handler uiHandler;
 
     private String serverAddress = "http://192.168.0.101:8000/recording/new/?uuid=219a88d0-9ad3-4c82-842c-ab5f2b5ff4de";
 
-    private String uploadToken = null;
 
     public Networking(final Activity mainActivity, SensorListenerService sensorService, SharedPreferences configs){
         this.mainActivity = mainActivity;
@@ -63,13 +61,17 @@ public class Networking {
         } else {
             // keep the screen on to prevent system goes to sleep and interrupts process
             mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-            // we need an upload token from the server to signalise which files belong together
-            uploadToken = null;
-            new Networking.HTTPGetUploadToken().execute();
-
+            Log.e("networking", "start upload");
             // stop recording and create backup
             sensorService.prepareUpload();
+
+            // we need an upload token from the server to signalise which files belong together
+            directoryUploadTokens.clear();
+            toUploadDirectories.clear();
+            for(File directory: DataContainer.getSubdirectories()) {
+                toUploadDirectories.add(directory.getPath());
+                new Networking.HTTPGetUploadToken().execute(directory.getPath());
+            }
 
             startUploadIfReady();
         }
@@ -103,10 +105,13 @@ public class Networking {
             public void run() {
                 uploadProgressBar.setVisibility(View.VISIBLE);
                 // go through all stored data files and upload them
-                for(DataContainer container: sensorService.allDataContainers){
-                    for(File dataFile: container.getAllVariants()){
-                        new Networking.HTTPPostMultiPartFile().execute(serverAddress, dataFile.getName());
-                        toUploadedFiles.add(dataFile.getName());
+                for(HashMap.Entry<String, String> keyValue: directoryUploadTokens.entrySet()) {
+
+                    for (DataContainer container : sensorService.allDataContainers) {
+                        for (File dataFile : container.getAllVariantsInSubDirectory(new File(keyValue.getKey()))) {
+                            new Networking.HTTPPostMultiPartFile().execute(serverAddress, keyValue.getValue(), dataFile.getPath());
+                            toUploadedFiles.add(dataFile.getPath());
+                        }
                     }
                 }
             }
@@ -126,16 +131,19 @@ public class Networking {
     }
 
     private void startUploadIfReady(){
-        if (uploadToken != null){
-            UploadFiles();
+        for(String directory: toUploadDirectories){
+            if(!directoryUploadTokens.containsKey(directory)) {
+                return;
+            }
         }
+        UploadFiles();
     }
 
-    private void finishedFileUpload(String filename, String result){
+    private void finishedFileUpload(String filePath, String fileName, String result){
         // get uploaded file and remove it from queue
-        toUploadedFiles.remove(filename);
+        toUploadedFiles.remove(filePath);
         // show status of uploaded file
-        makeToast(filename + ": " + result);
+        makeToast(fileName + ": " + result);
 
         // check if upload of all files is done
         if(toUploadedFiles.size() == 0){
@@ -146,7 +154,6 @@ public class Networking {
     }
 
     public void requestServerToken(){
-        Log.d("sensorrecorder", "Request Token");
         new Networking.HTTPGetServerToken().execute();
     }
 
@@ -159,7 +166,8 @@ public class Networking {
         private final OkHttpClient client = new OkHttpClient();
         private final String serverUrlSuffix = "/recording/new/?uuid=";
 
-        private String filename;
+        private String filePath;
+        private String fileName;
 
         public HTTPPostMultiPartFile(){
             //set context variables if required
@@ -172,20 +180,21 @@ public class Networking {
 
         @Override
         protected String doInBackground(String... params) {
-            filename = params[1]; //data to post
-
-            mainActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    infoText.setText("upload: " + filename);
-                }
-            });
+            String uploadToken = params[1];
+            filePath = params[2]; //data to post
 
             File file = null;
             try {
-                final File path = DataContainer.recordingFilePath;
-                file = new File(path, filename);
-                uploadMultipartFile(file);
+                // final File path = DataContainer.recordingFilePath;
+                file = new File(filePath);
+                fileName = file.getName();
+                mainActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        infoText.setText("upload: " + fileName);
+                    }
+                });
+                uploadMultipartFile(file, uploadToken);
                 return "success: uploaded";
 
             } catch (Exception e) {
@@ -194,7 +203,7 @@ public class Networking {
             }
         }
 
-        private void uploadMultipartFile(File file) throws Exception {
+        private void uploadMultipartFile(File file, String uploadToken) throws Exception {
             uploadProgressBar.setProgress(0);
             MediaType media_type = MEDIA_TYPE_ZIP;
             if (file.getName().substring(file.getName().length()-4).equals(".mkv"))
@@ -231,8 +240,13 @@ public class Networking {
                 if (!response.isSuccessful()){
                     throw new IOException("Unexpected code " + response);
                 } else {
+                    File directory = file.getParentFile();
                     // remove file after upload
                     file.delete();
+                    // test if this is last file
+                    if (directory.list().length == 1) {
+                        directory.delete();
+                    }
                 }
             }
         }
@@ -250,7 +264,7 @@ public class Networking {
 
         @Override
         protected void onPostExecute(String result) {
-            finishedFileUpload(filename, result);
+            finishedFileUpload(filePath, fileName, result);
         }
     }
 
@@ -278,13 +292,11 @@ public class Networking {
                         configEditor.putString(mainActivity.getString(R.string.conf_serverToken), Jobject.getString("token"));
                         configEditor.apply();
                         makeToast("Authentication granted");
-
-
                         mainActivity.runOnUiThread(new Runnable() {
 
                             @Override
                             public void run() {
-                                startUploadIfReady();
+                                DoFileUpload();
                             }
                         });
                     } else{
@@ -309,6 +321,7 @@ public class Networking {
 
         @Override
         protected String doInBackground(String... strings) {
+            String directory = strings[0];
             String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
             String serverToken = configs.getString(mainActivity.getString(R.string.conf_serverToken), "");
             Request request = new Request.Builder()
@@ -323,7 +336,7 @@ public class Networking {
                     JSONObject Jobject = new JSONObject(jsonData);
                     String status = Jobject.getString("status");
                     if (status.equals("success")){
-                        uploadToken = Jobject.getString("uuid");
+                        directoryUploadTokens.put(directory, Jobject.getString("uuid"));
                         makeToast("Got Token");
                     } else{
                         makeToast("Error during request");
@@ -337,6 +350,11 @@ public class Networking {
                 e.printStackTrace();
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            receivedUploadToken();
         }
     }
 }
