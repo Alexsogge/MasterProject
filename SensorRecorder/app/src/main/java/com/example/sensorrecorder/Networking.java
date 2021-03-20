@@ -107,7 +107,7 @@ public class Networking {
                 // go through all stored data files and upload them
                 for(HashMap.Entry<String, String> keyValue: directoryUploadTokens.entrySet()) {
 
-                    for (DataContainer container : sensorService.allDataContainers) {
+                    for (DataContainer container : sensorService.dataProcessor.allDataContainers) {
                         for (File dataFile : container.getAllVariantsInSubDirectory(new File(keyValue.getKey()))) {
                             new Networking.HTTPPostMultiPartFile().execute(serverAddress, keyValue.getValue(), dataFile.getPath());
                             toUploadedFiles.add(dataFile.getPath());

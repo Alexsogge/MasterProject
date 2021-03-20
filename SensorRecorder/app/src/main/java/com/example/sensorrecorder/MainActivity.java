@@ -199,7 +199,7 @@ public class MainActivity extends WearableActivity {
             public void onClick(View v) {
                 if (sensorService.isRunning) {
                     sensorService.stopRecording();
-                    sensorService.backup_recording_files();
+                    sensorService.dataProcessor.backup_recording_files();
                 } else {
                     sensorService.startRecording();
                 }
