@@ -38,7 +38,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 
@@ -56,6 +58,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     private final int reportRate = 1000000;
     private final int sensor_queue_size = 1000;
     private static final String CHANNEL_ID = "ForegroundServiceChannel";
+    private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD, Sensor.TYPE_ROTATION_VECTOR};
 
     // handle main ui
     public Button startStopButton;
@@ -72,15 +75,12 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     // sensor recording stuff
     private SensorManager sensorManager;
-    private Sensor acceleration_sensor;
-    private Sensor gyro_sensor;
-    private long[] recording_timestamps_acc = new long[sensor_queue_size];
-    private float[][] recording_values_acc = new float[sensor_queue_size][5];
-    private long[] recording_timestamps_gyro = new long[sensor_queue_size];
-    private float[][] recording_values_gyro = new float[sensor_queue_size][3];
-    private int pointer_acc = 0;
-    private int pointer_gyro = 0;
-
+    private Sensor[] activeSensors;
+    private HashMap<Integer, Integer> sensorMapping;
+    private int[] sensorDimensions;
+    private long[][] sensorTimestampsBuffer;
+    private float[][][] sensorValuesBuffer;
+    private int[] sensorPointers;
 
     // data files
     public DataProcessor dataProcessor;
@@ -88,8 +88,8 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     // ffmpeg stuff
     private FFMpegProcess mFFmpeg;
-    private OutputStream pipe_output_acc;
-    private OutputStream pipe_output_gyro;
+    private OutputStream[] sensorPipeOutputs;
+
     private ByteBuffer mBuf = ByteBuffer.allocate(4 * 3);
     private Long mStartTimeNS = -1l;
     private CountDownLatch mSyncLatch = null;
@@ -122,8 +122,36 @@ public class SensorListenerService extends Service implements SensorEventListene
             createForeGroundNotification();
 
             sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-            acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
+            ArrayList<Sensor> availableSensors = new ArrayList<>();
+            for(int i = 0; i < possibleSensors.length; i++){
+                int possibleSensorType = possibleSensors[i];
+                Sensor availableSensor = sensorManager.getDefaultSensor(possibleSensorType);
+                if (availableSensor != null){
+                    availableSensors.add(availableSensor);
+                }
+            }
+
+
+            activeSensors = new Sensor[availableSensors.size()];
+            sensorDimensions = new int[availableSensors.size()];
+            sensorTimestampsBuffer = new long[availableSensors.size()][];
+            sensorValuesBuffer = new float[availableSensors.size()][][];
+            sensorPointers = new int[availableSensors.size()];
+            sensorMapping = new HashMap<>();
+            sensorPipeOutputs = new OutputStream[activeSensors.length];
+
+            for(int i = 0; i < availableSensors.size(); i++){
+                Sensor availableSensor = availableSensors.get(i);
+                activeSensors[i] = availableSensor;
+                sensorDimensions[i] = getNumChannels(availableSensor);
+                sensorTimestampsBuffer[i] = new long[sensor_queue_size];
+                sensorValuesBuffer[i] = new float[sensor_queue_size][getNumChannels(availableSensor)];
+                sensorPointers[i] = 0;
+                sensorMapping.put(availableSensor.getType(), i);
+            }
+            // acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            // gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
             mainLoopHandler = new Handler(Looper.getMainLooper());
             PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
@@ -165,8 +193,9 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         try {
             dataProcessor.loadDefaultContainers();
-            dataProcessor.addSensorContainer(Sensor.STRING_TYPE_ACCELEROMETER);
-            dataProcessor.addSensorContainer(Sensor.STRING_TYPE_GYROSCOPE);
+            for(Sensor sensor: activeSensors){
+                dataProcessor.addSensorContainer(sensor.getStringType());
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -212,39 +241,27 @@ public class SensorListenerService extends Service implements SensorEventListene
             mStartTimeNS = -1L;
             mSyncLatch = new CountDownLatch(2);
 
+            for(Sensor sensor: activeSensors) {
+                sensorManager.registerListener(new SensorEventListener() {
+                    @Override
+                    public void onSensorChanged(SensorEvent event) {
+                        mStartTimeNS = Long.max(event.timestamp, mStartTimeNS);
+                        mSyncLatch.countDown();
+                        sensorManager.unregisterListener(this);
+                    }
 
-            sensorManager.registerListener(new SensorEventListener() {
-                @Override
-                public void onSensorChanged(SensorEvent event) {
-                    mStartTimeNS = Long.max(event.timestamp, mStartTimeNS);
-                    mSyncLatch.countDown();
-                    sensorManager.unregisterListener(this);
-                }
+                    @Override
+                    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+                    }
+                }, sensor, us);
 
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-            }, acceleration_sensor, us);
-
-            sensorManager.registerListener(new SensorEventListener() {
-                @Override
-                public void onSensorChanged(SensorEvent event) {
-                    mStartTimeNS = Long.max(event.timestamp, mStartTimeNS);
-                    mSyncLatch.countDown();
-                    sensorManager.unregisterListener(this);
-                }
-
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-            }, gyro_sensor, us);
-
-
+            }
         } catch (Exception e) {
 
             e.printStackTrace();
         }
 
-        pipe_output_acc = null;
-        pipe_output_gyro = null;
+        sensorPipeOutputs = new OutputStream[activeSensors.length];
         mBuf.order(ByteOrder.nativeOrder());
     }
 
@@ -319,24 +336,20 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     public void registerToManager(){
         // create buffers
-        recording_timestamps_acc = new long[sensor_queue_size];
-        recording_values_acc = new float[sensor_queue_size][5];
-        recording_timestamps_gyro = new long[sensor_queue_size];
-        recording_values_gyro = new float[sensor_queue_size][3];
-        pointer_acc = 0;
-        pointer_gyro = 0;
+        for(int i = 0; i < activeSensors.length; i++){
+            sensorTimestampsBuffer[i] = new long[sensor_queue_size];
+            sensorValuesBuffer[i] = new float[sensor_queue_size][sensorDimensions[i]];
+            sensorPointers[i] = 0;
+        }
 
         // due to the ffmpeg service can't run on the ui thread we have to initialize the sensor recorder which writes to the pipe also in an separate thread
-        HandlerThread t_acc = new HandlerThread(acceleration_sensor.getName());
-        t_acc.start();
-        Handler h_acc = new Handler(t_acc.getLooper());
-
-        HandlerThread t_gyro = new HandlerThread(gyro_sensor.getName());
-        t_gyro.start();
-        Handler h_gyro = new Handler(t_gyro.getLooper());
-
-        boolean batchMode = sensorManager.registerListener(this, gyro_sensor, samplingRate, reportRate, h_gyro);
-        batchMode = batchMode && sensorManager.registerListener(this, acceleration_sensor, samplingRate, reportRate, h_acc);
+        boolean batchMode = true;
+        for(Sensor sensor: activeSensors) {
+            HandlerThread t_sen = new HandlerThread(sensor.getName());
+            t_sen.start();
+            Handler h_sen = new Handler(t_sen.getLooper());
+            batchMode &= sensorManager.registerListener(this, sensor, samplingRate, reportRate, h_sen);
+        }
         if (!batchMode){
             Log.e("sensorinfo", "Could not register sensors to batch");
         } else {
@@ -347,15 +360,16 @@ public class SensorListenerService extends Service implements SensorEventListene
     private void unregisterFromManager(){
         sensorManager.unregisterListener(this);
         try {
-            WriteSensorDataAcc();
-            WriteSensorDataGyro();
+            for(int i = 0; i < activeSensors.length; i++){
+                WriteSensorData(i);
+            }
 
             // we have to close the zip streams correctly to prevent corruptions
             if (useZIPStream) {
                 dataProcessor.closeSensorStreams();
             }
 
-        } catch (IOException | InterruptedException e){
+        } catch (IOException e){
             e.printStackTrace();
         }
     }
@@ -548,16 +562,16 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // write new values to buffer
+        int sensorIndex = sensorMapping.get(event.sensor.getType());
+        int sensorPointer = sensorPointers[sensorIndex];
+        sensorTimestampsBuffer[sensorIndex][sensorPointer] = event.timestamp;
+        for(int i = 0; i < event.values.length; i++){
+            sensorValuesBuffer[sensorIndex][sensorPointer][i] = event.values[i];
+        }
 
-        float max_axis = 0f;
 
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            // write new values to buffer
-            recording_timestamps_acc[pointer_acc] = event.timestamp;
-            recording_values_acc[pointer_acc][0] = event.values[0];
-            recording_values_acc[pointer_acc][1] = event.values[1];
-            recording_values_acc[pointer_acc][2] = event.values[2];
-
             // check if we have to start the microphone
             if (useMic && !ongoing_mic_record){
                 checkForMicStart();
@@ -570,37 +584,20 @@ public class SensorListenerService extends Service implements SensorEventListene
                pauseMediaRecorder();
             }
 
-            pointer_acc++;
-            // check if our buffers are full and we have to write to disk
-            if(pointer_acc == sensor_queue_size) {
-                try {
-                    WriteSensorDataAcc();
-                } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-                // reset buffer
-                recording_timestamps_acc[0] = recording_timestamps_acc[pointer_acc-1];
-                pointer_acc = 1;
-            }
+
         }
-        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-            // write new values to buffer
-            recording_timestamps_gyro[pointer_gyro] = event.timestamp;
-            recording_values_gyro[pointer_gyro][0] = event.values[0];
-            recording_values_gyro[pointer_gyro][1] = event.values[1];
-            recording_values_gyro[pointer_gyro][2] = event.values[2];
-            pointer_gyro++;
-            // check if our buffers are full and we have to write to disk
-            if(pointer_gyro == sensor_queue_size) {
-                try {
-                    WriteSensorDataGyro();
-                } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-                // reset buffer
-                recording_timestamps_gyro[0] = recording_timestamps_gyro[pointer_gyro-1];
-                pointer_gyro = 1;
+
+        sensorPointers[sensorIndex]++;
+        // check if our buffers are full and we have to write to disk
+        if(sensorPointers[sensorIndex] == sensor_queue_size) {
+            try {
+                WriteSensorData(sensorIndex);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            // reset buffer
+            sensorTimestampsBuffer[sensorIndex][0] = sensorTimestampsBuffer[sensorIndex][sensorPointers[sensorIndex]-1];
+            sensorPointers[sensorIndex] = 1;
         }
     }
 
@@ -610,7 +607,8 @@ public class SensorListenerService extends Service implements SensorEventListene
             resumeMediaRecorder();
             ongoing_mic_record = true;
             last_mic_record = System.currentTimeMillis();
-            String lineContent = recording_timestamps_acc[pointer_acc] + "\n";
+            int accIndex = sensorMapping.get(Sensor.TYPE_ACCELEROMETER);
+            String lineContent = sensorTimestampsBuffer[accIndex][sensorPointers[accIndex]] + "\n";
             try {
                 dataProcessor.writeMicTS(lineContent);
             } catch (IOException e) {
@@ -622,11 +620,13 @@ public class SensorListenerService extends Service implements SensorEventListene
     private boolean possibleHandWash(){
         // simple approach to determine if the user is currently washing their hands
         // check if at on of the acceleration axes has been a certain impact
-        int offset = Math.max(1, pointer_acc-25);
+        int accIndex = sensorMapping.get(Sensor.TYPE_ACCELEROMETER);
+        int pointerAcc = sensorPointers[accIndex];
+        int offset = Math.max(1, pointerAcc-25);
         for (int axes = 0; axes < 3; axes++){
-            if (recording_values_acc[pointer_acc][axes] > mic_activate_threshold){
-                for (int i = offset; i <= pointer_acc; i++){
-                    if (recording_values_acc[i][axes] < -mic_activate_threshold) {
+            if (sensorValuesBuffer[accIndex][pointerAcc][axes] > mic_activate_threshold){
+                for (int i = offset; i <= pointerAcc; i++){
+                    if (sensorValuesBuffer[accIndex][i][axes] < -mic_activate_threshold) {
                         return true;
                     }
                 }
@@ -635,41 +635,42 @@ public class SensorListenerService extends Service implements SensorEventListene
         return false;
     }
 
-    private void WriteSensorDataAcc() throws IOException, InterruptedException {
+    private void WriteSensorData(int sensorIndex) throws IOException {
         StringBuilder data = new StringBuilder();
-        long lastTimeStamp = recording_timestamps_acc[1];
+        long lastTimeStamp = sensorTimestampsBuffer[sensorIndex][1];
         long offset = 0;
-        if (pipe_output_acc == null && useMKVStream)
-            pipe_output_acc = mFFmpeg.getOutputStream(0);
+        if (sensorPipeOutputs[sensorIndex] == null && useMKVStream)
+            sensorPipeOutputs[sensorIndex] = mFFmpeg.getOutputStream(0);
 
-        for(int i = 1; i < pointer_acc; i++) {
+        for(int i = 1; i < sensorPointers[sensorIndex]; i++) {
             if(useZIPStream) {
-                data.append(recording_timestamps_acc[i]).append("\t");
-                data.append(recording_values_acc[i][0]).append("\t");
-                data.append(recording_values_acc[i][1]).append("\t");
-                data.append(recording_values_acc[i][2]).append("\n");
+                data.append(sensorTimestampsBuffer[sensorIndex][i]).append("\t");
+                data.append(sensorValuesBuffer[sensorIndex][i][0]).append("\t");
+                data.append(sensorValuesBuffer[sensorIndex][i][1]).append("\t");
+                data.append(sensorValuesBuffer[sensorIndex][i][2]).append("\n");
             }
             if (useMKVStream) {
-                offset += (recording_timestamps_acc[i] - lastTimeStamp);
-                lastTimeStamp = recording_timestamps_acc[i];
+                offset += (sensorTimestampsBuffer[sensorIndex][i] - lastTimeStamp);
+                lastTimeStamp = sensorTimestampsBuffer[sensorIndex][i];
 
                 if (offset >= samplingRate) {
                     offset -= samplingRate;
                     mBuf.clear();
                     for (int j = 0; j < 3; j++)
-                        mBuf.putFloat(recording_values_acc[i][j]);
-                    pipe_output_acc.write(mBuf.array());
+                        mBuf.putFloat(sensorValuesBuffer[sensorIndex][i][j]);
+                    sensorPipeOutputs[sensorIndex].write(mBuf.array());
                 }
             }
         }
         if(useMKVStream)
-            pipe_output_acc.flush();
+            sensorPipeOutputs[sensorIndex].flush();
 
         if(useZIPStream && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
-            dataProcessor.writeSensorData(Sensor.STRING_TYPE_ACCELEROMETER, data.toString());
+            dataProcessor.writeSensorData(activeSensors[sensorIndex].getStringType(), data.toString());
         }
     }
 
+    /*
     private void WriteSensorDataGyro() throws IOException, InterruptedException {
         StringBuilder data = new StringBuilder();
         long lastTimeStamp = recording_timestamps_gyro[1];
@@ -701,6 +702,32 @@ public class SensorListenerService extends Service implements SensorEventListene
             pipe_output_gyro.flush();
         if(useZIPStream && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
             dataProcessor.writeSensorData(Sensor.STRING_TYPE_GYROSCOPE, data.toString());
+        }
+    }
+    */
+
+
+    private int getNumChannels(Sensor s) {
+        /*
+         * https://developer.android.com/reference/android/hardware/SensorEvent#sensor
+         */
+        switch (s.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
+            case Sensor.TYPE_GYROSCOPE:
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                return 3;
+
+            case Sensor.TYPE_ROTATION_VECTOR:
+                return 5;
+
+            case Sensor.TYPE_RELATIVE_HUMIDITY:
+            case Sensor.TYPE_PRESSURE:
+            case Sensor.TYPE_LIGHT:
+            case Sensor.TYPE_AMBIENT_TEMPERATURE:
+                return 1;
+
+            default:
+                return 0;
         }
     }
 
