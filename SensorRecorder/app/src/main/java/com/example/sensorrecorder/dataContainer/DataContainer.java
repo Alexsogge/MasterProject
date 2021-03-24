@@ -1,11 +1,10 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder.dataContainer;
 
 import android.os.Environment;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 public class DataContainer {
     public static final File recordingFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");

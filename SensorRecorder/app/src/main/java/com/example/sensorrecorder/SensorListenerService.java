@@ -1,5 +1,6 @@
 package com.example.sensorrecorder;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -22,14 +23,27 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+
+
+/*
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dimensionalityreduction.PCA;
+import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.ops.transforms.Transforms;
+*/
+
+import com.example.sensorrecorder.MathLib.TwoDArray;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +66,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
+
 public class SensorListenerService extends Service implements SensorEventListener{
     private final IBinder binder = new LocalBinder();
     private final int samplingRate = 20000;
@@ -61,9 +76,11 @@ public class SensorListenerService extends Service implements SensorEventListene
     private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD, Sensor.TYPE_ROTATION_VECTOR};
 
     // handle main ui
+    public Activity mainActivity;
     public Button startStopButton;
     public boolean isRunning = true;
     public TextView infoText;
+    private Vibrator vibrator;
 
     // service stuff
     private Intent intent;
@@ -111,6 +128,9 @@ public class SensorListenerService extends Service implements SensorEventListene
     private boolean useMultipleMic = true;
 
 
+    // ML stuff
+    public HandWashDetection handWashDetection;
+    private long lastHandwashPrediction;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -164,6 +184,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
             configs = this.getSharedPreferences(getString(R.string.configs), Context.MODE_PRIVATE);
             micHandler = new Handler();
+            vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
             // start recording at app startup
             startRecording();
@@ -419,6 +440,8 @@ public class SensorListenerService extends Service implements SensorEventListene
     }
 
     public void stopRecording(){
+        if(!isRunning)
+            return;
         // stop sensor manager
         unregisterFromManager();
 
@@ -537,6 +560,16 @@ public class SensorListenerService extends Service implements SensorEventListene
         dataProcessor.writeBatteryTS(line);
     }
 
+    private void addPrediction(String gesture, float[] predValues) throws IOException {
+        long timestamp = SystemClock.elapsedRealtimeNanos();
+        String line = timestamp + "\t";
+        for(int i = 0; i < predValues.length; i++){
+            line += Math.round(predValues[i] * 100000.0)/100000.0 + "\t";
+        }
+        line += gesture + "\n";
+        dataProcessor.writePrediction(line);
+    }
+
     public void addHandWashEventNow(){
         long timestamp = SystemClock.elapsedRealtimeNanos();
         try {
@@ -575,6 +608,13 @@ public class SensorListenerService extends Service implements SensorEventListene
             // check if we have to start the microphone
             if (useMic && !ongoing_mic_record){
                 checkForMicStart();
+            }
+            if(possibleHandWash() && sensorPointer>51){
+                // vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.EFFECT_TICK));
+                if(System.currentTimeMillis() > lastHandwashPrediction + 200) {
+                    // Log.d("callback", "Classify Peak");
+                    doHandWashPrediction(sensorIndex, sensorPointer);
+                }
             }
 
             // if we currently record the microphone, check  if we have to stop it
@@ -617,16 +657,62 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
     }
 
+    private void doHandWashPrediction(int sensorIndex, int sensorPointer){
+        float[][] vals = new float[50][3];
+        for(int i = 0; i < 50; i++){
+            System.arraycopy(sensorValuesBuffer[sensorIndex][sensorPointer - i], 0, vals[i], 0, vals[0].length);
+        }
+
+        TwoDArray tdArray = new TwoDArray(vals);
+        float[] features = tdArray.allFeatures();
+        ByteBuffer frame = ByteBuffer.allocateDirect(4*features.length);
+        frame.order(ByteOrder.nativeOrder());
+        for(int i = 0; i < features.length; i++){
+            frame.putFloat(features[i]);
+        }
+
+
+        float[][] labelProbArray = handWashDetection.RunInference(frame);
+
+        // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
+
+        float max_pred = labelProbArray[0][1];
+        String gesture = "Noise";
+        if (labelProbArray[0][0] > max_pred && labelProbArray[0][0] > 0.9){
+            gesture = "Handwash";
+            max_pred = labelProbArray[0][0];
+            makeToast("Handwash " + max_pred*100 + "%");
+            vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
+        }
+        // Log.d("Pred", "Results in " + gesture + " to " + max_pred * 100 + "%");
+        try {
+            addPrediction(gesture, labelProbArray[0]);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        lastHandwashPrediction = System.currentTimeMillis();
+    }
+
     private boolean possibleHandWash(){
         // simple approach to determine if the user is currently washing their hands
         // check if at on of the acceleration axes has been a certain impact
         int accIndex = sensorMapping.get(Sensor.TYPE_ACCELEROMETER);
         int pointerAcc = sensorPointers[accIndex];
+        int gyroIndex = sensorMapping.get(Sensor.TYPE_GYROSCOPE);
+        int pointerGyro = sensorPointers[gyroIndex];
         int offset = Math.max(1, pointerAcc-25);
         for (int axes = 0; axes < 3; axes++){
             if (sensorValuesBuffer[accIndex][pointerAcc][axes] > mic_activate_threshold){
                 for (int i = offset; i <= pointerAcc; i++){
                     if (sensorValuesBuffer[accIndex][i][axes] < -mic_activate_threshold) {
+                        return true;
+                    }
+                }
+            }
+            if (sensorValuesBuffer[gyroIndex][pointerGyro][axes] > mic_activate_threshold){
+                for (int i = offset; i <= pointerGyro; i++){
+                    if (sensorValuesBuffer[gyroIndex][i][axes] < -mic_activate_threshold) {
                         return true;
                     }
                 }
@@ -640,7 +726,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         long lastTimeStamp = sensorTimestampsBuffer[sensorIndex][1];
         long offset = 0;
         if (sensorPipeOutputs[sensorIndex] == null && useMKVStream)
-            sensorPipeOutputs[sensorIndex] = mFFmpeg.getOutputStream(0);
+            sensorPipeOutputs[sensorIndex] = mFFmpeg.getOutputStream(sensorIndex);
 
         for(int i = 1; i < sensorPointers[sensorIndex]; i++) {
             if(useZIPStream) {
@@ -729,6 +815,14 @@ public class SensorListenerService extends Service implements SensorEventListene
             default:
                 return 0;
         }
+    }
+
+    private void makeToast(final String text){
+        mainActivity.runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder.dataContainer;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

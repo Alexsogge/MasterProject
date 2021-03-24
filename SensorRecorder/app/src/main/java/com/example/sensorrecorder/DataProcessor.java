@@ -1,5 +1,9 @@
 package com.example.sensorrecorder;
 
+import com.example.sensorrecorder.dataContainer.DataContainer;
+import com.example.sensorrecorder.dataContainer.OutputStreamContainer;
+import com.example.sensorrecorder.dataContainer.ZipContainer;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -7,7 +11,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -21,6 +24,7 @@ public class DataProcessor {
     public DataContainer containerMic;
     public OutputStreamContainer containerMicTimeStamps;
     public OutputStreamContainer containerBattery;
+    public OutputStreamContainer containerPrediction;
 
     public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
@@ -50,6 +54,9 @@ public class DataProcessor {
 
         containerBattery = new OutputStreamContainer("sensor_recording_battery", "csv");
         streamContainers.add(containerBattery);
+
+        containerPrediction = new OutputStreamContainer("sensor_recording_prediction", "csv");
+        streamContainers.add(containerPrediction);
         // add stream containers to all
         allDataContainers.addAll(streamContainers);
     }
@@ -85,6 +92,7 @@ public class DataProcessor {
 
         containerHandWashTimeStamps.setActive();
         containerBattery.setActive();
+        containerPrediction.setActive();
     }
 
     public void deactivateAllContainer(){
@@ -128,6 +136,10 @@ public class DataProcessor {
 
     public void writeHandWashTS(String line) throws IOException {
         containerHandWashTimeStamps.writeData(line);
+    }
+
+    public void writePrediction(String line) throws IOException {
+        containerPrediction.writeData(line);
     }
 
     public void writeMicTS(String line) throws IOException {

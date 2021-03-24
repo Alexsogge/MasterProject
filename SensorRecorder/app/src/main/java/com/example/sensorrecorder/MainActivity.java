@@ -1,6 +1,7 @@
 package com.example.sensorrecorder;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -29,13 +30,17 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.IOException;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 
+
 public class MainActivity extends WearableActivity {
     private static double FACTOR = 0.2; // c = a * sqrt(2)
+
+    private Activity mainActivity;
 
     private TextView mTextView;
     private Intent intent;
@@ -60,14 +65,25 @@ public class MainActivity extends WearableActivity {
     private ScrollView mainScrollView;
     private CustomSpinner handWashSpinner;
 
+    // ML stuff
+    private HandWashDetection handWashDetection;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         turnOffDozeMode(this);
 
+        mainActivity = this;
+
         // set scroll view to correct size
         adjustInset();
+
+        try {
+            handWashDetection = new HandWashDetection(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // initialize user interface elements
         initUI();
@@ -228,6 +244,8 @@ public class MainActivity extends WearableActivity {
             // get SensorService instance when ready
             SensorListenerService.LocalBinder binder = (SensorListenerService.LocalBinder) service;
             sensorService = binder.getService();
+            sensorService.handWashDetection = handWashDetection;
+            sensorService.mainActivity = mainActivity;
             mBound = true;
             // initialize services components
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
