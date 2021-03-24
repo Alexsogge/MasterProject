@@ -87,11 +87,11 @@ class DataProcessor:
     def sub_predictions(self, data, ax, add_time_stamps=True):
         x = data[:, 0]*nano_sec
 
-        ax.scatter(x, data[:, 1]*100, c='red', label='handwash')
-        ax.scatter(x, data[:, 2]*100, c='blue', alpha=0.3, label='noise')
-
         if add_time_stamps:
             self.plot_hand_wash_events((-5, 110), ax)
+
+        ax.scatter(x, data[:, 2]*100, c='blue', alpha=0.3, label='noise')
+        ax.scatter(x, data[:, 1]*100, c='red', alpha=1, label='handwash')
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
         ax.set_xlabel('time in sec')

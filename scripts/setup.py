@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="sensor-processor-henkela", # Replace with your own username
-    version="0.1.0",
+    version="0.1.1",
     author="Alexander Henkel",
     author_email="a.henkel@mgga.de",
     description="Analyze and plot sensor data",
