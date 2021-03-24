@@ -37,14 +37,6 @@ class SensorDecoder:
     def add_time_stamps(self, new_data):
         self.time_stamps = np.union1d(self.time_stamps, new_data)
 
-    @classmethod
-    def extend_battery_values(cls, x_min, x_max, values):
-        new_vals = np.ndarray((values.shape[0] + 2, values.shape[1]))
-        new_vals[0, :] = [x_min, values[0, 1]]
-        new_vals[-1, :] = [x_max, values[-1, 1]]
-        new_vals[1:-1, :] = values
-
-        return new_vals
 
 
 

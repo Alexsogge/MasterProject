@@ -15,6 +15,7 @@ from sensor_processor.sensor_decoder import SensorDecoder
 from sensor_processor.mic_decoder import MicDecoder
 from sensor_processor.battery_decoder import BatteryDecoder
 from sensor_processor.handwash_decoder import HandwashDecoder
+from sensor_processor.prediction_decoder import PredictionDecoder
 
 if len(sys.argv) > 2 and sys.argv[2] == 'mkv':
     from mkv_decode import MKVDecoder
@@ -31,6 +32,7 @@ class DataProcessor:
         self.data_dict['mic_time_stamps'] = MicDecoder.read_folder(folder_name)
         self.data_dict['battery'] = BatteryDecoder.read_folder(folder_name)
         self.data_dict['time_stamps'] = HandwashDecoder.read_data(folder_name)
+        self.data_dict['predictions'] = PredictionDecoder.read_folder(folder_name)
         if use_mkv:
             self.data_dict = {**self.data_dict, **MKVDecoder.read_folder(folder_name)}
 
@@ -60,6 +62,7 @@ class DataProcessor:
                                                                              self.data_dict['battery'])
 
             self.data_dict['battery'] = align_array(self.data_dict['battery'], self.sensor_decoder.min_time_stamp)
+            self.data_dict['predictions'] = align_array(self.data_dict['predictions'], self.sensor_decoder.min_time_stamp)
 
         # self.clean_data()
 
@@ -81,6 +84,16 @@ class DataProcessor:
         ax.vlines(self.data_dict['mic_time_stamps'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='pink')
 
 
+    def sub_predictions(self, data, ax):
+        x = data[:, 0]*nano_sec
+
+        ax.scatter(x, data[:, 1]*100, c='red', label='handwash')
+        ax.scatter(x, data[:, 2]*100, c='blue', alpha=0.3, label='noise')
+
+        # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
+        ax.set_xlabel('time in sec')
+        ax.set_ylabel('percentage')
+        ax.legend()
 
     def sub_plot_data(self, data, ax, y_label='value', add_time_stamps=True):
         x = data[:, 0]*nano_sec
@@ -98,16 +111,18 @@ class DataProcessor:
 
     def plot_data(self, generate_image=False):
 
-        fig, axs = plt.subplots(3, 1, sharex=True, figsize=(20, 15))
+        fig, axs = plt.subplots(4, 1, sharex=True, figsize=(20, 15))
 
         self.sub_plot_data(self.data_dict['Acceleration'], axs[0])
         self.sub_plot_data(self.data_dict['Gyroscope'], axs[1])
         self.sub_plot_data(self.data_dict['battery'], axs[2], 'percentage', False)
+        self.sub_predictions(self.data_dict['predictions'], axs[3])
         axs[2].set_ylim([0, 105])
 
         axs[0].set_title('Acceleration')
         axs[1].set_title('Gyroscope')
         axs[2].set_title('Battery')
+        axs[3].set_title('Predictions')
 
 
         plt.xlim([0, self.data_dict['Acceleration'][-1, 0]*nano_sec])

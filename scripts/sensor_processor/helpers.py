@@ -1,4 +1,5 @@
 import csv
+from itertools import islice
 from typing import Dict, List
 from os import listdir
 from os.path import join, isfile, splitext
@@ -7,13 +8,20 @@ from zipfile import ZipFile
 from io import StringIO
 
 
-def read_csv(filename: str) -> List[List]:
+def read_csv(filename: str, limit=None) -> List[List]:      
     with open(filename, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        # reader = csv.reader(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
         data = []
-        for row in reader:
-            if len(row) > 0:
-                data.append(row)
+        for row in islice(csvfile, 0, None):
+            values = list(row.strip('\n').split('\t'))
+            # for i, value in enumerate(values[:limit]):
+            #     values[i]
+            data.append(values[:limit])
+            
+        # for row in reader:
+        #     if len(row) > 0:
+        #         data.append(row)
+
     return data
 
 
@@ -50,7 +58,7 @@ def align_array(data: np.ndarray, offset: float) -> np.ndarray:
         data[:, 0] -= offset
     return data
 
-def read_csvs_in_folder(folder_name, data_name, entries_per_line, open_zips=True):
+def read_csvs_in_folder(folder_name, data_name, entries_per_line, open_zips=True, limit=None):
     overall_entries = []
     overall_entries_length = 0
 
@@ -60,7 +68,7 @@ def read_csvs_in_folder(folder_name, data_name, entries_per_line, open_zips=True
             if data_name in f:
                 data = None
                 if splitext(f)[1] == '.csv':
-                    data = read_csv(path)
+                    data = read_csv(path, limit=limit)
                 elif splitext(f)[1] == '.zip' and open_zips:
                     data = read_zip(path, data_name)
                 if data is not None:
