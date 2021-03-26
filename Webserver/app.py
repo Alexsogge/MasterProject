@@ -5,7 +5,7 @@ from typing import Dict
 from zipfile import ZipFile
 from datetime import datetime
 
-from flask import Flask, jsonify, request, render_template, redirect, send_from_directory
+from flask import Flask, jsonify, request, render_template, redirect, send_from_directory, abort, flash, session
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,11 +20,15 @@ from preview_builder import generate_plot_data, get_data_array
 from plot_data import PlotData
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp'}
+ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite'}
 PACK_MIC_FILES = False
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+RECORDINGS_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'recordings')
+TFMODEL_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'tf_models')
+
 
 basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth('Bearer')
@@ -34,6 +38,14 @@ open_auth_requests: AuthRequests = AuthRequests()
 
 prepared_plot_data: Dict[str, PlotData] = dict()
 
+if not os.path.exists(UPLOAD_FOLDER):
+    os.mkdir(UPLOAD_FOLDER)
+
+if not os.path.exists(RECORDINGS_FOLDER):
+    os.mkdir(RECORDINGS_FOLDER)
+
+if not os.path.exists(TFMODEL_FOLDER):
+    os.mkdir(TFMODEL_FOLDER)
 
 def is_allowed_file(filename):
     return '.' in filename and \
@@ -119,6 +131,30 @@ def settings():
 
 
 
+@app.route('/tfmodel/', methods=['GET', 'POST'])
+@basic_auth.login_required
+def tfmodel():
+    upload_info_text = None
+    upload_error_text = None
+    if request.method == 'POST':
+        print('Save new tf model')
+        if 'file' not in request.files:
+            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no file Part')
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no selected file')
+        if file and is_allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(TFMODEL_FOLDER, filename))
+            upload_info_text = 'Uploaded ' + filename
+        else:
+            upload_error_text = 'Error: no valid file'
+
+    return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text)
+
+
 
 @app.route('/auth/grant/<int:auth_id>/')
 @basic_auth.login_required
@@ -133,19 +169,19 @@ def grant_auth_request(auth_id):
 @basic_auth.login_required
 def list_recordings():
 
-    recording_directories = os.listdir(UPLOAD_FOLDER)
+    recording_directories = os.listdir(RECORDINGS_FOLDER)
     recording_infos = dict()
 
     for directory in recording_directories:
         short_description = ""
-        description_file = os.path.join(UPLOAD_FOLDER, os.path.join(directory, "README.md"))
+        description_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, "README.md"))
         if os.path.exists(description_file):
             short_description = open(description_file, 'r').readline()
-        changed_time_stamp = os.stat(os.path.join(UPLOAD_FOLDER, directory)).st_ctime
+        changed_time_stamp = os.stat(os.path.join(RECORDINGS_FOLDER, directory)).st_ctime
 
         # since directories creation time changes if a file was edited, we have to find the oldest file within them
-        for file in os.listdir(os.path.join(UPLOAD_FOLDER, directory)):
-            tmp_c_time = os.stat(os.path.join(UPLOAD_FOLDER, os.path.join(directory, file))).st_ctime
+        for file in os.listdir(os.path.join(RECORDINGS_FOLDER, directory)):
+            tmp_c_time = os.stat(os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))).st_ctime
             if tmp_c_time < changed_time_stamp:
                 changed_time_stamp = tmp_c_time
 
@@ -155,7 +191,7 @@ def list_recordings():
     recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
 
-    # recording_directories = [x[0] for x in os.walk(UPLOAD_FOLDER)]
+    # recording_directories = [x[0] for x in os.walk(RECORDINGS_FOLDER)]
 
     return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort)
 
@@ -165,12 +201,12 @@ def list_recordings():
 def get_recording(recording):
     recording_files = []
     description = ""
-    path = os.path.join(UPLOAD_FOLDER, recording)
+    path = os.path.join(RECORDINGS_FOLDER, recording)
     for file in os.listdir(path):
         if config.hide_mic_files and '.zip' in file and contains_mic_files(file, path):
             continue
         if file == 'README.md':
-            description = open(os.path.join(UPLOAD_FOLDER, os.path.join(recording, "README.md")), 'r').read()
+            description = open(os.path.join(RECORDINGS_FOLDER, os.path.join(recording, "README.md")), 'r').read()
         recording_files.append(file)
 
     return render_template('show_recording.html', recording_name=recording, files=recording_files,
@@ -180,9 +216,9 @@ def get_recording(recording):
 @app.route('/recording/plot/<string:recording>/')
 @basic_auth.login_required
 def plot_recording(recording):
-    plot_file = os.path.join(os.path.join(UPLOAD_FOLDER, recording), 'data_plot.png')
+    plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.png')
     if not os.path.exists(plot_file):
-        generate_plot_data(os.path.join(UPLOAD_FOLDER, recording))
+        generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
 
     if os.path.exists(plot_file):
         if recording not in prepared_plot_data.copy():
@@ -224,7 +260,7 @@ def new_recording():
             if config.rename_mic_files and 'mic' in filename and '.zip' in filename:
                 numbering = filename.split('_')[-1]
                 filename = generate_random_string(16) + '_' + numbering
-            upload_path = os.path.join(app.config['UPLOAD_FOLDER'], request_uuid)
+            upload_path = os.path.join(RECORDINGS_FOLDER, request_uuid)
             if not os.path.isdir(upload_path):
                 os.mkdir(upload_path)
                 description_file = open(os.path.join(upload_path, "README.md"), 'x')
@@ -240,7 +276,7 @@ def new_recording():
 @app.route('/recording/delete/<string:recording>/')
 @basic_auth.login_required
 def delete_recording(recording):
-    file = os.path.join(UPLOAD_FOLDER, recording)
+    file = os.path.join(RECORDINGS_FOLDER, recording)
     if os.path.exists(file):
         shutil.rmtree(file)
     return redirect('/recording/list/')
@@ -249,7 +285,7 @@ def delete_recording(recording):
 @app.route('/recordingfile/delete/<string:recording>/<string:file_name>/')
 @basic_auth.login_required
 def delete_recording_file(recording, file_name):
-    file = os.path.join(UPLOAD_FOLDER, os.path.join(recording, file_name))
+    file = os.path.join(RECORDINGS_FOLDER, os.path.join(recording, file_name))
     if os.path.exists(file):
         os.remove(file)
     return redirect(f'/recording/get/{recording}/')
@@ -260,7 +296,7 @@ def delete_recording_file(recording, file_name):
 def recording_description(recording):
     print('User: ', token_auth.current_user())
 
-    description_file_path = os.path.join(UPLOAD_FOLDER, os.path.join(recording, "README.md"))
+    description_file_path = os.path.join(RECORDINGS_FOLDER, os.path.join(recording, "README.md"))
 
     if request.method == 'GET':
         description_file = open(description_file_path, 'r')
@@ -295,6 +331,36 @@ def recording_data(recording):
     #return jsonify({'data': {'series': series}})
 
 
+@app.route('/tfmodel/get/latest/')
+def get_latest_tf_model():
+
+    latest_model = None
+    latest_time_stamp = 0
+
+    if not os.path.exists(TFMODEL_FOLDER):
+        abort(404, description="Resource not found")
+
+    for file in os.listdir(TFMODEL_FOLDER):
+        tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
+        if tmp_c_time > latest_time_stamp:
+            latest_time_stamp = tmp_c_time
+            latest_model = file
+
+    print("found file ", latest_model)
+    if latest_model is not None:
+        return send_from_directory(TFMODEL_FOLDER, filename=latest_model, as_attachment=True)
+    abort(404, description="Resource not found")
+
+
+@app.route("/auth")
+@basic_auth.login_required
+def nginx_auth():
+    if basic_auth.get_auth():
+        return 'Authentication granted'
+    else:
+        return 'Not authorized', 401
+
+
 def add_file_to_zip(file_name, directory, directory_uuid):
     if not config.pack_mic_files and '.zip' in file_name and contains_mic_files(file_name, directory):
         return
@@ -326,8 +392,9 @@ def get_plot_data(recording):
                     oldest_data = key
                 if oldest_data in prepared_plot_data:
                     del prepared_plot_data[oldest_data]
-        prepared_plot_data[recording] = PlotData(recording, os.path.join(UPLOAD_FOLDER, recording))
+        prepared_plot_data[recording] = PlotData(recording, os.path.join(RECORDINGS_FOLDER, recording))
     return prepared_plot_data[recording]
+
 
 # just for debug
 @app.route('/static/<path:path>')

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row mb-3">
+        <h1>TF Model</h1>
+    </div>
+
+    {% if upload_info_text %}
+        <div class="row mb-3">
+            <h1 class="text-success">{{ upload_info_text}}</h1>
+        </div>
+    {% endif %}
+
+    {% if upload_error_text %}
+        <div class="row mb-3">
+            <h1 class="text-danger">{{ upload_error_text}}</h1>
+        </div>
+    {% endif %}
+
+    <div class="row">
+            <h4>Upload new model file</h4>
+    </div>
+    <div class="row">
+        <form action="/tfmodel/" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="tfModelFormControlFile">New TF Model file</label>
+                <input type="file" class="form-control-file" id="tfModelFormControlFile" name="file">
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Upload</button>
+        </form>
+    </div>
+{% endblock %}
