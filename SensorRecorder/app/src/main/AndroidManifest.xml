@@ -40,7 +40,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-        
+
         <uses-library
             android:name="com.google.android.wearable"
             android:required="true" />
