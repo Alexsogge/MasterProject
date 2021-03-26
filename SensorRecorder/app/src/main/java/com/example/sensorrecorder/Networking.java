@@ -19,6 +19,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
@@ -153,6 +154,10 @@ public class Networking {
             uploadProgressBar.setVisibility(View.INVISIBLE);
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
+    }
+
+    public void downloadTFModel(){
+        new Networking.HTTPGetTFModel().execute();
     }
 
     public void requestServerToken(){
@@ -357,6 +362,37 @@ public class Networking {
         @Override
         protected void onPostExecute(String result) {
             receivedUploadToken();
+        }
+    }
+
+
+    protected final class HTTPGetTFModel extends AsyncTask<String, String, String> {
+
+        private final OkHttpClient client = new OkHttpClient();
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
+            String downloadUrl = serverName + "/tfmodel/get/latest/";
+            Request request = new Request.Builder().url(downloadUrl).build();
+            Response response = null;
+            try {
+                response = client.newCall(request).execute();
+                if (!response.isSuccessful()) {
+                    makeToast("Failed to download file: " + response);
+                }
+                File path = HandWashDetection.modelFilePath;
+                if(!path.exists())
+                    path.mkdirs();
+                File modelFile = new File(path, HandWashDetection.modelName);
+                FileOutputStream fos = new FileOutputStream(modelFile);
+                fos.write(response.body().bytes());
+                fos.close();
+                makeToast("Downloaded new Model");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            return null;
         }
     }
 }

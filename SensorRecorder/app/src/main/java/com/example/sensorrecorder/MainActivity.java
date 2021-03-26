@@ -40,12 +40,12 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 public class MainActivity extends WearableActivity {
     private static double FACTOR = 0.2; // c = a * sqrt(2)
 
-    private Activity mainActivity;
+    public static MainActivity mainActivity;
 
     private TextView mTextView;
     private Intent intent;
-    private SensorListenerService sensorService;
-    private Networking networking;
+    public SensorListenerService sensorService;
+    public Networking networking;
 
     private boolean mBound = false;
     private boolean waitForConfigs = false;
@@ -59,6 +59,7 @@ public class MainActivity extends WearableActivity {
     private boolean permissionToRecordAccepted = false;
     private String [] permissions = {Manifest.permission.RECORD_AUDIO};
     private BatteryEventHandler batteryEventHandler;
+    private ChargeEventHandler chargeEventHandler;
     private Button startStopButton;
     private Button uploadButton;
 
@@ -169,35 +170,6 @@ public class MainActivity extends WearableActivity {
                 // sometimes you need nothing here
             }
         });
-    }
-
-    private void updateUploadButton(){
-        if(configs.getString(getString(R.string.conf_serverName), "").equals("")){
-            uploadButton.setEnabled(false);
-        } else {
-            uploadButton.setEnabled(true);
-        }
-    }
-
-    private void initServices(){
-        networking = new Networking(this, null, configs);
-        batteryEventHandler = new BatteryEventHandler();
-
-        // check if needed permissions are granted
-        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED) {
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    1);
-        } else {
-            startServices();
-        }
-    }
-
-    private void startServices(){
-        // set system calls for battery changes
-        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        filter.addAction(Intent.ACTION_BATTERY_LOW);
-        this.registerReceiver(batteryEventHandler, filter);
 
         uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -214,13 +186,62 @@ public class MainActivity extends WearableActivity {
             @Override
             public void onClick(View v) {
                 if (sensorService.isRunning) {
-                    sensorService.stopRecording();
-                    sensorService.dataProcessor.backup_recording_files();
+                    toggleStopRecording();
                 } else {
-                    sensorService.startRecording();
+                    toggleStartRecording();
                 }
             }
         });
+    }
+
+    public void toggleStartRecording(){
+        try {
+            handWashDetection.initModel();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        sensorService.startRecording();
+    }
+
+    public void toggleStopRecording(){
+        sensorService.stopRecording();
+        sensorService.dataProcessor.backup_recording_files();
+    }
+
+    private void updateUploadButton(){
+        if(configs.getString(getString(R.string.conf_serverName), "").equals("")){
+            uploadButton.setEnabled(false);
+        } else {
+            uploadButton.setEnabled(true);
+        }
+    }
+
+    private void initServices(){
+        networking = new Networking(this, null, configs);
+        batteryEventHandler = new BatteryEventHandler();
+        chargeEventHandler = new ChargeEventHandler();
+
+        // check if needed permissions are granted
+        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    1);
+        } else {
+            startServices();
+        }
+    }
+
+    private void startServices(){
+        // set system calls for battery changes
+        // implicit broadcasts are not supported in manifest.xml since API level 26
+        // https://developer.android.com/guide/components/broadcast-exceptions
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+        this.registerReceiver(batteryEventHandler, filter);
+
+        IntentFilter filter2 = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
+        filter2.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        this.registerReceiver(chargeEventHandler, filter2);
 
         startRecording();
     }

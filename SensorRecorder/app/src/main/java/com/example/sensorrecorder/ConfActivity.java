@@ -40,6 +40,7 @@ public class ConfActivity extends WearableActivity {
     private CheckBox useMKVCheckbox;
     private CheckBox useMicCheckbox;
     private Switch multipleMicSwitch;
+    private Button downloadTFModelButton;
     private Button deleteTokenButton;
     private Networking networking;
 
@@ -66,7 +67,7 @@ public class ConfActivity extends WearableActivity {
         useMicCheckbox = (CheckBox) findViewById(R.id.useMicCheckbox);
         multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
 
-
+        downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
 
         if (configs.contains(getString(R.string.conf_serverName)))
@@ -150,6 +151,13 @@ public class ConfActivity extends WearableActivity {
                 }
 
                 finish();
+            }
+        });
+
+        downloadTFModelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                networking.downloadTFModel();
             }
         });
 

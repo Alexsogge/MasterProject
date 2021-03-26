@@ -30,17 +30,21 @@
         -->
         <service android:name=".SensorListenerService" />
 
+        <receiver
+            android:name=".BootEventHandler"
+            android:label="StartActivityAtBootReceiver"
+            android:enabled="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED" >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+        
         <uses-library
             android:name="com.google.android.wearable"
             android:required="true" />
 
-
-<!--        <receiver android:name=".BatteryEventHandler">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.BATTERY_LOW"/>-->
-<!--                <action android:name="android.intent.action.BATTERY_OKAY"/>-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
 
     </application>
 
@@ -58,5 +62,6 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
 </manifest>

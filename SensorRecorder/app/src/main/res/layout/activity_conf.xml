@@ -99,6 +99,13 @@
                 android:text="Apply" />
 
             <Button
+                android:id="@+id/buttonGetTFModel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Download TF model" />
+
+            <Button
                 android:id="@+id/buttonDeleteToken"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
