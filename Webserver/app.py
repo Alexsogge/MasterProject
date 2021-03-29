@@ -86,7 +86,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/auth/request/')
+@app.route('/tokenauth/request/')
 def request_token():
     identifier = request.args.get('identifier')
     if identifier is None or identifier == '':
@@ -105,7 +105,7 @@ def request_token():
             return jsonify({'status': 'grant', 'token': config.client_secret})
 
 
-@app.route('/auth/check/')
+@app.route('/tokenauth/check/')
 @basic_auth.login_required
 def get_open_auth_requests():
     return render_template('list_requests.html', open_requests=open_auth_requests.open_auth_requests)
@@ -404,7 +404,6 @@ def send_js(path):
 
 @app.route('/uploads/<path:path>')
 def send_png(path):
-    print("send png", path)
     return send_from_directory('uploads', path)
 
 
