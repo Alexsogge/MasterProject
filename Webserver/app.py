@@ -162,7 +162,7 @@ def grant_auth_request(auth_id):
     auth_request = open_auth_requests.get_by_id(auth_id)
     if auth_request is not None:
         auth_request.granted = True
-    return redirect('/toeknauth/check/')
+    return redirect('/tokenauth/check/')
 
 
 @app.route('/recording/list/')
