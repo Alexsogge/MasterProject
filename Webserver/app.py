@@ -156,13 +156,13 @@ def tfmodel():
 
 
 
-@app.route('/auth/grant/<int:auth_id>/')
+@app.route('/tokenauth/grant/<int:auth_id>/')
 @basic_auth.login_required
 def grant_auth_request(auth_id):
     auth_request = open_auth_requests.get_by_id(auth_id)
     if auth_request is not None:
         auth_request.granted = True
-    return redirect('/auth/check/')
+    return redirect('/toeknauth/check/')
 
 
 @app.route('/recording/list/')
