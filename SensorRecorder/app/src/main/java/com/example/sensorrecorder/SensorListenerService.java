@@ -53,7 +53,6 @@ import java.nio.ByteOrder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.TimeZone;
@@ -121,7 +120,7 @@ public class SensorListenerService extends Service implements SensorEventListene
     private MediaRecorder mediaRecorder;
     private long last_mic_record;
     private boolean ongoing_mic_record = false;
-    private float mic_activate_threshold_acc = 20;
+    private float mic_activate_threshold_acc = 15;
     private float mic_activate_threshold_gyro = 15;
     private Handler micHandler;
     private int micCounter = 0;
@@ -583,8 +582,8 @@ public class SensorListenerService extends Service implements SensorEventListene
         dataProcessor.writeBatteryTS(line);
     }
 
-    private void addPrediction(String gesture, float[] predValues) throws IOException {
-        long timestamp = SystemClock.elapsedRealtimeNanos();
+    private void addPrediction(String gesture, float[] predValues, long timestamp) throws IOException {
+        // long timestamp = SystemClock.elapsedRealtimeNanos();
         String line = timestamp + "\t";
         for(int i = 0; i < predValues.length; i++){
             line += Math.round(predValues[i] * 100000.0)/100000.0 + "\t";
@@ -618,6 +617,7 @@ public class SensorListenerService extends Service implements SensorEventListene
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // reject old sensor events
         if(event.timestamp < sensorStartTime)
             return;
 
@@ -625,12 +625,17 @@ public class SensorListenerService extends Service implements SensorEventListene
         int sensorIndex = sensorMapping.get(event.sensor.getType());
         int sensorPointer = sensorPointers[sensorIndex];
 
+
+        // determine offset between previous and current event
         if (sensorLastTimeStamp[sensorIndex] != -1)
             sensorOffset[sensorIndex] += event.timestamp - sensorLastTimeStamp[sensorIndex];
         sensorLastTimeStamp[sensorIndex] = event.timestamp;
 
+        // reject event if there have been too many events than specified by rate
         if(sensorOffset[sensorIndex] < sensorDelay)
             return;
+
+        // write event as often as required to fill the rate
 
         while (sensorOffset[sensorIndex] > sensorDelay) {
             sensorTimestampsBuffer[sensorIndex][sensorPointer] = event.timestamp - sensorOffset[sensorIndex];
@@ -652,64 +657,92 @@ public class SensorListenerService extends Service implements SensorEventListene
             sensorOffset[sensorIndex] -= sensorDelay;
         }
 
+        /*
+        sensorTimestampsBuffer[sensorIndex][sensorPointer] = event.timestamp;
+        for (int i = 0; i < event.values.length; i++) {
+            sensorValuesBuffer[sensorIndex][sensorPointer][i] = event.values[i];
+        }
+        sensorPointers[sensorIndex]++;
 
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            // check if we have to start the microphone
-            if (useMic && !ongoing_mic_record){
-                checkForMicStart();
+        if(sensorPointers[sensorIndex] == sensor_queue_size) {
+            try {
+                WriteSensorData(sensorIndex);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            if(possibleHandWash() && sensorPointer>51){
+            // reset buffer
+            sensorTimestampsBuffer[sensorIndex][0] = sensorTimestampsBuffer[sensorIndex][sensorPointers[sensorIndex]-1];
+            sensorPointers[sensorIndex] = 1;
+        }
+        */
+
+        // rough estimate off possible hand wash using accelerometer values
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            long posTs = possibleHandWash();
+            if(sensorPointer>51 && posTs > -1){
+
                 // vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.EFFECT_TICK));
-                if(System.currentTimeMillis() > lastHandwashPrediction + 200) {
-                    // Log.d("callback", "Classify Peak");
-                    doHandWashPrediction(sensorIndex, sensorPointer);
+
+                if(System.currentTimeMillis() > lastHandwashPrediction + 1200) {
+
+                    doHandWashPrediction(sensorIndex, sensorPointer, event.timestamp);
+                }
+
+
+                // check if we have to start the microphone
+                if (useMic && !ongoing_mic_record){
+                    startMicRecord(event.timestamp);
                 }
             }
 
             // if we currently record the microphone, check  if we have to stop it
             if (ongoing_mic_record && System.currentTimeMillis() > last_mic_record + 2000){
+                //Log.d("mic", "stop mic record");
                 ongoing_mic_record = false;
                 last_mic_record = System.currentTimeMillis();
-               pauseMediaRecorder();
+                pauseMediaRecorder();
+                //Log.d("mic", "paused media recorder");
             }
         }
     }
 
-    private void checkForMicStart(){
-        boolean activateMic = possibleHandWash();
-        if (activateMic){
-            resumeMediaRecorder();
-            ongoing_mic_record = true;
-            last_mic_record = System.currentTimeMillis();
-            int accIndex = sensorMapping.get(Sensor.TYPE_ACCELEROMETER);
-            String lineContent = sensorTimestampsBuffer[accIndex][sensorPointers[accIndex]] + "\n";
-            try {
-                dataProcessor.writeMicTS(lineContent);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    private void startMicRecord(long timestamp){
+        //Log.d("mic", "start mic record");
+        resumeMediaRecorder();
+        //Log.d("mic", "resumed media recorder");
+        ongoing_mic_record = true;
+        last_mic_record = System.currentTimeMillis();
+        String lineContent = timestamp + "\n";
+        try {
+            dataProcessor.writeMicTS(lineContent);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private void doHandWashPrediction(int sensorIndex, int sensorPointer){
+    private void doHandWashPrediction(int sensorIndex, int sensorPointer, long timestamp){
+        // create tmp array of right dimension for TF model
         float[][] vals = new float[50][3];
         for(int i = 0; i < 50; i++){
             System.arraycopy(sensorValuesBuffer[sensorIndex][sensorPointer - i], 0, vals[i], 0, vals[0].length);
         }
 
+        // create 2D-Array out of tmp array
         TwoDArray tdArray = new TwoDArray(vals);
+        // get all required features
         float[] features = tdArray.allFeatures();
+        // create byte buffer out of features
         ByteBuffer frame = ByteBuffer.allocateDirect(4*features.length);
         frame.order(ByteOrder.nativeOrder());
         for(int i = 0; i < features.length; i++){
             frame.putFloat(features[i]);
         }
-
-
+        // use tflite model to determine hand wash
         float[][] labelProbArray = handWashDetection.RunInference(frame);
 
         // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
+        // observe prediction and write to disk
         float max_pred = labelProbArray[0][1];
         String gesture = "Noise";
         if (labelProbArray[0][0] > max_pred && labelProbArray[0][0] > 0.9){
@@ -720,7 +753,7 @@ public class SensorListenerService extends Service implements SensorEventListene
         }
         // Log.d("Pred", "Results in " + gesture + " to " + max_pred * 100 + "%");
         try {
-            addPrediction(gesture, labelProbArray[0]);
+            addPrediction(gesture, labelProbArray[0], timestamp);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -728,32 +761,38 @@ public class SensorListenerService extends Service implements SensorEventListene
         lastHandwashPrediction = System.currentTimeMillis();
     }
 
-    private boolean possibleHandWash(){
+    private long possibleHandWash() {
         // simple approach to determine if the user is currently washing their hands
-        // check if at on of the acceleration axes has been a certain impact
-        if (!sensorMapping.containsKey(Sensor.TYPE_GYROSCOPE))
-            return false;
-        int accIndex = sensorMapping.get(Sensor.TYPE_ACCELEROMETER);
-        int pointerAcc = sensorPointers[accIndex];
-        int gyroIndex = sensorMapping.get(Sensor.TYPE_GYROSCOPE);
-        int pointerGyro = sensorPointers[gyroIndex];
-        int offsetAcc = Math.max(1, pointerAcc-25);
-        int offsetGyro = Math.max(1, pointerGyro-25);
-        for (int axes = 0; axes < 3; axes++){
-            for (int i = offsetAcc; i <= pointerAcc; i++){
-                float diff = Math.abs(sensorValuesBuffer[accIndex][pointerAcc][axes] - sensorValuesBuffer[accIndex][i][axes]);
-                if (diff > mic_activate_threshold_acc) {
-                    return true;
-                }
-            }
-            for (int i = offsetGyro; i <= pointerGyro; i++){
-                float diff = Math.abs(sensorValuesBuffer[gyroIndex][pointerGyro][axes] - sensorValuesBuffer[gyroIndex][i][axes]);
-                if (diff > mic_activate_threshold_gyro) {
-                    return true;
+        // check if one of the acceleration or gyroscope axes has been a certain impact
+        if (sensorMapping.containsKey(Sensor.TYPE_ACCELEROMETER)) {
+            int accIndex = sensorMapping.get(Sensor.TYPE_ACCELEROMETER);
+            int pointerAcc = sensorPointers[accIndex];
+            int offsetAcc = Math.max(1, pointerAcc - 25);
+            for (int axes = 0; axes < 3; axes++) {
+                for (int i = offsetAcc; i <= pointerAcc; i++) {
+                    float diff = Math.abs(sensorValuesBuffer[accIndex][pointerAcc][axes] - sensorValuesBuffer[accIndex][i][axes]);
+                    if (diff > mic_activate_threshold_acc) {
+                        //Log.d("pred", "acc_thr: " + diff);
+                        return sensorTimestampsBuffer[accIndex][pointerAcc];
+                    }
                 }
             }
         }
-        return false;
+        if (sensorMapping.containsKey(Sensor.TYPE_GYROSCOPE)) {
+            int gyroIndex = sensorMapping.get(Sensor.TYPE_GYROSCOPE);
+            int pointerGyro = sensorPointers[gyroIndex];
+            int offsetGyro = Math.max(1, pointerGyro - 25);
+            for (int axes = 0; axes < 3; axes++) {
+                for (int i = offsetGyro; i <= pointerGyro; i++) {
+                    float diff = Math.abs(sensorValuesBuffer[gyroIndex][pointerGyro][axes] - sensorValuesBuffer[gyroIndex][i][axes]);
+                    if (diff > mic_activate_threshold_gyro) {
+                        //Log.d("pred", "gyro_thr: " + diff);
+                        return sensorTimestampsBuffer[gyroIndex][pointerGyro];
+                    }
+                }
+            }
+        }
+        return -1;
     }
 
     private void WriteSensorData(int sensorIndex) throws IOException {

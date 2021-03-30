@@ -186,7 +186,7 @@ if __name__ == "__main__":
             use_mkv = True
     data_processor = DataProcessor(sys.argv[1], use_mkv)
     data_processor.plot_data(True)
-    # data_processor.plot_timings()
+    data_processor.plot_timings()
     print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
           data_processor.calc_total_time()/60, " min \t -> ",
           (data_processor.calc_idle_time() / data_processor.calc_total_time())*100, "% lost")

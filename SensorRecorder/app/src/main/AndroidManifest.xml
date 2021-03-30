@@ -31,7 +31,7 @@
         <service android:name=".SensorListenerService" />
 
         <receiver
-            android:name=".BootEventHandler"
+            android:name="com.example.sensorrecorder.EventHandlers.BootEventHandler"
             android:label="StartActivityAtBootReceiver"
             android:enabled="true"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED" >

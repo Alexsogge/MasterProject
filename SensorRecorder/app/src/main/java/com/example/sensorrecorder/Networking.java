@@ -284,9 +284,9 @@ public class Networking {
             String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
             String userIdentifier = configs.getString(mainActivity.getString(R.string.conf_userIdentifier), "");
             Request request = new Request.Builder()
-                    .url(serverName + "/auth/request/?identifier="+userIdentifier)
+                    .url(serverName + "/tokenauth/request/?identifier="+userIdentifier)
                     .build();
-            Log.d("http", "request token from " + serverName + "/auth/request/?identifier="+userIdentifier);
+            Log.d("http", "request token from " + serverName + "/tokenauth/request/?identifier="+userIdentifier);
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()){
                     throw new IOException("Unexpected code " + response);

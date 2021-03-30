@@ -1,10 +1,12 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder.EventHandlers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-import android.widget.Toast;
+
+import com.example.sensorrecorder.MainActivity;
+import com.example.sensorrecorder.SensorListenerService;
 
 public class ChargeEventHandler extends BroadcastReceiver {
 

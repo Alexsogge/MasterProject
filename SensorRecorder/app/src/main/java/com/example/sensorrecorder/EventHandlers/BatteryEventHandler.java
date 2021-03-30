@@ -1,16 +1,16 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder.EventHandlers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.BatteryManager;
-import android.os.Bundle;
-import android.util.Log;
+
+import com.example.sensorrecorder.SensorListenerService;
 
 import java.io.IOException;
 
 public class BatteryEventHandler extends BroadcastReceiver {
-    SensorListenerService sensorListenerService = null;
+    public SensorListenerService sensorListenerService = null;
 
     @Override
     public void onReceive(Context context, Intent intent) {

@@ -1,7 +1,6 @@
 package com.example.sensorrecorder;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +30,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
+
+import com.example.sensorrecorder.EventHandlers.BatteryEventHandler;
+import com.example.sensorrecorder.EventHandlers.ChargeEventHandler;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
