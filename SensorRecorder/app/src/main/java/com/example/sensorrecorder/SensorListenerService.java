@@ -13,6 +13,9 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
@@ -20,6 +23,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class SensorListenerService implements SensorEventListener, SensorEventListener2 {
+    private final Executor executor = Executors.newSingleThreadExecutor();
     public boolean flushed = false;
     public boolean closed = false;
     private  boolean stopped = false;
@@ -75,22 +79,19 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
 
     public void close(){
         stopped = true;
+        /*
         try {
             writeSensorData();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        closed = true;
+        */
+        //callFlushBuffer();
+
     }
 
     private void callFlushBuffer(){
-        float[][] bufferValues = new float[sensorValuesBuffer.length][sensorValuesBuffer[0].length];
-        for(int i = 0; i < bufferValues.length; i++){
-            System.arraycopy(sensorValuesBuffer[i], 0, bufferValues[i], 0, bufferValues[0].length);
-        }
-        long[] timestamps = new long[sensorTimestampsBuffer.length];
-        System.arraycopy(sensorTimestampsBuffer, 0, timestamps, 0, timestamps.length);
-        managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
+        executor.execute(new FlushBufferTask());
     }
 
     private void callStartMic(long timeStamp){
@@ -134,12 +135,16 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
                 // callFlushBuffer();
                 // reset buffer
 
+                callFlushBuffer();
+
+                /*
                 try {
                     callFlushBuffer();
                     writeSensorData();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                */
 
 
                 sensorTimestampsBuffer[0] = sensorTimestampsBuffer[sensorPointer-1];
@@ -216,34 +221,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
     }
 
 
-    private void writeSensorData() throws IOException {
-        Log.d("sensor", "Write data " + closed);
-        StringBuilder data = new StringBuilder();
-        if (useMKVStream && sensorPipeOutput == null)
-            sensorPipeOutput = mFFmpeg.getOutputStream(sensorIndex);
-
-        for (int i = 1; i < sensorPointer; i++) {
-            if(useZIPStream) {
-                data.append(sensorTimestampsBuffer[i]).append("\t");
-                for(int axe = 0; axe < sensorDimension - 1; axe++){
-                    data.append(sensorValuesBuffer[i][axe]).append("\t");
-                }
-                data.append(sensorValuesBuffer[i][sensorDimension-1]).append("\n");
-            }
-            if (useMKVStream) {
-                mBuf.clear();
-                for(int axis = 0; axis < sensorDimension; axis++)
-                    mBuf.putFloat(sensorValuesBuffer[i][axis]);
-                sensorPipeOutput.write(mBuf.array());
-            }
-        }
-        if (useMKVStream)
-            sensorPipeOutput.flush();
-
-        if (useZIPStream) {
-            dataProcessor.writeSensorData(mySensor.getStringType(), data.toString());
-        }
-    }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -252,6 +229,70 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
 
     @Override
     public void onFlushCompleted(Sensor sensor) {
-        flushed = true;
+        if(stopped) {
+            flushed = true;
+            callFlushBuffer();
+        }
+
     }
+
+
+    class FlushBufferTask implements Runnable{
+        float[][] bufferValues;
+        long[] timestamps;
+        int flushedSensorPointer;
+
+        public FlushBufferTask(){
+            flushedSensorPointer = sensorPointer;
+            bufferValues = new float[sensorValuesBuffer.length][sensorValuesBuffer[0].length];
+            for(int i = 0; i < bufferValues.length; i++){
+                System.arraycopy(sensorValuesBuffer[i], 0, bufferValues[i], 0, bufferValues[0].length);
+            }
+            timestamps = new long[sensorTimestampsBuffer.length];
+            System.arraycopy(sensorTimestampsBuffer, 0, timestamps, 0, timestamps.length);
+        }
+
+        @Override
+        public void run() {
+            try {
+                writeSensorData();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
+            if(stopped)
+                closed = true;
+        }
+
+        private void writeSensorData() throws IOException {
+            Log.d("sensor", "Write data " + closed);
+            StringBuilder data = new StringBuilder();
+            if (useMKVStream && sensorPipeOutput == null)
+                sensorPipeOutput = mFFmpeg.getOutputStream(sensorIndex);
+
+            for (int i = 1; i < flushedSensorPointer; i++) {
+                if(useZIPStream) {
+                    data.append(timestamps[i]).append("\t");
+                    for(int axe = 0; axe < sensorDimension - 1; axe++){
+                        data.append(bufferValues[i][axe]).append("\t");
+                    }
+                    data.append(bufferValues[i][sensorDimension-1]).append("\n");
+                }
+                if (useMKVStream) {
+                    mBuf.clear();
+                    for(int axis = 0; axis < sensorDimension; axis++)
+                        mBuf.putFloat(bufferValues[i][axis]);
+                    sensorPipeOutput.write(mBuf.array());
+                }
+            }
+            if (useMKVStream)
+                sensorPipeOutput.flush();
+
+            if (useZIPStream) {
+                dataProcessor.writeSensorData(mySensor.getStringType(), data.toString());
+            }
+        }
+
+    }
+
 }

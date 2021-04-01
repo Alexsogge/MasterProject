@@ -58,6 +58,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
@@ -69,6 +71,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
 public class SensorManager extends Service implements SensorManagerInterface{
+    private final Executor executor = Executors.newSingleThreadExecutor(); // change according to your requirements
     private final IBinder binder = new LocalBinder();
     private final int samplingRate = 20000;
     private final int reportRate = 1000000;
@@ -412,36 +415,15 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
     private void unregisterFromManager(){
         for(SensorListenerService sensorService: sensorServices){
-
             sensorManager.unregisterListener(sensorService);
+
+        }
+    }
+
+    private void stopSensors(){
+        for(SensorListenerService sensorService: sensorServices){
             sensorService.close();
-        }
-        /*
-        boolean waitForClose = true;
-        while (waitForClose){
-            waitForClose = false;
-            for(SensorListenerService sensorService: sensorServices){
-                if(!sensorService.closed || !sensorService.flushed)
-                    waitForClose = true;
-            }
-        }
-        */
-        // sensorManager.unregisterListener(this);
-        try {
-            /*
-            for(int i = 0; i < activeSensors.length; i++){
-                WriteSensorData(i);
-            }
-            */
-
-
-            // we have to close the zip streams correctly to prevent corruptions
-            if (useZIPStream) {
-                dataProcessor.closeSensorStreams();
-            }
-
-        } catch (IOException e){
-            e.printStackTrace();
+            sensorManager.flush(sensorService);
         }
     }
 
@@ -495,51 +477,15 @@ public class SensorManager extends Service implements SensorManagerInterface{
     public void stopRecording(){
         if(!isRunning)
             return;
-
+        startStopButton.setText("Stopping...");
         Log.d("mgr", "Stop recording");
         // stop sensor manager
-        unregisterFromManager();
+        //unregisterFromManager();
+        stopSensors();
 
         Log.d("mgr", "unregistered sensors");
-        // stop ongoing mic recordings and close recorder
-        if (mediaRecorder != null)
-            stopMediaRecorder();
+        executor.execute(new StopSessionTask());
 
-        Log.d("mgr", "Stopped mediarecorder");
-
-        // close ffmpeg process
-        try {
-            // mFFmpeg.waitFor();
-            if (mFFmpeg != null)
-                mFFmpeg.terminate();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        mFFmpeg = null;
-
-        Log.d("mgr", "closed ffmpeg");
-
-        // there could be a lot of microphone files. That's why we collect them in a single zip
-        try {
-            dataProcessor.packMicFilesIntoZip();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Log.d("mgr", "packed mic files");
-
-        // write on disk
-        dataProcessor.flushAllContainer();
-
-        Log.d("mgr", "flushed data");
-
-        isRunning = false;
-        if (startStopButton != null)
-            startStopButton.setText("Start");
-        stopForeground(true);
-        if(wakeLock.isHeld())
-            wakeLock.release();
-        Log.d("mgr", "finished stop");
     }
 
 
@@ -779,5 +725,72 @@ public class SensorManager extends Service implements SensorManagerInterface{
     @Override
     public void onDestroy(){
         this.unregisterFromManager();
+    }
+
+
+    class StopSessionTask implements Runnable{
+
+        @Override
+        public void run() {
+            boolean waitForClose = true;
+            while (waitForClose){
+                waitForClose = false;
+                for(SensorListenerService sensorService: sensorServices){
+                    if(!sensorService.closed || !sensorService.flushed)
+                        waitForClose = true;
+                }
+            }
+            unregisterFromManager();
+
+            try {
+                // we have to close the zip streams correctly to prevent corruptions
+                if (useZIPStream) {
+                    dataProcessor.closeSensorStreams();
+                }
+
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+
+            // stop ongoing mic recordings and close recorder
+            if (mediaRecorder != null)
+                stopMediaRecorder();
+
+            Log.d("mgr", "Stopped mediarecorder");
+
+            // close ffmpeg process
+            try {
+                // mFFmpeg.waitFor();
+                if (mFFmpeg != null)
+                    mFFmpeg.terminate();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            mFFmpeg = null;
+
+            Log.d("mgr", "closed ffmpeg");
+
+            // there could be a lot of microphone files. That's why we collect them in a single zip
+            try {
+                dataProcessor.packMicFilesIntoZip();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Log.d("mgr", "packed mic files");
+
+            // write on disk
+            dataProcessor.flushAllContainer();
+
+            Log.d("mgr", "flushed data");
+
+            isRunning = false;
+            if (startStopButton != null)
+                startStopButton.setText("Start");
+            stopForeground(true);
+            if(wakeLock.isHeld())
+                wakeLock.release();
+            Log.d("mgr", "finished stop");
+        }
     }
 }
