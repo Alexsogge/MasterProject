@@ -46,7 +46,7 @@ public class MainActivity extends WearableActivity {
 
     private TextView mTextView;
     private Intent intent;
-    public SensorListenerService sensorService;
+    public SensorManager sensorService;
     public Networking networking;
 
     private boolean mBound = false;
@@ -69,7 +69,7 @@ public class MainActivity extends WearableActivity {
     private CustomSpinner handWashSpinner;
 
     // ML stuff
-    private HandWashDetection handWashDetection;
+    public HandWashDetection handWashDetection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -249,7 +249,7 @@ public class MainActivity extends WearableActivity {
     }
 
     private void startRecording(){
-        intent = new Intent(this, SensorListenerService.class );
+        intent = new Intent(this, SensorManager.class );
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);
@@ -265,16 +265,15 @@ public class MainActivity extends WearableActivity {
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
             // get SensorService instance when ready
-            SensorListenerService.LocalBinder binder = (SensorListenerService.LocalBinder) service;
+            SensorManager.LocalBinder binder = (SensorManager.LocalBinder) service;
             sensorService = binder.getService();
-            sensorService.handWashDetection = handWashDetection;
             sensorService.mainActivity = mainActivity;
             mBound = true;
             // initialize services components
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
             sensorService.startStopButton = startStopButton;
             networking.sensorService = sensorService;
-            batteryEventHandler.sensorListenerService = sensorService;
+            batteryEventHandler.sensorManager = sensorService;
         }
 
         @Override

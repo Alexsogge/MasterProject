@@ -36,7 +36,7 @@ import okhttp3.Response;
 public class Networking {
 
     private Activity mainActivity;
-    public SensorListenerService sensorService;
+    public SensorManager sensorService;
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
@@ -50,7 +50,7 @@ public class Networking {
     private String serverAddress = "http://192.168.0.101:8000/recording/new/?uuid=219a88d0-9ad3-4c82-842c-ab5f2b5ff4de";
 
 
-    public Networking(final Activity mainActivity, SensorListenerService sensorService, SharedPreferences configs){
+    public Networking(final Activity mainActivity, SensorManager sensorService, SharedPreferences configs){
         this.mainActivity = mainActivity;
         this.sensorService = sensorService;
         infoText = (TextView)mainActivity.findViewById(R.id.infoText);

@@ -5,12 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.BatteryManager;
 
-import com.example.sensorrecorder.SensorListenerService;
+import com.example.sensorrecorder.SensorManager;
 
 import java.io.IOException;
 
 public class BatteryEventHandler extends BroadcastReceiver {
-    public SensorListenerService sensorListenerService = null;
+    public SensorManager sensorManager = null;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -19,15 +19,15 @@ public class BatteryEventHandler extends BroadcastReceiver {
 
         float batteryPct = level * 100 / (float)scale;
 
-        if (sensorListenerService != null && sensorListenerService.isRunning){
+        if (sensorManager != null && sensorManager.isRunning){
             try {
-                sensorListenerService.addBatteryState(batteryPct);
+                sensorManager.addBatteryState(batteryPct);
             } catch (IOException e) {
                 e.printStackTrace();
             }
             if(batteryPct < 16) {
-                sensorListenerService.stopRecording();
-                sensorListenerService.dataProcessor.backup_recording_files();
+                sensorManager.stopRecording();
+                sensorManager.dataProcessor.backup_recording_files();
             }
         }
     }

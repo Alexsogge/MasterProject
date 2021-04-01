@@ -1,5 +1,7 @@
 package com.example.sensorrecorder;
 
+import android.util.Log;
+
 import com.example.sensorrecorder.dataContainer.DataContainer;
 import com.example.sensorrecorder.dataContainer.OutputStreamContainer;
 import com.example.sensorrecorder.dataContainer.ZipContainer;
@@ -143,6 +145,7 @@ public class DataProcessor {
     }
 
     public void writeMicTS(String line) throws IOException {
+        Log.d("dp", "new mic ts " + line);
         containerMicTimeStamps.writeData(line);
     }
 

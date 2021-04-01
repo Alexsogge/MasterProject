@@ -34,6 +34,7 @@ public class TwoDArray {
         init(input);
     }
 
+
     public void init(float[][] input){
         float[][] dataTransposedSorted = new float[shape[1]][shape[0]];
         for(int j = 0; j < shape[1]; j++){
@@ -60,6 +61,7 @@ public class TwoDArray {
     public void put(int row, int col, float val){
         data[row][col] = val;
     }
+
 
     public float[] getMean(){
         if(_mean == null)
