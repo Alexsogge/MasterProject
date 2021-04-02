@@ -206,8 +206,8 @@ public class MainActivity extends WearableActivity {
     }
 
     public void toggleStopRecording(){
-        sensorService.stopRecording();
-        sensorService.dataProcessor.backup_recording_files();
+        sensorService.directlyStopRecording();
+        // sensorService.dataProcessor.backup_recording_files();
     }
 
     private void updateUploadButton(){

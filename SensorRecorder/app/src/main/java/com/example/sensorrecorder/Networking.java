@@ -24,6 +24,9 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import okhttp3.Headers;
 import okhttp3.MediaType;
@@ -34,9 +37,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class Networking {
-
-    private Activity mainActivity;
     public SensorManager sensorService;
+    private Activity mainActivity;
+    private final Executor executor = Executors.newSingleThreadExecutor();
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
@@ -47,7 +50,9 @@ public class Networking {
     private SharedPreferences configs;
     private Handler uiHandler;
 
-    private String serverAddress = "http://192.168.0.101:8000/recording/new/?uuid=219a88d0-9ad3-4c82-842c-ab5f2b5ff4de";
+    private String serverAddress = "";
+
+    private CountDownLatch sensorStopLatch;
 
 
     public Networking(final Activity mainActivity, SensorManager sensorService, SharedPreferences configs){
@@ -66,17 +71,9 @@ public class Networking {
             mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             Log.e("networking", "start upload");
             // stop recording and create backup
-            sensorService.prepareUpload();
-
-            // we need an upload token from the server to signalise which files belong together
-            directoryUploadTokens.clear();
-            toUploadDirectories.clear();
-            for(File directory: DataContainer.getSubdirectories()) {
-                toUploadDirectories.add(directory.getPath());
-                new Networking.HTTPGetUploadToken().execute(directory.getPath());
-            }
-
-            startUploadIfReady();
+            sensorStopLatch = new CountDownLatch(1);
+            sensorService.waitForStopRecording(sensorStopLatch);
+            executor.execute(new UploadTask());
         }
     }
 
@@ -153,6 +150,31 @@ public class Networking {
             infoText.setText("upload finished");
             uploadProgressBar.setVisibility(View.INVISIBLE);
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+
+
+    private class UploadTask implements Runnable{
+
+        @Override
+        public void run() {
+            // wait for finished sensors
+            try {
+                sensorStopLatch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // we need an upload token from the server to signalise which files belong together
+            directoryUploadTokens.clear();
+            toUploadDirectories.clear();
+            for(File directory: DataContainer.getSubdirectories()) {
+                toUploadDirectories.add(directory.getPath());
+                new Networking.HTTPGetUploadToken().execute(directory.getPath());
+            }
+
+            startUploadIfReady();
         }
     }
 

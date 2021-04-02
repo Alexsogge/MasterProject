@@ -26,8 +26,8 @@ public class BatteryEventHandler extends BroadcastReceiver {
                 e.printStackTrace();
             }
             if(batteryPct < 16) {
-                sensorManager.stopRecording();
-                sensorManager.dataProcessor.backup_recording_files();
+                sensorManager.directlyStopRecording();
+                // sensorManager.dataProcessor.backup_recording_files();
             }
         }
     }

@@ -101,16 +101,12 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
     @Override
     public void onSensorChanged(SensorEvent event) {
         // reject old sensor events
-        if(event.timestamp < sensorStartTime || stopped)
+        if(event.timestamp < sensorStartTime)
             return;
-
-        if (flushed && sensorPipeOutput != null) {
-            try {
-                sensorPipeOutput.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if(stopped && flushed){
+            return;
         }
+
 
         // write new values to buffer
         // determine offset between previous and current event
@@ -233,7 +229,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             flushed = true;
             callFlushBuffer();
         }
-
     }
 
 
@@ -285,8 +280,16 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
                     sensorPipeOutput.write(mBuf.array());
                 }
             }
-            if (useMKVStream)
+            if (useMKVStream) {
                 sensorPipeOutput.flush();
+                if(stopped || flushed){
+                    try {
+                        sensorPipeOutput.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
 
             if (useZIPStream) {
                 dataProcessor.writeSensorData(mySensor.getStringType(), data.toString());

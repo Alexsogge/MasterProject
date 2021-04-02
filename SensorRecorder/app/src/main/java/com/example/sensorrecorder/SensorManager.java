@@ -92,6 +92,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
     private Vibrator vibrator;
 
     // service stuff
+    public boolean stopping;
     private Intent intent;
     private Handler mainLoopHandler;
     private boolean initialized = false;
@@ -102,15 +103,10 @@ public class SensorManager extends Service implements SensorManagerInterface{
     // sensor recording stuff
     private android.hardware.SensorManager sensorManager;
     private Sensor[] activeSensors;
-    private HashMap<Integer, Integer> sensorMapping;
-    private int[] sensorDimensions;
-    private long[][] sensorTimestampsBuffer;
-    private float[][][] sensorValuesBuffer;
-    private int[] sensorPointers;
-    private long[] sensorOffset;
-    private long[] sensorLastTimeStamp;
-    private long sensorStartTime;
     private SensorListenerService[] sensorServices;
+    private int[] sensorDimensions;
+    private long sensorStartTime;
+
 
     // data files
     public DataProcessor dataProcessor;
@@ -226,12 +222,6 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
         activeSensors = new Sensor[availableSensors.size()];
         sensorDimensions = new int[availableSensors.size()];
-        sensorTimestampsBuffer = new long[availableSensors.size()][];
-        sensorValuesBuffer = new float[availableSensors.size()][][];
-        sensorPointers = new int[availableSensors.size()];
-        sensorOffset = new long[availableSensors.size()];
-        sensorLastTimeStamp = new long[availableSensors.size()];
-        sensorMapping = new HashMap<>();
         sensorPipeOutputs = new OutputStream[activeSensors.length];
         sensorServices = new SensorListenerService[availableSensors.size()];
 
@@ -239,23 +229,12 @@ public class SensorManager extends Service implements SensorManagerInterface{
             Sensor availableSensor = availableSensors.get(i);
             activeSensors[i] = availableSensor;
             sensorDimensions[i] = getNumChannels(availableSensor);
-            sensorTimestampsBuffer[i] = new long[sensor_queue_size];
-            sensorValuesBuffer[i] = new float[sensor_queue_size][getNumChannels(availableSensor)];
-            sensorPointers[i] = 0;
-            sensorOffset[i] = 0;
-            sensorLastTimeStamp[i] = -1;
-            sensorMapping.put(availableSensor.getType(), i);
             sensorServices[i] = new SensorListenerService(this, availableSensor, i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(availableSensor.getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
         }
     }
 
     private void resetSensorBuffers(){
         for(int i = 0; i < activeSensors.length; i++){
-            sensorTimestampsBuffer[i] = new long[sensor_queue_size];
-            sensorValuesBuffer[i] = new float[sensor_queue_size][getNumChannels(activeSensors[i])];
-            sensorPointers[i] = 0;
-            sensorOffset[i] = 0;
-            sensorLastTimeStamp[i] = -1;
             sensorServices[i] = new SensorListenerService(this, activeSensors[i], i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(activeSensors[i].getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
         }
     }
@@ -399,12 +378,11 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
         // due to the ffmpeg service can't run on the ui thread we have to initialize the sensor recorder which writes to the pipe also in an separate thread
         boolean batchMode = true;
-        for(Sensor sensor: activeSensors) {
-            int sensorIndex = sensorMapping.get(sensor.getType());
-            HandlerThread t_sen = new HandlerThread(sensor.getName());
+        for(int sensorIndex = 0; sensorIndex < activeSensors.length; sensorIndex++) {
+            HandlerThread t_sen = new HandlerThread(activeSensors[sensorIndex].getName());
             t_sen.start();
             Handler h_sen = new Handler(t_sen.getLooper());
-            batchMode &= sensorManager.registerListener(sensorServices[sensorIndex], sensor, samplingRate, reportRate, h_sen);
+            batchMode &= sensorManager.registerListener(sensorServices[sensorIndex], activeSensors[sensorIndex], samplingRate, reportRate, h_sen);
         }
         if (!batchMode){
             Log.e("sensorinfo", "Could not register sensors to batch");
@@ -474,9 +452,12 @@ public class SensorManager extends Service implements SensorManagerInterface{
             startStopButton.setText("Stop");
     }
 
-    public void stopRecording(){
-        if(!isRunning)
+    private void stopRecording(CountDownLatch stopLatch){
+        if(!isRunning) {
+            stopLatch.countDown();
             return;
+        }
+
         startStopButton.setText("Stopping...");
         Log.d("mgr", "Stop recording");
         // stop sensor manager
@@ -484,8 +465,17 @@ public class SensorManager extends Service implements SensorManagerInterface{
         stopSensors();
 
         Log.d("mgr", "unregistered sensors");
-        executor.execute(new StopSessionTask());
+        executor.execute(new StopSessionTask(stopLatch));
 
+    }
+
+    public void directlyStopRecording(){
+        CountDownLatch stopLatch = new CountDownLatch(1);
+        stopRecording(stopLatch);
+    }
+
+    public void waitForStopRecording(CountDownLatch stopLatch){
+        stopRecording(stopLatch);
     }
 
 
@@ -565,14 +555,6 @@ public class SensorManager extends Service implements SensorManagerInterface{
             sensorManager.flush(sensorService);
         }
         // sensorManager.flush(this);
-    }
-
-    public void prepareUpload(){
-        flushSensor();
-        // unregisterfromManager();
-        stopRecording();
-        setInfoText("Backup files");
-        dataProcessor.backup_recording_files();
     }
 
     private void setInfoText(final String text){
@@ -728,7 +710,12 @@ public class SensorManager extends Service implements SensorManagerInterface{
     }
 
 
-    class StopSessionTask implements Runnable{
+    private class StopSessionTask implements Runnable{
+        private CountDownLatch stopLatch;
+
+        public StopSessionTask(CountDownLatch stopLatch){
+            this.stopLatch = stopLatch;
+        }
 
         @Override
         public void run() {
@@ -783,6 +770,8 @@ public class SensorManager extends Service implements SensorManagerInterface{
             dataProcessor.flushAllContainer();
 
             Log.d("mgr", "flushed data");
+            dataProcessor.backup_recording_files();
+            Log.d("mgr", "saved data");
 
             isRunning = false;
             if (startStopButton != null)
@@ -791,6 +780,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
             if(wakeLock.isHeld())
                 wakeLock.release();
             Log.d("mgr", "finished stop");
+            stopLatch.countDown();
         }
     }
 }

@@ -173,6 +173,9 @@ public class DataProcessor {
             fis.close();
             tmp_file.delete();
         }
+        zipOut.flush();
+        zipOut.finish();
+        fileOut.flush();
 
         try {zipOut.close();}
         catch (ZipException e){
