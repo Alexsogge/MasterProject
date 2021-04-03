@@ -216,9 +216,11 @@ def get_recording(recording):
 @app.route('/recording/plot/<string:recording>/')
 @basic_auth.login_required
 def plot_recording(recording):
-    plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.png')
+    plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.svg')
     if not os.path.exists(plot_file):
-        generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
+        plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.png')
+        if not os.path.exists(plot_file):
+            generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
 
     if os.path.exists(plot_file):
         if recording not in prepared_plot_data.copy():

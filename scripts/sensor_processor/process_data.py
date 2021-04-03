@@ -132,7 +132,8 @@ class DataProcessor:
 
         fig.tight_layout()
         if generate_image:
-            fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=500)
+            # fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=500)
+            fig.savefig(os.path.join(self.folder_name, "data_plot.svg"))
         plt.show()
 
     def plot_timings(self, generate_image=False):
