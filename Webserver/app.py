@@ -365,7 +365,7 @@ def add_file_to_zip(file_name, directory, directory_uuid):
     if not config.pack_mic_files and '.zip' in file_name and contains_mic_files(file_name, directory):
         return
 
-    zip_file_name = os.path.join(directory, directory_uuid + '.zip')
+    zip_file_name = os.path.join(directory, '.' + directory_uuid + '.zip')
 
     with ZipFile(zip_file_name, 'a') as zip_file:
         sub_file = os.path.join(directory, file_name)

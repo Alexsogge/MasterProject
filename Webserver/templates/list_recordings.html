@@ -9,7 +9,7 @@
                 <div class="col"><a href="/recording/get/{{ record }}/">{{ record }}</a></div>
                 <div class="col">{{ recordings[record][2] }}</div>
                 <div class="col-auto mr-auto">{{ recordings[record][0] }}</div>
-                <div class="col-auto mr-auto"><a class="btn btn-primary" href="/uploads/recordings/{{ record }}/{{ record }}.zip">Download</a></div>
+                <div class="col-auto mr-auto"><a class="btn btn-primary" href="/uploads/recordings/{{ record }}/.{{ record }}.zip">Download</a></div>
                 <div class="col-auto mr-auto"><a class="btn btn-danger" href="/recording/delete/{{ record }}/">Delete</a></div>
             </div>
         {% endfor %}

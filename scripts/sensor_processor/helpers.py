@@ -65,7 +65,7 @@ def read_csvs_in_folder(folder_name, data_name, entries_per_line, open_zips=True
     for f in listdir(folder_name):
         path = join(folder_name, f)
         if isfile(path):
-            if data_name in f:
+            if data_name in f and f[0] != '.':
                 data = None
                 if splitext(f)[1] == '.csv':
                     data = read_csv(path, limit=limit)
