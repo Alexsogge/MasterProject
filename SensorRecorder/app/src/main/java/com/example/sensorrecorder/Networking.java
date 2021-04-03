@@ -63,21 +63,6 @@ public class Networking {
     }
 
     public void DoFileUpload(){
-        // check if server token exists. If not request it, else proceed upload
-        if(configs.getString(mainActivity.getString(R.string.conf_serverToken), "").equals("")) {
-            requestServerToken();
-        } else {
-            // keep the screen on to prevent system goes to sleep and interrupts process
-            mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            Log.e("networking", "start upload");
-            // stop recording and create backup
-            sensorStopLatch = new CountDownLatch(1);
-            sensorService.waitForStopRecording(sensorStopLatch);
-            executor.execute(new UploadTask());
-        }
-    }
-
-    private void UploadFiles(){
         // update info text
         infoText.setText("Check connection");
         infoText.invalidate();
@@ -94,6 +79,22 @@ public class Networking {
             mainActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             return;
         }
+
+        // check if server token exists. If not request it, else proceed upload
+        if(configs.getString(mainActivity.getString(R.string.conf_serverToken), "").equals("")) {
+            requestServerToken();
+        } else {
+            // keep the screen on to prevent system goes to sleep and interrupts process
+            mainActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            Log.e("networking", "start upload");
+            // stop recording and create backup
+            sensorStopLatch = new CountDownLatch(1);
+            sensorService.waitForStopRecording(sensorStopLatch);
+            executor.execute(new UploadTask());
+        }
+    }
+
+    private void UploadFiles(){
         // initialize progress bar for upload status uf current file
         uploadProgressBar = (ProgressBar) mainActivity.findViewById(R.id.uploaadProgressBar);
         uploadProgressBar.setMax(100);
@@ -373,7 +374,7 @@ public class Networking {
                 }
 
                 //System.out.println(response.body().string());
-            } catch (ConnectException e){
+            } catch (ConnectException | java.net.SocketTimeoutException e) {
                 makeToast("Can't connect to server");
             } catch (IOException | JSONException e) {
                 e.printStackTrace();

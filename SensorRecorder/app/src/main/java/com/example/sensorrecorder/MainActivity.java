@@ -197,11 +197,7 @@ public class MainActivity extends WearableActivity {
     }
 
     public void toggleStartRecording(){
-        try {
-            handWashDetection.initModel();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        handWashDetection.initModel();
         sensorService.startRecording();
     }
 

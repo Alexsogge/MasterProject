@@ -81,7 +81,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
     private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD, Sensor.TYPE_ROTATION_VECTOR};
     //private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER};
     private final float[] possibleHandWashActivateThresholds = new float[]{15f, 15f, -1f, -1f};
-    private final int[] sensorsUsedInTFModel = new int[]{Sensor.TYPE_ACCELEROMETER};
+    private final int[] sensorsUsedInTFModel = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE};
 
 
     // handle main ui
@@ -146,51 +146,53 @@ public class SensorManager extends Service implements SensorManagerInterface{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // due to we call this function multiple times from the notification buttons we have to determine when we called it the first time
-        if (!initialized) {
-            initialized = true;
-            this.intent = intent;
+        // if a call wasn't the initial one it came from a notification button
+        // therefore we have to determine which action should be triggered
+        if (intent.getStringExtra("trigger") != null){
 
-            createForeGroundNotification();
-
-            sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
-
-            initSensors();
-            // acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            // gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
-            mainLoopHandler = new Handler(Looper.getMainLooper());
-            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                    "SensorRecorder::WakelockTag");
-
-            dataProcessor = new DataProcessor();
-            loadDataContainers();
-
-            configs = this.getSharedPreferences(getString(R.string.configs), Context.MODE_PRIVATE);
-            micHandler = new Handler();
-            vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-            handWashDetection = MainActivity.mainActivity.handWashDetection;
-
-            // start recording at app startup
-            startRecording();
-
-        } else {
-            // if a call wasn't the initial one it came from a notification button
-            // therefore we have to determine which action should be triggered
-            if (intent.getStringExtra("trigger") != null){
-
-                // new hand wash event
-                if (intent.getStringExtra("trigger").equals("handWash")) {
+            // new hand wash event
+            if (intent.getStringExtra("trigger").equals("handWash")) {
+                if(isRunning)
                     addHandWashEventNow();
-                }
+            }
 
-                // open app
-                if (intent.getStringExtra("trigger").equals("open")){
-                    Intent mainIntent = new Intent(this, MainActivity.class);
-                    startActivity(mainIntent);
-                }
+            // open app
+            if (intent.getStringExtra("trigger").equals("open")){
+                Intent mainIntent = new Intent(this, MainActivity.class);
+                startActivity(mainIntent);
+            }
+        }else {
+
+            if (!initialized) {
+                initialized = true;
+                this.intent = intent;
+
+                createForeGroundNotification();
+
+                sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
+
+                initSensors();
+                // acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                // gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
+                mainLoopHandler = new Handler(Looper.getMainLooper());
+                PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        "SensorRecorder::WakelockTag");
+
+                dataProcessor = new DataProcessor();
+                loadDataContainers();
+
+                configs = this.getSharedPreferences(getString(R.string.configs), Context.MODE_PRIVATE);
+                micHandler = new Handler();
+                vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+                handWashDetection = MainActivity.mainActivity.handWashDetection;
+
+                // start recording at app startup
+                startRecording();
+
             }
         }
         return START_STICKY;
@@ -228,7 +230,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
         for(int i = 0; i < availableSensors.size(); i++){
             Sensor availableSensor = availableSensors.get(i);
             activeSensors[i] = availableSensor;
-            sensorDimensions[i] = getNumChannels(availableSensor);
+            sensorDimensions[i] = getNumChannels(availableSensor.getType());
             sensorServices[i] = new SensorListenerService(this, availableSensor, i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(availableSensor.getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
         }
     }
@@ -350,8 +352,8 @@ public class SensorManager extends Service implements SensorManagerInterface{
         notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Running")
                 .setContentText("Sensor recorder is active")
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText("Sensor recorder is active"))
+                //.setStyle(new NotificationCompat.BigTextStyle()
+                //        .bigText("Sensor recorder is active"))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.preference_wrapped_icon)
                 .addAction(R.drawable.action_item_background, "HandWash", pintHandWash)
@@ -466,7 +468,9 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
         Log.d("mgr", "unregistered sensors");
         executor.execute(new StopSessionTask(stopLatch));
-
+        stopForeground(true);
+        if(wakeLock.isHeld())
+            wakeLock.release();
     }
 
     public void directlyStopRecording(){
@@ -514,14 +518,17 @@ public class SensorManager extends Service implements SensorManagerInterface{
                 usedTFSensors.add(i);
             }
         }
+        int[] sensorTypes = new int[usedTFSensors.size()];
         int[] newSensorDims = new int[usedTFSensors.size()];
         float[] activationThresholds = new float[usedTFSensors.size()];
+
         for(int i = 0; i < newSensorDims.length; i++){
+            sensorTypes[i] = activeSensors[usedTFSensors.get(i)].getType();
             newSensorDims[i] = sensorDimensions[usedTFSensors.get(i)];
             activationThresholds[i] = getHandWashActivateThreshold(activeSensors[usedTFSensors.get(i)].getType());
         }
 
-        handWashDetection.setup(dataProcessor, newSensorDims, activationThresholds, sensor_queue_size);
+        handWashDetection.setup(dataProcessor, sensorTypes, newSensorDims, activationThresholds, sensor_queue_size);
     }
 
     private void startMediaRecorder(){
@@ -578,6 +585,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
         long timestamp = SystemClock.elapsedRealtimeNanos();
         try {
             addHandWashEvent(timestamp);
+            makeToast("Added hand wash");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -636,11 +644,11 @@ public class SensorManager extends Service implements SensorManagerInterface{
     }
 
 
-    private int getNumChannels(Sensor s) {
+    public static int getNumChannels(int sensorType) {
         /*
          * https://developer.android.com/reference/android/hardware/SensorEvent#sensor
          */
-        switch (s.getType()) {
+        switch (sensorType) {
             case Sensor.TYPE_ACCELEROMETER:
             case Sensor.TYPE_GYROSCOPE:
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -776,9 +784,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
             isRunning = false;
             if (startStopButton != null)
                 startStopButton.setText("Start");
-            stopForeground(true);
-            if(wakeLock.isHeld())
-                wakeLock.release();
+
             Log.d("mgr", "finished stop");
             stopLatch.countDown();
         }
