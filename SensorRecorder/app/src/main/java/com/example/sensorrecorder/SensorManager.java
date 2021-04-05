@@ -60,6 +60,7 @@ import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
 
@@ -128,6 +129,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
     private float mic_activate_threshold_gyro = 8;
     private Handler micHandler;
     private int micCounter = 0;
+    private ReentrantLock mediaRecorderLock = new ReentrantLock();
 
 
     // config stuff
@@ -552,6 +554,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
     }
 
     private void stopMediaRecorder(){
+
         mediaRecorder.stop();
         mediaRecorder.release();
         mediaRecorder = null;
@@ -614,25 +617,30 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
     @Override
     public void startMicRecording(long timestamp) {
-        if (useMic && !ongoing_mic_record){
-            //Log.d("mic", "start mic record");
-            resumeMediaRecorder();
-            //Log.d("mic", "resumed media recorder");
-            ongoing_mic_record = true;
-            last_mic_record = System.currentTimeMillis();
-            String lineContent = timestamp + "\n";
-            try {
-                dataProcessor.writeMicTS(lineContent);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    stopMicRecording();
+        mediaRecorderLock.lock();
+        try {
+            if (useMic && !ongoing_mic_record) {
+                //Log.d("mic", "start mic record");
+                resumeMediaRecorder();
+                //Log.d("mic", "resumed media recorder");
+                ongoing_mic_record = true;
+                last_mic_record = System.currentTimeMillis();
+                String lineContent = timestamp + "\n";
+                try {
+                    dataProcessor.writeMicTS(lineContent);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            }, 2000);
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        stopMicRecording();
+                    }
+                }, 2000);
+            }
+        }finally {
+            mediaRecorderLock.unlock();
         }
     }
 

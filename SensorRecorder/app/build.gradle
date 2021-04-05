@@ -13,6 +13,7 @@ android {
 
     }
 
+
     buildTypes {
         release {
             minifyEnabled false
@@ -23,7 +24,7 @@ android {
 
     // Specify tflite file should not be compressed for the app apk
     aaptOptions {
-        noCompress "model_save.tflite"
+        noCompress "tflite"
     }
 
     testOptions {

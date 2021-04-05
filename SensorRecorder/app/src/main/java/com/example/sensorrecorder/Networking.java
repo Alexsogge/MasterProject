@@ -396,26 +396,32 @@ public class Networking {
         @Override
         protected String doInBackground(String... strings) {
             String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
-            String downloadUrl = serverName + "/tfmodel/get/latest/";
-            Request request = new Request.Builder().url(downloadUrl).build();
-            Response response = null;
             try {
-                response = client.newCall(request).execute();
-                if (!response.isSuccessful()) {
-                    makeToast("Failed to download file: " + response);
-                }
-                File path = HandWashDetection.modelFilePath;
-                if(!path.exists())
-                    path.mkdirs();
-                File modelFile = new File(path, HandWashDetection.modelName);
-                FileOutputStream fos = new FileOutputStream(modelFile);
-                fos.write(response.body().bytes());
-                fos.close();
-                makeToast("Downloaded new Model");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
+                downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
+                makeToast("Downloaded TF model");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return null;
         }
+
+        private void downloadTFFile(String url, String filename) throws IOException {
+            Request request = new Request.Builder().url(url).build();
+            Response response = null;
+            response = client.newCall(request).execute();
+            if (!response.isSuccessful()) {
+                makeToast("Failed to download file: " + response);
+            }
+            File path = HandWashDetection.modelFilePath;
+            if(!path.exists())
+                path.mkdirs();
+            File tfFile = new File(path, filename);
+            FileOutputStream fos = new FileOutputStream(tfFile);
+            fos.write(response.body().bytes());
+            fos.close();
+        }
+
+
     }
 }

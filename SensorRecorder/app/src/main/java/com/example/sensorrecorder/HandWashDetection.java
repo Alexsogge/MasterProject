@@ -2,6 +2,7 @@ package com.example.sensorrecorder;
 
 import android.app.Activity;
 import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.hardware.Sensor;
 import android.os.Environment;
 import android.os.Handler;
@@ -11,11 +12,16 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.tensorflow.lite.Interpreter;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -25,26 +31,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static android.content.Context.VIBRATOR_SERVICE;
 
 public class HandWashDetection {
     public static final File modelFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/hand_wash_prediction/");
     public static final String modelName = "predictionModel.tflite";
+    public static final String modelSettingsName = "predictionModel.json";
     private final Executor executor = Executors.newSingleThreadExecutor(); // change according to your requirements
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final int[] requiredSensors = new int[]{Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD};
-    private final int frameSize = 50;
-    private final int inputShape = 4 * (50*5 + 50*3 + 50*3 + 50*3);
+    private final int[] initialRequiredSensors = new int[]{Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD};
+    private final int[] hasToBeTranslatedSensors = new int[]{Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_MAGNETIC_FIELD};
+    private final int initialFrameSize = 50;
 
-    private final long positivePredictedTimeFrame = (long) 5e9; // 2 seconds
-    private final int requiredPositivePredictions = 3;
+    private final long initialPositivePredictedTimeFrame = (long) 5e9; // 2 seconds
+    private final int initialRequiredPositivePredictions = 3;
+
+    private int[] requiredSensors;
+    private int frameSize;
+    private long positivePredictedTimeFrame;
+    private int requiredPositivePredictions;
+    private int inputShape;
 
     private Interpreter tfInterpreter;
     private List<String> labelList;
     private Activity mainActivity;
     private Vibrator vibrator;
     private DataProcessor dataProcessor;
+    private ReentrantLock queueBufferLock = new ReentrantLock();
 
     private long lastPositivePrediction;
     private int positivePredictedCounter;
@@ -52,6 +67,7 @@ public class HandWashDetection {
 
     private int[] activeSensorTypes;
     private int[] sensorDimensions;
+    private int[] requiredSensorsDimensions;
     private float[] activationThresholds;
     private float[][][] sensorBuffers;
     private long[][] sensorTimeStamps;
@@ -102,11 +118,17 @@ public class HandWashDetection {
             makeToast("Use downloaded TF model");
             return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
         }
-        String[] assets = activity.getAssets().list("");
+        AssetManager assetManager = activity.getAssets();
+        String[] assets = assetManager.list("");
+        String assetModel = "";
         for(String asset: assets){
             Log.d("pred", "asset: " + asset);
+            if(asset.contains("tflite")) {
+                assetModel = asset;
+                break;
+            }
         }
-        AssetFileDescriptor fileDescriptor = activity.getAssets().openFd(modelName);
+        AssetFileDescriptor fileDescriptor = assetManager.openFd(modelName);
         FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
         FileChannel fileChannel = inputStream.getChannel();
         long startOffset = fileDescriptor.getStartOffset();
@@ -127,6 +149,28 @@ public class HandWashDetection {
         this.activeSensorTypes = sensorTypes;
         this.sensorDimensions = sensorDimensions;
         this.activationThresholds = activationThresholds;
+
+        requiredSensors = initialRequiredSensors;
+        frameSize = initialFrameSize;
+        positivePredictedTimeFrame = initialPositivePredictedTimeFrame;
+        requiredPositivePredictions = initialRequiredPositivePredictions;
+        inputShape = 0;
+
+        try {
+            loadSettingsFromFile();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        this.requiredSensorsDimensions = new int[requiredSensors.length];
+        for(int i = 0; i < requiredSensors.length; i++){
+            this.requiredSensorsDimensions[i] = SensorManager.getNumChannels(requiredSensors[i]);
+            inputShape += 4 * frameSize * requiredSensorsDimensions[i];
+        }
+
         sensorBuffers = new float[sensorDimensions.length][][];
         sensorTimeStamps = new long[sensorDimensions.length][bufferSize];
         waitForSensor = new boolean[sensorDimensions.length];
@@ -138,20 +182,75 @@ public class HandWashDetection {
         }
     }
 
+
+    private void loadSettingsFromFile() throws IOException, JSONException {
+        File path = modelFilePath;
+        if(!path.exists())
+            return;
+        File settingsFile = new File(path, modelSettingsName);
+        if(!settingsFile.exists())
+            return;
+
+        FileReader fileReader = new FileReader(settingsFile);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        StringBuilder stringBuilder = new StringBuilder();
+        String line = bufferedReader.readLine();
+        while (line != null){
+            stringBuilder.append(line).append("\n");
+            line = bufferedReader.readLine();
+        }
+        bufferedReader.close();
+        String jsonString = stringBuilder.toString();
+
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONArray jsonSensors = jsonObject.getJSONArray("required_sensors");
+        requiredSensors = new int[jsonObject.length()];
+        for (int i = 0; i < jsonSensors.length(); i++){
+            requiredSensors[i] = jsonSensors.getInt(i);
+        }
+        frameSize = jsonObject.getInt("frame_size");
+        positivePredictedTimeFrame = jsonObject.getInt("positive_prediction_time");
+        requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
+    }
+
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
-        sensorBuffers[sensorIndex] = buffer;
-        sensorTimeStamps[sensorIndex] = timestamps;
-        waitForSensor[sensorIndex] = false;
-        if(!stillWaitingForSensor()) {
-            for (int i = 0; i < sensorTimeStamps.length; i++){
-                waitForSensor[i] = true;
+        queueBufferLock.lock();
+        try {
+            sensorBuffers[sensorIndex] = buffer;
+            sensorTimeStamps[sensorIndex] = timestamps;
+            waitForSensor[sensorIndex] = false;
+            if (sensorHasToBeTranslated(activeSensorTypes[sensorIndex]))
+                sensorBuffers[sensorIndex] = distanceTranslation(buffer);
+
+            if (!stillWaitingForSensor()) {
+                for (int i = 0; i < sensorTimeStamps.length; i++) {
+                    waitForSensor[i] = true;
+                }
+                // executeNewPredictionTask();
+                final boolean predictedHandwash = doPredictions();
+                if (predictedHandwash) {
+                    showHandWashNotification();
+                }
             }
-            // executeNewPredictionTask();
-            final boolean predictedHandwash = doPrediction();
-            if(predictedHandwash){
-                showHandWashNotification();
+        } finally {
+            queueBufferLock.unlock();
+        }
+    }
+
+
+    public float[][] distanceTranslation(float[][] data){
+        float[][] outData = new float[data.length][data[0].length];
+
+        for (int i = 1; i < data.length; i++){
+            for(int axis = 0; axis < data[0].length; axis++){
+                outData[i][axis] = data[i][axis] - data[i-1][axis];
             }
         }
+        for(int axis = 0; axis < data[0].length; axis++){
+            outData[outData.length-1][axis] = 0;
+        }
+
+        return outData;
     }
 
     /*
@@ -211,7 +310,7 @@ public class HandWashDetection {
     }
 
 
-    private boolean doPrediction(){
+    private boolean doPredictions(){
         boolean foundHandWash = false;
         for(int i = frameSize + 1; i < sensorTimeStamps[0].length; i+=25){
             for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++){
@@ -219,7 +318,7 @@ public class HandWashDetection {
                 if (ts > -1){
                     Log.d("pred", "add pred at: " + ts);
                     foundHandWash |= doHandWashPrediction(i, ts);
-                    i += frameSize;
+                    i += frameSize - 25;
                     break;
                 }
             }
@@ -230,52 +329,52 @@ public class HandWashDetection {
     private boolean doHandWashPrediction(int sensorPointer, long timestamp){
         boolean foundHandWash = false;
         // create tmp array of right dimension for TF model
-        // float[][] vals = new float[frameSize][overallSensorDimensions];
-        float[][][] vals = new float[activeSensorTypes.length][][];
+        // float[][] window = new float[frameSize][overallSensorDimensions];
+        float[][][] window = new float[activeSensorTypes.length][][];
         /*
         int dimOffset = 0;
         for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++) {
             for(int i = 49; i >= 0; i--){
                 for(int axes = 0; axes < sensorDimensions[sensorIndex]; axes++){
-                    vals[i][dimOffset + axes] = sensorBuffers[sensorIndex][sensorPointer-i][axes];
+                    window[i][dimOffset + axes] = sensorBuffers[sensorIndex][sensorPointer-i][axes];
                 }
             }
             dimOffset += sensorDimensions[sensorIndex];
         }*/
         for (int sensorIndex = 0; sensorIndex < activeSensorTypes.length; sensorIndex++) {
-            vals[sensorIndex] = new float[frameSize][sensorDimensions[sensorIndex]];
+            window[sensorIndex] = new float[frameSize][sensorDimensions[sensorIndex]];
             for(int i = 0; i < frameSize; i++){
                 if (sensorDimensions[sensorIndex] >= 0)
-                    System.arraycopy(sensorBuffers[sensorIndex][sensorPointer - frameSize + i], 0, vals[sensorIndex][i], 0, sensorDimensions[sensorIndex]);
+                    System.arraycopy(sensorBuffers[sensorIndex][sensorPointer - frameSize + i], 0, window[sensorIndex][i], 0, sensorDimensions[sensorIndex]);
             }
         }
 
-        // System.arraycopy(sensorBuffers[sensorIndex][sensorPointer - i], 0, vals[i], 0, vals[0].length);
+        // System.arraycopy(sensorBuffers[sensorIndex][sensorPointer - i], 0, window[i], 0, window[0].length);
 
 
         // create byte buffer as required
-        ByteBuffer frame = ByteBuffer.allocateDirect(inputShape);
-        frame.order(ByteOrder.nativeOrder());
+        ByteBuffer frameBuffer = ByteBuffer.allocateDirect(inputShape);
+        frameBuffer.order(ByteOrder.nativeOrder());
 
         // since model needs sensor values we probably don't have,
-        // we have to fill the frame with dummy values for these sensors
+        // we have to fill the frameBuffer with dummy values for these sensors
 
         for(int x = 0; x < frameSize; x++) {
-            for (int requiredSensor : requiredSensors) {
-                int activeSensorIndex = getActiveSensorIndexOfType(requiredSensor);
+            for (int i = 0; i < requiredSensors.length; i++) {
+                int activeSensorIndex = getActiveSensorIndexOfType(requiredSensors[i]);
                 // if index == -1 we don't have actual values -> insert dummy else value from buffer
-                for (int axes = 0; axes < SensorManager.getNumChannels(requiredSensor); axes++) {
+                for (int axes = 0; axes < requiredSensorsDimensions[i]; axes++) {
                     if (activeSensorIndex == -1)
-                        frame.putFloat(0);
+                        frameBuffer.putFloat(0);
                     else
-                        frame.putFloat(vals[activeSensorIndex][x][axes]);
+                        frameBuffer.putFloat(window[activeSensorIndex][x][axes]);
                 }
             }
         }
 
 
         // use tflite model to determine hand wash
-        float[][] labelProbArray = RunInference(frame);
+        float[][] labelProbArray = RunInference(frameBuffer);
 
         // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
@@ -285,7 +384,7 @@ public class HandWashDetection {
         if (labelProbArray[0][0] > max_pred && labelProbArray[0][0] > 0.9){
             gesture = "Handwash";
             max_pred = labelProbArray[0][0];
-            // test if there are multiple positive predictions within given time frame
+            // test if there are multiple positive predictions within given time frameBuffer
             if(timestamp < lastPositivePrediction + positivePredictedTimeFrame){
                 positivePredictedCounter++;
                 Log.d("pred", "count to " + positivePredictedCounter);
@@ -313,6 +412,14 @@ public class HandWashDetection {
                 return i;
         }
         return -1;
+    }
+
+    private boolean sensorHasToBeTranslated(int sensorType){
+        for(int type: hasToBeTranslatedSensors){
+            if(type == sensorType)
+                return true;
+        }
+        return false;
     }
 
     private long possibleHandWash(int sensorIndex, int pointer) {
