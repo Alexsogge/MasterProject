@@ -18,15 +18,106 @@
     {% endif %}
 
     <div class="row">
-            <h4>Upload new model file</h4>
+        <h4>Upload new model file</h4>
     </div>
     <div class="row">
         <form action="/tfmodel/" method="post" enctype="multipart/form-data">
+
             <div class="form-group">
+                <label for="frameSizeInput">Window size</label>
+                <input type="number" class="form-control" id="frameSizeInput" name="frameSizeInput" aria-describedby="frameSizeHelp" placeholder="Enter size" value="{{ old_settings.frame_size }}">
+                <small id="frameSizeHelp" class="form-text text-muted">The number of sensor values per test frame</small>
+            </div>
+
+            <div class="form-group">
+                <label for="positivePredictionTimeInput">Positive prediction time</label>
+                <input type="number" class="form-control" id="positivePredictionTimeInput" name="positivePredictionTimeInput" aria-describedby="positivePredictionTimeHelp" placeholder="Enter seconds" value="{{ old_settings.positive_prediction_time }}">
+                <small id="positivePredictionTimeHelp" class="form-text text-muted">The time in seconds which can be between two positive predictions to increase the counter</small>
+            </div>
+
+            <div class="form-group">
+                <label for="positivePredictionCounterInput">Positive prediction counter</label>
+                <input type="number" class="form-control" id="positivePredictionCounterInput" name="positivePredictionCounterInput" aria-describedby="positivePredictionCounterHelp" placeholder="Enter count" value="{{ old_settings.positive_prediction_counter }}">
+                <small id="positivePredictionCounterHelp" class="form-text text-muted">The needed amount of positive predictions in a run to trigger a hand wash event</small>
+            </div>
+
+
+            <div class="form-group mt-1">
+                <label for="requiredSensorsSelect">Required Sensors (in right order)</label>
+                <div class="row">
+                    <div class="col">
+                        <select multiple class="form-control" id="requiredSensorsSelect" name="requiredSensorsSelect" onclick="selectAllRequiredSensors()">
+                            {% for sensor in old_settings.required_sensors %}
+                                <option value="{{ sensor }}" selected="true"  onclick="removeSelectedSensor(this)">{{ sensors[sensor] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col">
+                        <div class="row">
+                            Add sensor
+                        </div>
+                        <div class="row">
+                            {% for sensorId, sensorName in sensors.items() %}
+                                <div class="col">
+                                    <button type="button" class="btn btn-primary" onclick="addRequiredSensorToList({{ sensorId }}, '{{ sensorName }}')">{{ sensorName }}</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-group mt-1">
                 <label for="tfModelFormControlFile">New TF Model file</label>
                 <input type="file" class="form-control-file" id="tfModelFormControlFile" name="file">
             </div>
             <button type="submit" class="btn btn-primary mt-2">Upload</button>
         </form>
     </div>
+
+    <script>
+
+        function addRequiredSensorToList(sensorId, sensorName){
+            if(alreadyInList(sensorId))
+                return;
+            var option = document.createElement("option");
+            option.setAttribute("value", sensorId);
+            option.setAttribute("selected", true);
+            option.onclick = function(){removeSelectedSensor(option);}
+            option.innerHTML = sensorName;
+            document.getElementById("requiredSensorsSelect").options.add(option);
+        }
+
+        function removeSelectedSensor(option){
+            console.log("remove selected", option.value);
+            // document.getElementById("requiredSensorsSelect").options.remove(option.value);
+            var options = document.getElementById("requiredSensorsSelect").options;
+
+            for(var i = 0; i < options.length; i++){
+                if(options[i].value == option.value && options[i].selected){
+                    document.getElementById("requiredSensorsSelect").options.remove(i);
+                }else {
+                    options[i].selected = true;
+                }
+            }
+        }
+
+        function selectAllRequiredSensors(){
+            var options = document.getElementById("requiredSensorsSelect").options;
+            for(var i = 0; i < options.length; i++){
+                options[i].selected = true;
+            }
+        }
+
+        function alreadyInList(sensor){
+            var options = document.getElementById("requiredSensorsSelect").options;
+            for(var i = 0; i < options.length; i++){
+                if(options[i].value == sensor)
+                    return true;
+            }
+            return false;
+        }
+
+    </script>
 {% endblock %}

@@ -1,3 +1,4 @@
+import json
 import math
 import random
 import string
@@ -136,23 +137,49 @@ def settings():
 def tfmodel():
     upload_info_text = None
     upload_error_text = None
+    sensors = {1: 'ACCELEROMETER', 4: 'GYROSCOPE', 2: 'MAGNETIC FIELD', 11: 'ROTATION VECTOR'}
+
+    old_settings = dict()
+    old_settings_file = get_tf_model_settings_file()
+    if old_settings_file is not None:
+        with open(os.path.join(TFMODEL_FOLDER, old_settings_file)) as json_file:
+            old_settings = json.load(json_file)
+
+
+
     if request.method == 'POST':
-        print('Save new tf model')
+        print('Save new tf model', request.form)
+        print('window size', request.form.get('frameSizeInput'))
         if 'file' not in request.files:
-            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no file Part')
+            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no file Part', sensors=sensors, old_settings=old_settings)
         file = request.files['file']
         # if user does not select file, browser also
         # submit an empty part without filename
         if file.filename == '':
-            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no selected file')
+            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no selected file', sensors=sensors, old_settings=old_settings)
         if file and is_allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(TFMODEL_FOLDER, filename))
+            filename = os.path.splitext(secure_filename(file.filename))[0]
+
+            settings_dict = dict()
+            settings_dict['frame_size'] = int(request.form.get('frameSizeInput'))
+            settings_dict['positive_prediction_time'] = int(request.form.get('positivePredictionTimeInput'))
+            settings_dict['positive_prediction_counter'] = int(request.form.get('positivePredictionCounterInput'))
+            required_sensors = request.form.getlist('requiredSensorsSelect')
+            for i in range(len(required_sensors)):
+                required_sensors[i] = int(required_sensors[i])
+            settings_dict['required_sensors'] = required_sensors
+            old_settings = settings_dict
+
+            print("settings: ", settings_dict)
+
+            with open(os.path.join(TFMODEL_FOLDER, filename + '.json'), 'w') as outfile:
+                json.dump(settings_dict, outfile)
+            file.save(os.path.join(TFMODEL_FOLDER, filename + '.tflite'))
             upload_info_text = 'Uploaded ' + filename
         else:
             upload_error_text = 'Error: no valid file'
 
-    return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text)
+    return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text, sensors=sensors, old_settings=old_settings)
 
 
 
@@ -343,15 +370,43 @@ def get_latest_tf_model():
         abort(404, description="Resource not found")
 
     for file in os.listdir(TFMODEL_FOLDER):
-        tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
-        if tmp_c_time > latest_time_stamp:
-            latest_time_stamp = tmp_c_time
-            latest_model = file
+        if 'tflite' in file:
+            tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
+            if tmp_c_time > latest_time_stamp:
+                latest_time_stamp = tmp_c_time
+                latest_model = file
 
     print("found file ", latest_model)
     if latest_model is not None:
         return send_from_directory(TFMODEL_FOLDER, filename=latest_model, as_attachment=True)
     abort(404, description="Resource not found")
+
+
+@app.route('/tfmodel/get/settings/')
+def get_latest_tf_model_settings():
+    latest_model_settings = get_tf_model_settings_file()
+
+    print("found file ", latest_model_settings)
+    if latest_model_settings is not None:
+        return send_from_directory(TFMODEL_FOLDER, filename=latest_model_settings, as_attachment=True)
+    abort(404, description="Resource not found")
+
+
+def get_tf_model_settings_file():
+    latest_model_settings = None
+    latest_time_stamp = 0
+
+    if not os.path.exists(TFMODEL_FOLDER):
+        return None
+
+    for file in os.listdir(TFMODEL_FOLDER):
+        if 'json' in file:
+            tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
+            if tmp_c_time > latest_time_stamp:
+                latest_time_stamp = tmp_c_time
+                latest_model_settings = file
+
+    return latest_model_settings
 
 
 @app.route("/auth")
