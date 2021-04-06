@@ -90,8 +90,8 @@ class DataProcessor:
         if add_time_stamps:
             self.plot_hand_wash_events((-5, 110), ax)
 
-        ax.scatter(x, data[:, 2]*100, c='blue', alpha=0.3, label='noise')
-        ax.scatter(x, data[:, 1]*100, c='red', alpha=1, label='handwash')
+        ax.scatter(x, data[:, 2]*100, c='red', alpha=1, label='handwash')
+        ax.scatter(x, data[:, 1] * 100, c='blue', alpha=0.3, label='noise')
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
         ax.set_xlabel('time in sec')
@@ -178,6 +178,22 @@ class DataProcessor:
             return json.dumps(self.data_dict['Acceleration'])
 
 
+    def export_numpy_array(self):
+        print("Acc shape:", self.data_dict['Acceleration'].shape[0])
+        print("Gyroscope shape:", self.data_dict['Gyroscope'].shape[0])
+
+        data_size = min(self.data_dict['Acceleration'].shape[0], self.data_dict['Gyroscope'].shape[0])
+        export_data = np.ndarray((data_size, 6))
+
+        print(export_data.shape)
+        export_data[:data_size, :3] = self.data_dict['Acceleration'][:data_size, 1:]
+        export_data[:data_size, 3:] = self.data_dict['Gyroscope'][:data_size, 1:]
+
+        plt.plot(np.arange(data_size), export_data[:, 5])
+        plt.show()
+        with open('test_data.npy', 'wb') as f:
+            np.save(f, export_data)
+
 
 
 if __name__ == "__main__":
@@ -186,8 +202,9 @@ if __name__ == "__main__":
         if sys.argv[2] == 'mkv':
             use_mkv = True
     data_processor = DataProcessor(sys.argv[1], use_mkv)
-    data_processor.plot_data(True)
-    data_processor.plot_timings()
+    data_processor.plot_data()
+    # data_processor.plot_timings()
+    data_processor.export_numpy_array()
     print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
           data_processor.calc_total_time()/60, " min \t -> ",
           (data_processor.calc_idle_time() / data_processor.calc_total_time())*100, "% lost")
