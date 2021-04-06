@@ -16,6 +16,7 @@ from sensor_processor.mic_decoder import MicDecoder
 from sensor_processor.battery_decoder import BatteryDecoder
 from sensor_processor.handwash_decoder import HandwashDecoder
 from sensor_processor.prediction_decoder import PredictionDecoder
+from sensor_processor.evaluation_decoder import EvaluationDecoder
 
 if len(sys.argv) > 2 and sys.argv[2] == 'mkv':
     from mkv_decode import MKVDecoder
@@ -33,6 +34,7 @@ class DataProcessor:
         self.data_dict['battery'] = BatteryDecoder.read_folder(folder_name)
         self.data_dict['time_stamps'] = HandwashDecoder.read_data(folder_name)
         self.data_dict['predictions'] = PredictionDecoder.read_folder(folder_name)
+        self.data_dict['evaluations'] = EvaluationDecoder.read_folder(folder_name)
         if use_mkv:
             self.data_dict = {**self.data_dict, **MKVDecoder.read_folder(folder_name)}
 
@@ -63,6 +65,8 @@ class DataProcessor:
 
             self.data_dict['battery'] = align_array(self.data_dict['battery'], self.sensor_decoder.min_time_stamp)
             self.data_dict['predictions'] = align_array(self.data_dict['predictions'], self.sensor_decoder.min_time_stamp)
+            self.data_dict['evaluations'] = align_array(self.data_dict['evaluations'],
+                                                        self.sensor_decoder.min_time_stamp)
 
         # self.clean_data()
 
@@ -90,8 +94,20 @@ class DataProcessor:
         if add_time_stamps:
             self.plot_hand_wash_events((-5, 110), ax)
 
-        ax.scatter(x, data[:, 2]*100, c='red', alpha=1, label='handwash')
+
         ax.scatter(x, data[:, 1] * 100, c='blue', alpha=0.3, label='noise')
+        ax.scatter(x, data[:, 2] * 100, c='red', alpha=0.8, label='handwash')
+
+        data = self.data_dict['evaluations']
+        data[:, 0] *= nano_sec
+        print(data)
+        pos_data = data[data[:, 1] == 1]
+        neg_data = data[data[:, 1] == 0]
+        print(pos_data)
+        print(neg_data)
+        ax.scatter(neg_data[:, 0], neg_data[:, 1] * 100, c='purple', s=500, marker='x', alpha=1, label='no')
+        ax.scatter(pos_data[:, 0], pos_data[:, 1] * 100, c='green', s=500, marker='+', alpha=1, label='yes')
+
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
         ax.set_xlabel('time in sec')
@@ -204,7 +220,7 @@ if __name__ == "__main__":
     data_processor = DataProcessor(sys.argv[1], use_mkv)
     data_processor.plot_data()
     # data_processor.plot_timings()
-    data_processor.export_numpy_array()
+    # data_processor.export_numpy_array()
     print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
           data_processor.calc_total_time()/60, " min \t -> ",
           (data_processor.calc_idle_time() / data_processor.calc_total_time())*100, "% lost")
