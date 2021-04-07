@@ -78,7 +78,6 @@ public class SensorManager extends Service implements SensorManagerInterface{
     private final int reportRate = 1000000;
     private final int sensor_queue_size = 1000;
     private final long sensorDelay = (long) (1e9 / 50);
-    private static final String CHANNEL_ID = "ForegroundServiceChannel";
     private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD, Sensor.TYPE_ROTATION_VECTOR};
     //private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER};
     private final float[] possibleHandWashActivateThresholds = new float[]{15f, 15f, -1f, -1f};
@@ -158,6 +157,49 @@ public class SensorManager extends Service implements SensorManagerInterface{
                     addHandWashEventNow();
             }
 
+            // new hand wash event with timestamp
+            if (intent.getStringExtra("trigger").equals("handWashTS")) {
+                if(isRunning) {
+                    long timestamp = intent.getLongExtra("timestamp", -1);
+                    if (timestamp > -1) {
+                        try {
+                            addHandWashEvent(timestamp);
+                            makeToast("Added hand wash");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            if (intent.getStringExtra("trigger").equals("handWashConfirm")) {
+                if(isRunning) {
+                    long timestamp = intent.getLongExtra("timestamp", -1);
+                    if (timestamp > -1) {
+                        try {
+                            String line = timestamp + "\t" + 1 + "\n";
+                            dataProcessor.writeEvaluation(line);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            if (intent.getStringExtra("trigger").equals("handWashDecline")) {
+                if(isRunning) {
+                    long timestamp = intent.getLongExtra("timestamp", -1);
+                    if (timestamp > -1) {
+                        try {
+                            String line = timestamp + "\t" + 0 + "\n";
+                            dataProcessor.writeEvaluation(line);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
             // open app
             if (intent.getStringExtra("trigger").equals("open")){
                 Intent mainIntent = new Intent(this, MainActivity.class);
@@ -168,8 +210,6 @@ public class SensorManager extends Service implements SensorManagerInterface{
             if (!initialized) {
                 initialized = true;
                 this.intent = intent;
-
-                createForeGroundNotification();
 
                 sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
 
@@ -329,53 +369,6 @@ public class SensorManager extends Service implements SensorManagerInterface{
         return df.format(new Date());
     }
 
-    private void createForeGroundNotification(){
-        createNotificationChannel();
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
-
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Foreground Service")
-                .setContentText("SensorRecorder")
-                .setContentIntent(pendingIntent)
-                .build();
-
-        Intent handwashIntent = new Intent(this.intent);
-        handwashIntent.putExtra("trigger", "handWash");
-        PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        // Intent openIntent = new Intent(intent);
-        Intent openIntent = new Intent(getApplicationContext(), MainActivity.class);
-
-        openIntent.putExtra("trigger", "open");
-        PendingIntent pintOpen = PendingIntent.getActivity(getApplicationContext(), 579, openIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-
-        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Running")
-                .setContentText("Sensor recorder is active")
-                //.setStyle(new NotificationCompat.BigTextStyle()
-                //        .bigText("Sensor recorder is active"))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setSmallIcon(R.drawable.preference_wrapped_icon)
-                .addAction(R.drawable.action_item_background, "HandWash", pintHandWash)
-                // .addAction(R.drawable.action_item_background, "Open", pintOpen);
-                .setContentIntent(pintOpen);
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Foreground Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(serviceChannel);
-        }
-    }
-
     public void registerToManager(){
         // create buffers
         resetSensorBuffers();
@@ -413,7 +406,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
         // we have to set a wakelock to prevent the system goes to doze mode and stops our recording
         wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
         // show the foreground notification
-        startForeground(1, notificationBuilder.build());
+        startForeground(1, NotificationSpawner.createRecordingNotification(this, this.intent));
 
         // load config
         useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true) && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED;
@@ -554,10 +547,16 @@ public class SensorManager extends Service implements SensorManagerInterface{
     }
 
     private void stopMediaRecorder(){
-
-        mediaRecorder.stop();
-        mediaRecorder.release();
-        mediaRecorder = null;
+        mediaRecorderLock.lock();
+        try {
+            if (mediaRecorder != null) {
+                mediaRecorder.stop();
+                mediaRecorder.release();
+            }
+            mediaRecorder = null;
+        } finally {
+            mediaRecorderLock.unlock();
+        }
     }
 
     public void flushSensor(){

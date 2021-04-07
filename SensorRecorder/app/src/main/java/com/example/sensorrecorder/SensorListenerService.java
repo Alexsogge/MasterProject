@@ -74,7 +74,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
         mBuf = ByteBuffer.allocate(4 * sensorDimension);
         mBuf.order(ByteOrder.nativeOrder());
         sensorLastTimeStamp = -1;
-        Log.d("sensor", "New listener " + sensor.getStringType());
     }
 
     public void close(){
@@ -209,7 +208,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             }
             float diff = Math.abs(max-min);
             if (diff > handWashActivationThreshold) {
-                Log.d("pred", mySensor.getStringType() + " thr: " + diff);
                 return timeStamp;
             }
         }
@@ -260,7 +258,7 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
         }
 
         private void writeSensorData() throws IOException {
-            Log.d("sensor", "Write data " + closed);
+            // Log.d("sensor", "Write data " + closed);
             StringBuilder data = new StringBuilder();
             if (useMKVStream && sensorPipeOutput == null)
                 sensorPipeOutput = mFFmpeg.getOutputStream(sensorIndex);

@@ -81,6 +81,8 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
+    private boolean debugAutoTrue = false;
+
 
     protected HandWashDetection(Activity activity) throws IOException {
         // tfInterpreter = new Interpreter(loadModelFile(activity));
@@ -164,7 +166,6 @@ public class HandWashDetection {
             e.printStackTrace();
         }
 
-
         this.requiredSensorsDimensions = new int[requiredSensors.length];
         for(int i = 0; i < requiredSensors.length; i++){
             this.requiredSensorsDimensions[i] = SensorManager.getNumChannels(requiredSensors[i]);
@@ -209,7 +210,7 @@ public class HandWashDetection {
             requiredSensors[i] = jsonSensors.getInt(i);
         }
         frameSize = jsonObject.getInt("frame_size");
-        positivePredictedTimeFrame = jsonObject.getInt("positive_prediction_time");
+        positivePredictedTimeFrame = (long)(jsonObject.getInt("positive_prediction_time")) * (long) 1e9;
         requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
     }
 
@@ -279,6 +280,7 @@ public class HandWashDetection {
     private void showHandWashNotification(){
         makeToast("Handwash");
         vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
+        NotificationSpawner.spawnHandWashPredictionNotification(mainActivity, lastPositivePrediction);
     }
 
     private boolean stillWaitingForSensor(){
@@ -311,17 +313,27 @@ public class HandWashDetection {
 
 
     private boolean doPredictions(){
+        // if we find a certain impact on a sensor axis we want to predict the current window
+        // furthermore we want to predict the next x windows
+        int fadeOutCounter = 0;
+        long ts = -1;
+        long lastTruePrediction = -1;
         boolean foundHandWash = false;
         for(int i = frameSize + 1; i < sensorTimeStamps[0].length; i+=25){
             for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++){
-                long ts = possibleHandWash(sensorIndex, i);
-                if (ts > -1){
-                    Log.d("pred", "add pred at: " + ts);
-                    foundHandWash |= doHandWashPrediction(i, ts);
-                    i += frameSize - 25;
+                ts = possibleHandWash(sensorIndex, i);
+                if (ts > -1) {
+                    fadeOutCounter = 3;
                     break;
                 }
             }
+            if(fadeOutCounter > 0) {
+                // Log.d("pred", "add pred at: " + ts);
+                foundHandWash |= doHandWashPrediction(i, sensorTimeStamps[0][i]);
+                i += (frameSize / 2) - 25;
+            }
+            if (fadeOutCounter > 0)
+                fadeOutCounter--;
         }
         return foundHandWash;
     }
@@ -379,15 +391,15 @@ public class HandWashDetection {
         // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
         // observe prediction and write to disk
-        float max_pred = labelProbArray[0][1];
+        float max_pred = labelProbArray[0][0];
         String gesture = "Noise";
-        if (labelProbArray[0][0] > max_pred && labelProbArray[0][0] > 0.9){
+        if (labelProbArray[0][1] > max_pred){
             gesture = "Handwash";
-            max_pred = labelProbArray[0][0];
+            max_pred = labelProbArray[0][1];
             // test if there are multiple positive predictions within given time frameBuffer
             if(timestamp < lastPositivePrediction + positivePredictedTimeFrame){
                 positivePredictedCounter++;
-                Log.d("pred", "count to " + positivePredictedCounter);
+                // Log.d("pred", "count to " + positivePredictedCounter);
                 if (positivePredictedCounter >= requiredPositivePredictions){
                     positivePredictedCounter = 0;
                     foundHandWash = true;
@@ -402,6 +414,10 @@ public class HandWashDetection {
             addPrediction(gesture, labelProbArray[0], timestamp);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        if(debugAutoTrue) {
+            lastPositivePrediction = timestamp;
+            foundHandWash = true;
         }
         return foundHandWash;
     }
@@ -441,7 +457,7 @@ public class HandWashDetection {
             }
             float diff = Math.abs(max-min);
             if (diff > activationThresholds[sensorIndex]) {
-                Log.d("pred", sensorIndex + " thr: " + diff);
+                // Log.d("pred", sensorIndex + " thr: " + diff);
                 return timeStamp;
             }
         }

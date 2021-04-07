@@ -28,6 +28,8 @@ public class DataProcessor {
     public OutputStreamContainer containerBattery;
     public OutputStreamContainer containerPrediction;
 
+    public OutputStreamContainer containerEvaluation;
+
     public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
 
@@ -59,6 +61,9 @@ public class DataProcessor {
 
         containerPrediction = new OutputStreamContainer("sensor_recording_prediction", "csv");
         streamContainers.add(containerPrediction);
+
+        containerEvaluation = new OutputStreamContainer("sensor_recording_evaluation", "csv");
+        streamContainers.add(containerEvaluation);
         // add stream containers to all
         allDataContainers.addAll(streamContainers);
     }
@@ -95,6 +100,7 @@ public class DataProcessor {
         containerHandWashTimeStamps.setActive();
         containerBattery.setActive();
         containerPrediction.setActive();
+        containerEvaluation.setActive();
     }
 
     public void deactivateAllContainer(){
@@ -145,12 +151,15 @@ public class DataProcessor {
     }
 
     public void writeMicTS(String line) throws IOException {
-        Log.d("dp", "new mic ts " + line);
         containerMicTimeStamps.writeData(line);
     }
 
     public void writeSensorData(String sensorName, String line) throws IOException {
         sensorContainers.get(sensorName).writeData(line);
+    }
+
+    public void writeEvaluation(String line) throws IOException {
+        containerEvaluation.writeData(line);
     }
 
     public void packMicFilesIntoZip() throws IOException {

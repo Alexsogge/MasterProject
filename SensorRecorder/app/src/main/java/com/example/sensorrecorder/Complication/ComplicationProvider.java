@@ -61,7 +61,7 @@ public class ComplicationProvider  extends ComplicationProviderService{
 
         Intent handwashIntent = new Intent(this, SensorManager.class);
         handwashIntent.putExtra("trigger", "handWash");
-        PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pintHandWash = PendingIntent.getService(this, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
 
         int number = 2;

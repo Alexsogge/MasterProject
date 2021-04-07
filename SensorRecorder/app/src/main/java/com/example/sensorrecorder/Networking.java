@@ -64,7 +64,7 @@ public class Networking {
 
     public void DoFileUpload(){
         // update info text
-        infoText.setText("Check connection");
+        infoText.setText("Check connection...");
         infoText.invalidate();
 
         // check if there is network connection
