@@ -41,13 +41,16 @@ def read_zip(filename: str, data_name) -> List[List]:
     return []
 
 
-def data_list_to_2d_array(data: List[List]) -> np.ndarray:
+def data_list_to_2d_array(data: List[List], expected_size=None) -> np.ndarray:
     if len(data) == 0:
-        return np.ndarray([0, 0])
-    data_arr = np.ndarray([len(data), len(data[0])])
+        return np.zeros([0, 0])
+    if expected_size is None:
+        expected_size = len(data[0])
+    data_arr = np.zeros([len(data), expected_size])
     for i, line in enumerate(data):
-        if len(line) == data_arr.shape[1]:
-            data_arr[i] = line
+        # if len(line) == data_arr.shape[1]:
+        #     data_arr[i] = line
+        data_arr[i, :len(line)] = line
     return data_arr
 
 
@@ -72,13 +75,13 @@ def read_csvs_in_folder(folder_name, data_name, entries_per_line, open_zips=True
                 elif splitext(f)[1] == '.zip' and open_zips:
                     data = read_zip(path, data_name)
                 if data is not None:
-                    data_array = data_list_to_2d_array(data)
+                    data_array = data_list_to_2d_array(data, entries_per_line)
                     overall_entries_length += data_array.shape[0]
                     overall_entries.append(data_array)
     if overall_entries_length == 0:
         return np.ndarray([0, entries_per_line])
 
-    value_array = np.ndarray([overall_entries_length, overall_entries[0].shape[1]])
+    value_array = np.zeros([overall_entries_length, overall_entries[0].shape[1]])
     offset = 0
     for entry in sorted(overall_entries, key=lambda x: x[0, 0]):
         value_array[offset: offset+entry.shape[0], :] = entry

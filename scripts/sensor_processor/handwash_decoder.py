@@ -16,7 +16,7 @@ class HandwashDecoder:
     @classmethod
     def read_data(cls, folder) -> np.ndarray:
 
-        value_array = read_csvs_in_folder(folder, 'hand_wash_time_stamp', 2)
+        value_array = read_csvs_in_folder(folder, 'hand_wash_time_stamp', 4)
         return value_array
 
 

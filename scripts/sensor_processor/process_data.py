@@ -100,13 +100,12 @@ class DataProcessor:
 
         data = self.data_dict['evaluations']
         data[:, 0] *= nano_sec
-        print(data)
         pos_data = data[data[:, 1] == 1]
         neg_data = data[data[:, 1] == 0]
-        print(pos_data)
-        print(neg_data)
-        ax.scatter(neg_data[:, 0], neg_data[:, 1] * 100, c='purple', s=500, marker='x', alpha=1, label='no')
-        ax.scatter(pos_data[:, 0], pos_data[:, 1] * 100, c='green', s=500, marker='+', alpha=1, label='yes')
+        neutral_data = data[data[:, 1] == -1]
+        ax.scatter(neutral_data[:, 0], np.full(neutral_data.shape[0], 50), c='grey', alpha=0.8, label='neutral')
+        ax.scatter(neg_data[:, 0], np.full(neg_data.shape[0], -5), c='purple', s=200, marker='^', alpha=1, label='no')
+        ax.scatter(pos_data[:, 0], np.full(pos_data.shape[0], 105), c='green', s=200, marker='v', alpha=1, label='yes')
 
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
