@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 
+import com.example.sensorrecorder.Evaluation.EvaluationService;
 import com.example.sensorrecorder.EventHandlers.BatteryEventHandler;
 import com.example.sensorrecorder.EventHandlers.ChargeEventHandler;
 
@@ -43,10 +44,12 @@ public class MainActivity extends WearableActivity {
     private static double FACTOR = 0.2; // c = a * sqrt(2)
 
     public static MainActivity mainActivity;
+    private boolean isActive = false;
 
     private TextView mTextView;
     private Intent intent;
     public SensorManager sensorService;
+    public EvaluationService evaluationService;
     public Networking networking;
 
     private boolean mBound = false;
@@ -75,27 +78,30 @@ public class MainActivity extends WearableActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        turnOffDozeMode(this);
+        if(!isActive) {
+            isActive = true;
+            turnOffDozeMode(this);
 
-        mainActivity = this;
+            mainActivity = this;
 
-        // set scroll view to correct size
-        adjustInset();
+            // set scroll view to correct size
+            adjustInset();
 
-        try {
-            handWashDetection = new HandWashDetection(this);
-        } catch (IOException e) {
-            e.printStackTrace();
+            try {
+                handWashDetection = new HandWashDetection(this);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // initialize user interface elements
+            initUI();
+
+            // get settings. If not already set open config activity
+            loadConfigs();
+
+            if (!waitForConfigs)
+                initServices();
         }
-
-        // initialize user interface elements
-        initUI();
-
-        // get settings. If not already set open config activity
-        loadConfigs();
-
-        if(!waitForConfigs)
-            initServices();
 
         // Enables Always-on
         //setAmbientEnabled();
@@ -162,7 +168,7 @@ public class MainActivity extends WearableActivity {
                if (sensorService != null){
                     sensorService.addHandWashEventBefore(position * 60 * 5);
                     handWashSpinner.setNoSelection();
-                    Toast.makeText(MainActivity.this, "Added hand wash\n" + ((TextView)view).getText(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, getResources().getString(R.string.toast_addedhandwash_sel) + ((TextView)view).getText(), Toast.LENGTH_SHORT).show();
                }
             }
 
@@ -177,10 +183,7 @@ public class MainActivity extends WearableActivity {
             @Override
             public void onClick(View v) {
                 // sensorService.UploadSensorData();
-                if(!configs.getString(getString(R.string.conf_serverName), "").equals("")) {
-                    mainScrollView.scrollTo(0, 150);
-                    networking.DoFileUpload();
-                }
+                toggleUpload();
             }
         });
 
@@ -206,6 +209,13 @@ public class MainActivity extends WearableActivity {
         // sensorService.dataProcessor.backup_recording_files();
     }
 
+    public void toggleUpload(){
+        if(!configs.getString(getString(R.string.conf_serverName), "").equals("")) {
+            mainScrollView.scrollTo(0, 150);
+            networking.DoFileUpload();
+        }
+    }
+
     private void updateUploadButton(){
         if(configs.getString(getString(R.string.conf_serverName), "").equals("")){
             uploadButton.setEnabled(false);
@@ -218,6 +228,13 @@ public class MainActivity extends WearableActivity {
         networking = new Networking(this, null, configs);
         batteryEventHandler = new BatteryEventHandler();
         chargeEventHandler = new ChargeEventHandler();
+//        Intent intentEvalServ = new Intent(this, EvaluationService.class);
+//        bindService(intentEvalServ, evaluationConnection, Context.BIND_AUTO_CREATE);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            startForegroundService(intentEvalServ);
+//        } else {
+//            startService(intentEvalServ);
+//        }
 
         // check if needed permissions are granted
         if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_DENIED) {
@@ -246,7 +263,7 @@ public class MainActivity extends WearableActivity {
 
     private void startRecording(){
         intent = new Intent(this, SensorManager.class );
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);
         } else {
@@ -255,7 +272,7 @@ public class MainActivity extends WearableActivity {
     }
 
 
-    private ServiceConnection connection = new ServiceConnection() {
+    private ServiceConnection sensorConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName className,
@@ -270,11 +287,29 @@ public class MainActivity extends WearableActivity {
             sensorService.startStopButton = startStopButton;
             networking.sensorService = sensorService;
             batteryEventHandler.sensorManager = sensorService;
+
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
+        }
+    };
+
+
+    private ServiceConnection evaluationConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // get SensorService instance when ready
+            EvaluationService.EvalServiceBinder binder = (EvaluationService.EvalServiceBinder) service;
+            evaluationService = binder.getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+
         }
     };
 
@@ -296,7 +331,7 @@ public class MainActivity extends WearableActivity {
                             new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                             1);
                     // permission denied
-                    Toast.makeText(MainActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
                 }
                 return;
             }

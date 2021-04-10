@@ -1,6 +1,7 @@
 package com.example.sensorrecorder;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.hardware.Sensor;
@@ -81,7 +82,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = false;
+    private boolean debugAutoTrue = true;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -98,7 +99,7 @@ public class HandWashDetection {
             tfliteModel = loadModelFile(mainActivity);
         } catch (IOException e){
             e.printStackTrace();
-            makeToast("couldn't load TF model");
+            makeToast(mainActivity.getString(R.string.toast_couldnt_load_tf));
         }
         if(tfliteModel != null)
             tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
@@ -117,7 +118,7 @@ public class HandWashDetection {
         if(modelFile.exists()){
             FileInputStream inputStream = new FileInputStream(modelFile);
             FileChannel fileChannel = inputStream.getChannel();
-            makeToast("Use downloaded TF model");
+            makeToast(mainActivity.getString(R.string.toast_use_dl_tf));
             return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
         }
         AssetManager assetManager = activity.getAssets();
@@ -278,7 +279,7 @@ public class HandWashDetection {
     */
 
     private void showHandWashNotification(){
-        makeToast("Handwash");
+        makeToast(mainActivity.getString(R.string.toast_pred_hw));
         vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
         NotificationSpawner.spawnHandWashPredictionNotification(mainActivity, lastPositivePrediction);
     }
@@ -393,7 +394,7 @@ public class HandWashDetection {
         // observe prediction and write to disk
         float max_pred = labelProbArray[0][0];
         String gesture = "Noise";
-        if (labelProbArray[0][1] > max_pred){
+        if (labelProbArray[0][1] > max_pred && labelProbArray[0][1] > 0.95){
             gesture = "Handwash";
             max_pred = labelProbArray[0][1];
             // test if there are multiple positive predictions within given time frameBuffer

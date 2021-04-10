@@ -70,7 +70,6 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
-
 public class SensorManager extends Service implements SensorManagerInterface{
     private final Executor executor = Executors.newSingleThreadExecutor(); // change according to your requirements
     private final IBinder binder = new LocalBinder();
@@ -87,7 +86,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
     // handle main ui
     public Activity mainActivity;
     public Button startStopButton;
-    public boolean isRunning = true;
+    public static boolean isRunning = true;
     public TextView infoText;
     private Vibrator vibrator;
 
@@ -109,7 +108,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
 
     // data files
-    public DataProcessor dataProcessor;
+    public static DataProcessor dataProcessor;
 
 
     // ffmpeg stuff
@@ -446,7 +445,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
         // update ui stuff
         isRunning = true;
         if (startStopButton != null)
-            startStopButton.setText("Stop");
+            startStopButton.setText(getResources().getString(R.string.btn_stop));
     }
 
     private void stopRecording(CountDownLatch stopLatch){
@@ -455,7 +454,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
             return;
         }
 
-        startStopButton.setText("Stopping...");
+        startStopButton.setText(getResources().getString(R.string.btn_stopping));
         Log.d("mgr", "Stop recording");
         // stop sensor manager
         //unregisterFromManager();
@@ -587,7 +586,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
         long timestamp = SystemClock.elapsedRealtimeNanos();
         try {
             addHandWashEvent(timestamp);
-            makeToast("Added hand wash");
+            makeToast(getResources().getString(R.string.toast_addedhandwash));
         } catch (IOException e) {
             e.printStackTrace();
         }

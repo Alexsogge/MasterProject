@@ -30,7 +30,7 @@ public class DataProcessor {
 
     public OutputStreamContainer containerEvaluation;
 
-    public ArrayList<DataContainer> allDataContainers;
+    public static ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
 
     public DataProcessor(){

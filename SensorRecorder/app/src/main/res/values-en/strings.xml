@@ -1,18 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello_world">Hello Square World!</string>
+    <string name="hello_world">Hallo Welt!</string>
     <string name="btn_stop">Stop</string>
     <string name="btn_start">Start</string>
     <string name="btn_upload">Upload</string>
     <string name="btn_config">Config</string>
-
-    <string name="btn_stopping">Stopping...</string>
     <string name="ui_new_handwash" translatable="false">New hand wash</string>
 
-    <string name="toast_addedhandwash">Added hand wash</string>
 
     <string name="toast_addedhandwash_sel">Added hand wash
     </string>
     <string name="toast_permission_den">Permission denied.</string>
+
+    <string name="btn_stopping">Stopping...</string>
+
+    <string name="toast_addedhandwash">Added hand wash</string>
     <string name="toast_couldnt_load_tf">Couldn\'t load TF model</string>
     <string name="toast_use_dl_tf">Use downloaded TF model</string>
     <string name="toast_pred_hw">Predicted Handwash</string>
@@ -28,11 +30,11 @@
 
     <string name="it_check_conn">Check connection...</string>
     <string name="it_upload_fin">Upload finished</string>
-    <string name="it_upload">Upload </string>
+    <string name="it_upload">Upload &#160;</string>
 
     <string name="str_success_upload">Success: uploaded</string>
     <string name="str_err">Error</string>
-    <string name="str_unexpected_code">Unexpected code &#160;</string>
+    <string name="str_unexpected_code">Unexpected code </string>
 
     <string name="not_running">Running</string>
     <string name="not_sen_rec_active">Sensor recorder is active</string>
@@ -44,19 +46,4 @@
     <string name="str_eval_question_1">Long question text where user has to answer?</string>
     <string name="str_eval_question_2">Another question text. You also have to answer?</string>
 
-
-    <!--
-    Stuff for settings and static strings
-    -->
-    <string name="app_name" translatable="false">SensorRecorder</string>
-    <string name="configs" translatable="false">configs</string>
-    <string name="conf_serverName" translatable="false">serverName</string>
-    <string name="conf_userIdentifier" translatable="false">userIdentifier</string>
-    <string name="conf_serverToken" translatable="false">serverToken</string>
-    <string name="conf_useZip" translatable="false">useZip</string>
-    <string name="conf_useMKV" translatable="false">useMKV</string>
-    <string name="conf_useMic" translatable="false">useMic</string>
-    <string name="conf_multipleMic" translatable="false">multipleMic</string>
-    <string name="predefined_serverName" translatable="false">https://records.henkela.de</string>
-    <string name="title_activity_handwash_evaluation" translatable="false">HandwashEvaluation</string>
 </resources>

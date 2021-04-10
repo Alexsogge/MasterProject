@@ -34,7 +34,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="25dip"
-                android:text="Stop" />
+                android:text="@string/btn_start" />
 
             <com.example.sensorrecorder.CustomSpinner
                 android:id="@+id/handwash_spinner"
@@ -49,7 +49,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="25dip"
-                android:text="Upload"
+                android:text="@string/btn_upload"
                 android:textSize="14sp" />
 
 
@@ -72,7 +72,7 @@
                 android:id="@+id/buttonConfig"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Config" />
+                android:text="@string/btn_config" />
         </LinearLayout>
     </ScrollView>
 </androidx.wear.widget.BoxInsetLayout>

@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
         <activity
-            android:name=".HandwashEvaluation"
+            android:name=".Evaluation.HandwashEvaluation"
             android:label="@string/title_activity_handwash_evaluation"
             android:showOnLockScreen="true">
             <intent-filter>
@@ -24,7 +24,6 @@
                Set to true if your app is Standalone, that is, it does not require the handheld
                app to run.
         -->
-        <activity android:name=".ConfActivity" />
 
         <activity
             android:name=".MainActivity"
@@ -36,6 +35,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".ConfActivity" />
 
         <meta-data
             android:name="com.google.android.wearable.standalone"
@@ -74,6 +75,7 @@
         </service>
 
         <service android:name=".SensorManager" />
+        <service android:name=".Evaluation.EvaluationService" />
 
         <uses-library
             android:name="com.google.android.wearable"
