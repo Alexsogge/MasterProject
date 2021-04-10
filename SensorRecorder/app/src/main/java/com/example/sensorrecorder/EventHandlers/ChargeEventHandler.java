@@ -19,7 +19,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
         if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
             // Do something when power connected
             if(sensorManager.isRunning)
-                MainActivity.mainActivity.toggleUpload();
+                MainActivity.mainActivity.networking.DoFileUpload();
 
         }
         else if(action.equals(Intent.ACTION_POWER_DISCONNECTED)) {
