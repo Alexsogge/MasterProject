@@ -138,46 +138,51 @@ def tfmodel():
     upload_info_text = None
     upload_error_text = None
     sensors = {1: 'ACCELEROMETER', 4: 'GYROSCOPE', 2: 'MAGNETIC FIELD', 11: 'ROTATION VECTOR'}
+    filename = "tf_settings"
 
     old_settings = dict()
     old_settings_file = get_tf_model_settings_file()
     if old_settings_file is not None:
         with open(os.path.join(TFMODEL_FOLDER, old_settings_file)) as json_file:
             old_settings = json.load(json_file)
-
-
+        filename = old_settings_file
 
     if request.method == 'POST':
         print('Save new tf model', request.form)
         print('window size', request.form.get('frameSizeInput'))
         if 'file' not in request.files:
-            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no file Part', sensors=sensors, old_settings=old_settings)
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text='Error: no selected file', sensors=sensors, old_settings=old_settings)
-        if file and is_allowed_file(file.filename):
-            filename = os.path.splitext(secure_filename(file.filename))[0]
-
-            settings_dict = dict()
-            settings_dict['frame_size'] = int(request.form.get('frameSizeInput'))
-            settings_dict['positive_prediction_time'] = int(request.form.get('positivePredictionTimeInput'))
-            settings_dict['positive_prediction_counter'] = int(request.form.get('positivePredictionCounterInput'))
-            required_sensors = request.form.getlist('requiredSensorsSelect')
-            for i in range(len(required_sensors)):
-                required_sensors[i] = int(required_sensors[i])
-            settings_dict['required_sensors'] = required_sensors
-            old_settings = settings_dict
-
-            print("settings: ", settings_dict)
-
-            with open(os.path.join(TFMODEL_FOLDER, filename + '.json'), 'w') as outfile:
-                json.dump(settings_dict, outfile)
-            file.save(os.path.join(TFMODEL_FOLDER, filename + '.tflite'))
-            upload_info_text = 'Uploaded ' + filename
+            upload_error_text = 'Info: no new file was selected'
         else:
-            upload_error_text = 'Error: no valid file'
+            file = request.files['file']
+            # if user does not select file, browser also
+            # submit an empty part without filename
+            if file.filename == '':
+                upload_error_text = 'Info: no new file was selected'
+            else:
+                if file and is_allowed_file(file.filename):
+                    filename = os.path.splitext(secure_filename(file.filename))[0]
+                    file.save(os.path.join(TFMODEL_FOLDER, filename + '.tflite'))
+                    upload_info_text = 'Uploaded ' + filename
+                else:
+                    upload_error_text = 'Error: no valid file'
+
+        settings_dict = dict()
+        settings_dict['frame_size'] = int(request.form.get('frameSizeInput'))
+        settings_dict['positive_prediction_time'] = int(request.form.get('positivePredictionTimeInput'))
+        settings_dict['positive_prediction_counter'] = int(request.form.get('positivePredictionCounterInput'))
+        required_sensors = request.form.getlist('requiredSensorsSelect')
+        for i in range(len(required_sensors)):
+            required_sensors[i] = int(required_sensors[i])
+        settings_dict['required_sensors'] = required_sensors
+        old_settings = settings_dict
+
+        with open(os.path.join(TFMODEL_FOLDER, filename + '.json'), 'w') as outfile:
+            json.dump(settings_dict, outfile)
+
+        if upload_info_text is None:
+            upload_info_text = 'Saved new settings'
+        else:
+            upload_info_text = 'Saved new settings and model ' + filename
 
     return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text, sensors=sensors, old_settings=old_settings)
 
