@@ -1,30 +1,23 @@
 package com.example.sensorrecorder;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.OnLifecycleEvent;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Debug;
 import android.support.wearable.activity.WearableActivity;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.RadioGroup;
 import android.widget.Switch;
-import android.widget.Toast;
+
+import com.example.sensorrecorder.Networking.NetworkManager;
 
 import static android.Manifest.permission.RECORD_AUDIO;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -42,7 +35,7 @@ public class ConfActivity extends WearableActivity {
     private Switch multipleMicSwitch;
     private Button downloadTFModelButton;
     private Button deleteTokenButton;
-    private Networking networking;
+    private NetworkManager networkManager;
 
 
     @Override
@@ -56,7 +49,7 @@ public class ConfActivity extends WearableActivity {
         configs = this.getSharedPreferences(
                 getString(R.string.configs), Context.MODE_PRIVATE);
 
-        networking = new Networking(this, null, configs);
+        networkManager = new NetworkManager(this, null, configs);
 
         serverNameInput = (EditText)findViewById(R.id.editTextServerName);
         userIdentifierInput = (EditText)findViewById(R.id.editTextUserIdentifier);
@@ -147,7 +140,7 @@ public class ConfActivity extends WearableActivity {
 
                 if (configs.getString(getString(R.string.conf_serverToken), "").equals("") &&
                         !configs.getString(getString(R.string.conf_serverName), "").equals("")){
-                    networking.requestServerToken();
+                    networkManager.requestServerToken();
                 }
 
                 finish();
@@ -157,7 +150,7 @@ public class ConfActivity extends WearableActivity {
         downloadTFModelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                networking.downloadTFModel();
+                networkManager.downloadTFModel();
             }
         });
 

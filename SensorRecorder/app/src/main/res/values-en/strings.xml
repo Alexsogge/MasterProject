@@ -20,6 +20,7 @@
     <string name="toast_pred_hw">Predicted Handwash</string>
 
     <string name="toast_no_inet_conn">No connection to internet</string>
+    <string name="toast_no_server_name">No server was set</string>
     <string name="toast_auth_granted">Authentication granted</string>
     <string name="toast_not_auth">Not authenticated: &#160;</string>
     <string name="toast_cant_conn_to_server">Can\'t connect to server</string>
@@ -29,6 +30,11 @@
     <string name="toast_failed_to_dl_file">Failed to download file: &#160;</string>
 
     <string name="it_check_conn">Check connection...</string>
+    <string name="it_start_upload">Start upload...</string>
+    <string name="it_uploading">Uploading...</string>
+    <string name="it_error">Upload error, retry...</string>
+    <string name="it_token_error">Error during token request</string>
+    <string name="it_token_pending">Waiting for authorization</string>
     <string name="it_upload_fin">Upload finished</string>
     <string name="it_upload">Upload &#160;</string>
 

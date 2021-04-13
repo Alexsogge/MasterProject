@@ -18,6 +18,7 @@
     <string name="toast_pred_hw">Händwaschen erkannt</string>
 
     <string name="toast_no_inet_conn">Keine Internetverbindungt</string>
+    <string name="toast_no_server_name">Kein Server wurde angegeben</string>
     <string name="toast_auth_granted">Autentifizierung erhalten</string>
     <string name="toast_not_auth">Nicht autentifiziert: &#160;</string>
     <string name="toast_cant_conn_to_server">Keine Verbindung zum Server</string>
@@ -27,6 +28,11 @@
     <string name="toast_failed_to_dl_file">Fehler beim laden der Datei: &#160;</string>
 
     <string name="it_check_conn">Prüfe Verbindung...</string>
+    <string name="it_start_upload">Starte Upload...</string>
+    <string name="it_uploading">Lade hoch...</string>
+    <string name="it_error">Upload Fehler. Versuche erneut</string>
+    <string name="it_token_error">Fehler bei token Anfrage</string>
+    <string name="it_token_pending">Warte auf autorisierung</string>
     <string name="it_upload_fin">Hochladen abgeschlossen</string>
     <string name="it_upload">Lade hoch &#160;</string>
 

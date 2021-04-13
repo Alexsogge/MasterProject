@@ -82,7 +82,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = false;
+    private boolean debugAutoTrue = true;
 
 
     protected HandWashDetection(Activity activity) throws IOException {

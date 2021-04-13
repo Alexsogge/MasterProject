@@ -78,15 +78,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
 
     public void close(){
         stopped = true;
-        /*
-        try {
-            writeSensorData();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        */
-        //callFlushBuffer();
-
     }
 
     private void callFlushBuffer(){
@@ -106,7 +97,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             return;
         }
 
-
         // write new values to buffer
         // determine offset between previous and current event
         if (sensorLastTimeStamp != -1)
@@ -118,7 +108,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             return;
 
         // write event as often as required to fill the rate
-        // Log.d("sensor", "pointer: " + sensorPointer);
         while (sensorOffset > sensorDelay) {
             sensorTimestampsBuffer[sensorPointer] = event.timestamp - sensorOffset;
             for (int i = 0; i < event.values.length; i++) {
@@ -129,43 +118,13 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             if(sensorPointer == sensorTimestampsBuffer.length) {
                 // callFlushBuffer();
                 // reset buffer
-
                 callFlushBuffer();
-
-                /*
-                try {
-                    callFlushBuffer();
-                    writeSensorData();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                */
-
 
                 sensorTimestampsBuffer[0] = sensorTimestampsBuffer[sensorPointer-1];
                 sensorPointer = 1;
             }
             sensorOffset -= sensorDelay;
         }
-
-        /*
-        sensorTimestampsBuffer[sensorIndex][sensorPointer] = event.timestamp;
-        for (int i = 0; i < event.values.length; i++) {
-            sensorValuesBuffer[sensorIndex][sensorPointer][i] = event.values[i];
-        }
-        sensorPointers[sensorIndex]++;
-
-        if(sensorPointers[sensorIndex] == sensor_queue_size) {
-            try {
-                WriteSensorData(sensorIndex);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            // reset buffer
-            sensorTimestampsBuffer[sensorIndex][0] = sensorTimestampsBuffer[sensorIndex][sensorPointers[sensorIndex]-1];
-            sensorPointers[sensorIndex] = 1;
-        }
-        */
 
         // rough estimate off possible hand wash using accelerometer values
         if (handWashActivationThreshold > -1 && sensorPointer%25 == 0 && sensorPointer > 30) {
@@ -180,19 +139,8 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
 
     private long possibleHandWash() {
         // simple approach to determine if the user is currently washing their hands
-        // check if one of the acceleration or gyroscope axes has been a certain impact
+        // check if one of the axes has been a certain impact
 
-        /*int offset = Math.max(1, sensorPointer - 25);
-        for (int axes = 0; axes < sensorDimension; axes++) {
-            if (sensorValuesBuffer[sensorPointer][axes] > handWashActivationThreshold) {
-                for (int i = offset; i <= sensorPointer; i++) {
-                    if (sensorValuesBuffer[i][axes] < -handWashActivationThreshold) {
-                        Log.d("sen", "hwacc: " + sensorValuesBuffer[sensorPointer][axes]);
-                        return sensorTimestampsBuffer[sensorPointer];
-                    }
-                }
-            }
-        }*/
         long timeStamp = sensorTimestampsBuffer[sensorPointer-1];
         int offset = Math.max(1, sensorPointer - 25);
         for (int axes = 0; axes < sensorDimension; axes++) {

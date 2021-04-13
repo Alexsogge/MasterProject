@@ -14,7 +14,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
-import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -28,19 +27,31 @@ import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.Observer;
+import androidx.wear.ambient.AmbientModeSupport;
+import androidx.work.Data;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import java.io.IOException;
+import java.util.List;
 
 import com.example.sensorrecorder.Evaluation.EvaluationService;
 import com.example.sensorrecorder.EventHandlers.BatteryEventHandler;
 import com.example.sensorrecorder.EventHandlers.ChargeEventHandler;
+import com.example.sensorrecorder.Networking.NetworkManager;
+import com.example.sensorrecorder.Networking.ServerTokenObserver;
+import com.example.sensorrecorder.Networking.UploadObserver;
+import com.example.sensorrecorder.Networking.UploadWorker;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 
 
-public class MainActivity extends WearableActivity {
+public class MainActivity extends FragmentActivity
+        implements AmbientModeSupport.AmbientCallbackProvider{
     private static double FACTOR = 0.2; // c = a * sqrt(2)
 
     public static MainActivity mainActivity;
@@ -50,7 +61,7 @@ public class MainActivity extends WearableActivity {
     private Intent intent;
     public SensorManager sensorService;
     public EvaluationService evaluationService;
-    public Networking networking;
+    public NetworkManager networkManager;
 
     private boolean mBound = false;
     private boolean waitForConfigs = false;
@@ -101,6 +112,7 @@ public class MainActivity extends WearableActivity {
 
             if (!waitForConfigs)
                 initServices();
+
         }
 
         // Enables Always-on
@@ -212,7 +224,7 @@ public class MainActivity extends WearableActivity {
     public void toggleUpload(){
         if(!configs.getString(getString(R.string.conf_serverName), "").equals("")) {
             mainScrollView.scrollTo(0, 150);
-            networking.DoFileUpload();
+            networkManager.DoFileUpload();
         }
     }
 
@@ -225,7 +237,7 @@ public class MainActivity extends WearableActivity {
     }
 
     private void initServices(){
-        networking = new Networking(this, null, configs);
+        networkManager = new NetworkManager(this, null, configs);
         batteryEventHandler = new BatteryEventHandler();
         chargeEventHandler = new ChargeEventHandler();
 //        Intent intentEvalServ = new Intent(this, EvaluationService.class);
@@ -244,6 +256,15 @@ public class MainActivity extends WearableActivity {
         } else {
             startServices();
         }
+
+        WorkManager.getInstance(this)
+                .getWorkInfosByTagLiveData("upload")
+                .observe(this, new UploadObserver(infoText, uploadProgressBar, this));
+
+        WorkManager.getInstance(this)
+                .getWorkInfosByTagLiveData("serverToken")
+                .observe(this, new ServerTokenObserver(infoText, this));
+
     }
 
     private void startServices(){
@@ -285,7 +306,7 @@ public class MainActivity extends WearableActivity {
             // initialize services components
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
             sensorService.startStopButton = startStopButton;
-            networking.sensorService = sensorService;
+            networkManager.sensorService = sensorService;
             batteryEventHandler.sensorManager = sensorService;
 
         }
@@ -375,5 +396,10 @@ public class MainActivity extends WearableActivity {
     protected void onPause () {
         super.onPause();
         Log.d("sensorrecorderevent", "Pause main actitvity");
+    }
+
+    @Override
+    public AmbientModeSupport.AmbientCallback getAmbientCallback() {
+        return null;
     }
 }

@@ -18,8 +18,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 
 public class DataProcessor {
-
-
     public HashMap<String, ZipContainer> sensorContainers;
     public DataContainer containerMKV;
     public OutputStreamContainer containerHandWashTimeStamps;
@@ -191,6 +189,15 @@ public class DataProcessor {
             containerMic.delete();
         }
         fileOut.close();
+    }
+
+    public static ArrayList<File> getAllFilesInSubdirectory(String subDirectory){
+        File directory = new File(subDirectory);
+        ArrayList<File> files = new ArrayList<>();
+        for(File file: directory.listFiles()){
+            files.add(file);
+        }
+        return files;
     }
 
 }

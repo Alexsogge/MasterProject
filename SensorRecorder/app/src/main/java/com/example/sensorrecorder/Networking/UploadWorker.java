@@ -1,4 +1,4 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder.Networking;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -16,9 +16,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.example.sensorrecorder.DataProcessor;
+import com.example.sensorrecorder.ProgressRequestBody;
+import com.example.sensorrecorder.R;
 import com.example.sensorrecorder.dataContainer.DataContainer;
 
 import org.json.JSONException;
@@ -38,50 +42,36 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class UploadWorker extends Worker {
-    private final int DO_TOAST = 0;
-    private final int STATUS_ERROR = -1;
-    private final int STATUS_SUCCESS = 1;
+public class UploadWorker extends NetworkWorker {
+
     private final MediaType MEDIA_TYPE_CSV = MediaType.parse("text/csv");
     private final MediaType MEDIA_TYPE_ZIP = MediaType.parse("application/zip, application/octet-stream");
     private final MediaType MEDIA_TYPE_MKV = MediaType.parse("video/x-matroska, audio/x-matroska");
     private final MediaType MEDIA_TYPE_3GP = MediaType.parse("video/3gpp, audio/3gpp, video/3gpp2, audio/3gpp2");
-    private final OkHttpClient client = new OkHttpClient();
     private final String serverUrlSuffix = "/recording/new/?uuid=";
 
-
-    private Context context;
-    private SharedPreferences configs;
-
-    private TextView infoText;
-    private ProgressBar uploadProgressBar;
     private ArrayList<String> toUploadDirectories = new ArrayList<>();
     private HashMap<String, String> directoryUploadTokens = new HashMap<String, String>();
-    private Handler uiHandler;
 
 
     public UploadWorker(
             @NonNull final Context context,
             @NonNull WorkerParameters params) {
         super(context, params);
-        this.context = context;
-        configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
-        uiHandler = new Handler(Looper.getMainLooper()) {
-            @Override
-            public void handleMessage(Message message) {
-                // This is where you do your work in the UI thread.
-                // Your worker tells you in the message what to do.
-                if(message.what == DO_TOAST){
-                    Toast.makeText(context, message.obj.toString(), Toast.LENGTH_SHORT).show();
-                }
-            }
-        };
+        setProgressAsync(new Data.Builder().putInt(PROGRESS, 0).build());
+        sendStatus(STATUS_PENDING);
     }
 
-    @SuppressLint("WrongThread")
+    //@SuppressLint("WrongThread")
     @Override
     public Result doWork() {
         Log.d("net", "start upload worker");
+
+        // check if server token exists.
+        if(configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
+            sendStatus(STATUS_ERROR);
+            return Result.failure();
+        }
 
         // we need an upload token from the server to signalise which files belong together
         directoryUploadTokens.clear();
@@ -89,34 +79,29 @@ public class UploadWorker extends Worker {
         for(File directory: DataContainer.getSubdirectories()) {
             toUploadDirectories.add(directory.getPath());
             if(getUploadToken(directory.getPath()) == STATUS_ERROR){
+                sendStatus(STATUS_ERROR);
                 return Result.retry();
             }
         }
 
         for(HashMap.Entry<String, String> keyValue: directoryUploadTokens.entrySet()) {
-
-            for (DataContainer container : DataProcessor.allDataContainers) {
-                for (File dataFile : container.getAllVariantsInSubDirectory(new File(keyValue.getKey()))) {
-                    try {
-                        if(uploadMultipartFile(dataFile, keyValue.getValue()) == STATUS_ERROR)
-                            return Result.retry();
-                        makeToast(context.getString(R.string.str_success_upload) + ": " + dataFile.getName());
-                    } catch (Exception e) {
-                        e.printStackTrace();
+            for (File dataFile : DataProcessor.getAllFilesInSubdirectory(keyValue.getKey())) {
+                try {
+                    if(uploadMultipartFile(dataFile, keyValue.getValue()) == STATUS_ERROR) {
+                        sendStatus(STATUS_ERROR);
                         return Result.retry();
                     }
+                    makeToast(context.getString(R.string.str_success_upload) + ": " + dataFile.getName());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    sendStatus(STATUS_ERROR);
+                    return Result.retry();
                 }
             }
         }
-
+        sendStatus(STATUS_SUCCESS);
         // Indicate whether the work finished successfully with the Result
-        return Result.success();
-    }
-
-
-    private void makeToast(final String text){
-        Message message = uiHandler.obtainMessage(DO_TOAST, text);
-        message.sendToTarget();
+        return Result.success(new Data.Builder().putInt(STATUS, STATUS_FINISHED).build());
     }
 
 
@@ -140,8 +125,9 @@ public class UploadWorker extends Worker {
             @Override
             public void onRequestProgress(long bytesWritten, long contentLength) {
                 float percentage = 100f * bytesWritten / contentLength;
+                setProgressAsync(new Data.Builder().putInt(PROGRESS, (int)percentage).build());
 //                    uploadProgressBar.setProgress((int)percentage);
-                // publishProgress(String.valueOf(Math.round(percentage)));
+                //publishProgress(String.valueOf(Math.round(percentage)));
             }
         });
 
