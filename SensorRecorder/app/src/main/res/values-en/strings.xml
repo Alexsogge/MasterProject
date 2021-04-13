@@ -45,5 +45,6 @@
 
     <string name="str_eval_question_1">Long question text where user has to answer?</string>
     <string name="str_eval_question_2">Another question text. You also have to answer?</string>
+    <string name="btn_rate">Rate</string>
 
 </resources>

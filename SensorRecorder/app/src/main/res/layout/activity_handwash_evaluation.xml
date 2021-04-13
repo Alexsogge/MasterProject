@@ -9,45 +9,82 @@
     tools:context=".Evaluation.HandwashEvaluation"
     tools:deviceIds="wear">
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="@dimen/inner_frame_layout_padding"
-        app:boxedEdges="all">
+        android:layout_marginHorizontal="0sp"
+        android:layout_marginVertical="10sp"
+        android:gravity="center"
+        android:orientation="vertical">
 
-        <LinearLayout
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="80sp"
+            android:layout_marginHorizontal="10sp"
+            android:fillViewport="true">
 
             <TextView
                 android:id="@+id/textQuestionText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="bottom"
+                android:text="@string/str_eval_question_1"
+                android:textAlignment="center"
+                android:textSize="18sp" />
+        </ScrollView>
+
+        <LinearLayout
+            android:id="@+id/answerYesNo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            tools:visibility="visible">
+
+            <Button
+                android:id="@+id/buttonEvalNo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/str_eval_question_1"
-                android:textSize="18sp" />
+                android:layout_weight="1"
+                android:text="@string/not_btn_no" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/buttonEvalNo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/not_btn_no" />
-
-                <Button
-                    android:id="@+id/buttonEvalYes"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/not_btn_yes" />
-            </LinearLayout>
+            <Button
+                android:id="@+id/buttonEvalYes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/not_btn_yes" />
 
         </LinearLayout>
 
-    </FrameLayout>
+        <LinearLayout
+            android:id="@+id/answerRating"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <RatingBar
+                android:id="@+id/answerRatingBar"
+                style="@style/Widget.AppCompat.RatingBar.Indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:isIndicator="false"
+                android:max="5"
+                android:numStars="5"
+                android:rating="3"
+                android:stepSize="1"
+                android:textAlignment="center" />
+
+            <Button
+                android:id="@+id/answerRateButton"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_rate" />
+        </LinearLayout>
+
+    </LinearLayout>
+
 </androidx.wear.widget.BoxInsetLayout>

@@ -82,7 +82,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = true;
+    private boolean debugAutoTrue = false;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -394,7 +394,7 @@ public class HandWashDetection {
         // observe prediction and write to disk
         float max_pred = labelProbArray[0][0];
         String gesture = "Noise";
-        if (labelProbArray[0][1] > max_pred && labelProbArray[0][1] > 0.95){
+        if (labelProbArray[0][1] > max_pred && labelProbArray[0][1] > 0.80){
             gesture = "Handwash";
             max_pred = labelProbArray[0][1];
             // test if there are multiple positive predictions within given time frameBuffer

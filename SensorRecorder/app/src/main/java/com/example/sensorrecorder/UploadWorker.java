@@ -89,7 +89,7 @@ public class UploadWorker extends Worker {
         for(File directory: DataContainer.getSubdirectories()) {
             toUploadDirectories.add(directory.getPath());
             if(getUploadToken(directory.getPath()) == STATUS_ERROR){
-                return Result.failure();
+                return Result.retry();
             }
         }
 
@@ -99,11 +99,11 @@ public class UploadWorker extends Worker {
                 for (File dataFile : container.getAllVariantsInSubDirectory(new File(keyValue.getKey()))) {
                     try {
                         if(uploadMultipartFile(dataFile, keyValue.getValue()) == STATUS_ERROR)
-                            return Result.failure();
+                            return Result.retry();
                         makeToast(context.getString(R.string.str_success_upload) + ": " + dataFile.getName());
                     } catch (Exception e) {
                         e.printStackTrace();
-                        return Result.failure();
+                        return Result.retry();
                     }
                 }
             }
