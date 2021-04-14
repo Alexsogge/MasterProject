@@ -46,8 +46,8 @@ public class HandWashDetection {
     private final int[] hasToBeTranslatedSensors = new int[]{Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_MAGNETIC_FIELD};
     private final int initialFrameSize = 50;
 
-    private final long initialPositivePredictedTimeFrame = (long) 5e9; // 2 seconds
-    private final int initialRequiredPositivePredictions = 3;
+    private final long initialPositivePredictedTimeFrame = (long) 3e9; // 3 seconds
+    private final int initialRequiredPositivePredictions = 4;
 
     private int[] requiredSensors;
     private int frameSize;
@@ -82,7 +82,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = true;
+    private boolean debugAutoTrue = false;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -331,7 +331,7 @@ public class HandWashDetection {
             if(fadeOutCounter > 0) {
                 // Log.d("pred", "add pred at: " + ts);
                 foundHandWash |= doHandWashPrediction(i, sensorTimeStamps[0][i]);
-                i += (frameSize / 2) - 25;
+                i += (frameSize / 1.5) - 25;
             }
             if (fadeOutCounter > 0)
                 fadeOutCounter--;
@@ -394,7 +394,7 @@ public class HandWashDetection {
         // observe prediction and write to disk
         float max_pred = labelProbArray[0][0];
         String gesture = "Noise";
-        if (labelProbArray[0][1] > max_pred && labelProbArray[0][1] > 0.80){
+        if (labelProbArray[0][1] > max_pred && labelProbArray[0][1] > 0.95){
             gesture = "Handwash";
             max_pred = labelProbArray[0][1];
             // test if there are multiple positive predictions within given time frameBuffer

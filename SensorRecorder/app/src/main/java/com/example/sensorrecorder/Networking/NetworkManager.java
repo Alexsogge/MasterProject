@@ -96,6 +96,7 @@ public class NetworkManager {
 
             OneTimeWorkRequest uploadWorkRequest = buildUploadWorkRequest();
             WorkManager.getInstance(mainActivity).cancelAllWork();
+            WorkManager.getInstance(mainActivity).pruneWork();
             if(configs.getString(mainActivity.getString(R.string.conf_serverToken), "").equals("")) {
                 OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
                 Log.d("net", "enque upload worker");
@@ -120,7 +121,7 @@ public class NetworkManager {
                         BackoffPolicy.LINEAR,
                         1,
                         TimeUnit.MINUTES)
-                .addTag("upload")
+                .addTag("uploadWorker")
                 .build();
         return uploadWorkRequest;
     }
@@ -136,7 +137,7 @@ public class NetworkManager {
                         BackoffPolicy.LINEAR,
                         1,
                         TimeUnit.MINUTES)
-                .addTag("serverToken")
+                .addTag("serverTokenWorker")
                 .build();
         return serverTokenWorkRequest;
     }

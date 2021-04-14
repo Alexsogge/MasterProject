@@ -93,6 +93,9 @@ public class MainActivity extends FragmentActivity
             isActive = true;
             turnOffDozeMode(this);
 
+            WorkManager.getInstance(mainActivity).cancelAllWork();
+            WorkManager.getInstance(mainActivity).pruneWork();
+
             mainActivity = this;
 
             // set scroll view to correct size
@@ -258,11 +261,11 @@ public class MainActivity extends FragmentActivity
         }
 
         WorkManager.getInstance(this)
-                .getWorkInfosByTagLiveData("upload")
+                .getWorkInfosByTagLiveData("uploadWorker")
                 .observe(this, new UploadObserver(infoText, uploadProgressBar, this));
 
         WorkManager.getInstance(this)
-                .getWorkInfosByTagLiveData("serverToken")
+                .getWorkInfosByTagLiveData("serverTokenWorker")
                 .observe(this, new ServerTokenObserver(infoText, this));
 
     }

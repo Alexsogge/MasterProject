@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -21,6 +22,7 @@ public class NetworkWorker extends Worker {
     public static final int STATUS_SUCCESS = 1;
     public static final int STATUS_PENDING = 0;
     public static final int STATUS_FINISHED  = 2;
+    public static final int STATUS_PROGRESS  = 3;
     public static final String PROGRESS = "PROGRESS";
     public static final String STATUS = "STATUS";
     public final int DO_TOAST = 0;

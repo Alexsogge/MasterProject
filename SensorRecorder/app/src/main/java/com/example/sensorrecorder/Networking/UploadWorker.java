@@ -53,19 +53,21 @@ public class UploadWorker extends NetworkWorker {
     private ArrayList<String> toUploadDirectories = new ArrayList<>();
     private HashMap<String, String> directoryUploadTokens = new HashMap<String, String>();
 
+    private int previousProgress = 0;
+
 
     public UploadWorker(
             @NonNull final Context context,
             @NonNull WorkerParameters params) {
         super(context, params);
-        setProgressAsync(new Data.Builder().putInt(PROGRESS, 0).build());
-        sendStatus(STATUS_PENDING);
+
     }
 
     //@SuppressLint("WrongThread")
     @Override
     public Result doWork() {
-        Log.d("net", "start upload worker");
+        //sendUploadProgress(0);
+        sendStatus(STATUS_PENDING);
 
         // check if server token exists.
         if(configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
@@ -83,14 +85,18 @@ public class UploadWorker extends NetworkWorker {
                 return Result.retry();
             }
         }
-
         for(HashMap.Entry<String, String> keyValue: directoryUploadTokens.entrySet()) {
-            for (File dataFile : DataProcessor.getAllFilesInSubdirectory(keyValue.getKey())) {
+            sendUploadProgress(0);
+            int uploadedFiles = 0;
+            ArrayList<File> dataFiles =  DataProcessor.getAllFilesInSubdirectory(keyValue.getKey());
+            for (File dataFile : dataFiles) {
                 try {
                     if(uploadMultipartFile(dataFile, keyValue.getValue()) == STATUS_ERROR) {
                         sendStatus(STATUS_ERROR);
                         return Result.retry();
                     }
+                    uploadedFiles++;
+                    sendUploadProgress((int)(((float)uploadedFiles/dataFiles.size())*100));
                     makeToast(context.getString(R.string.str_success_upload) + ": " + dataFile.getName());
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -99,11 +105,19 @@ public class UploadWorker extends NetworkWorker {
                 }
             }
         }
-        sendStatus(STATUS_SUCCESS);
+        // sendStatus(STATUS_FINISHED);
         // Indicate whether the work finished successfully with the Result
         return Result.success(new Data.Builder().putInt(STATUS, STATUS_FINISHED).build());
     }
 
+    private void sendUploadProgress(int progress){
+        // Log.d("worker", "send progress: " + progress);
+        Data progressData = new Data.Builder()
+                .putInt(STATUS, STATUS_PROGRESS)
+                .putInt(PROGRESS, (int)progress)
+                .build();
+        setProgressAsync(progressData);
+    }
 
 
     private int uploadMultipartFile(File file, String uploadToken) throws IOException {
@@ -120,16 +134,22 @@ public class UploadWorker extends NetworkWorker {
                 .addPart(Headers.of("Content-Disposition", "form-data; name=\"file\"; filename=\"" + file.getName() +"\""), RequestBody.create(media_type, file))
                 .build();
 
+        /*
         // we use a ProgressRequestBody to get events for current upload status and visualize this with a progressbar
         ProgressRequestBody progressRequestBody = new ProgressRequestBody(requestBody, new ProgressRequestBody.Listener() {
             @Override
             public void onRequestProgress(long bytesWritten, long contentLength) {
                 float percentage = 100f * bytesWritten / contentLength;
-                setProgressAsync(new Data.Builder().putInt(PROGRESS, (int)percentage).build());
+                if(percentage > previousProgress + 5){
+                    previousProgress = (int)percentage;
+                    sendUploadProgress((int)percentage);
+                }
+
 //                    uploadProgressBar.setProgress((int)percentage);
                 //publishProgress(String.valueOf(Math.round(percentage)));
             }
         });
+        */
 
         String serverUrl = configs.getString(context.getString(R.string.conf_serverName), "")
                 + serverUrlSuffix
@@ -137,7 +157,8 @@ public class UploadWorker extends NetworkWorker {
         Request request = new Request.Builder()
                 .url(serverUrl)
                 .addHeader("Authorization", "Bearer " + configs.getString(context.getString(R.string.conf_serverToken), ""))
-                .post(progressRequestBody)
+                //.post(progressRequestBody)
+                .post(requestBody)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
