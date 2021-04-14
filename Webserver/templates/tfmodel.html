@@ -41,6 +41,11 @@
                 <small id="positivePredictionCounterHelp" class="form-text text-muted">The needed amount of positive predictions in a run to trigger a hand wash event</small>
             </div>
 
+            <div class="form-group">
+                <label for="notificationCoolDownInput">Notification cool down</label>
+                <input type="number" class="form-control" id="notificationCoolDownInput" name="notificationCoolDownInput" aria-describedby="notificationCoolDownHelp" placeholder="Enter count" value="{{ old_settings.notification_cool_down }}">
+                <small id="notificationCoolDownHelp" class="form-text text-muted">The minimum time in seconds between two hand wash prediction notifications</small>
+            </div>
 
             <div class="form-group mt-1">
                 <label for="requiredSensorsSelect">Required Sensors (in right order)</label>

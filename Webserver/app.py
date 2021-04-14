@@ -145,7 +145,7 @@ def tfmodel():
     if old_settings_file is not None:
         with open(os.path.join(TFMODEL_FOLDER, old_settings_file)) as json_file:
             old_settings = json.load(json_file)
-        filename = old_settings_file
+        filename = os.path.splitext(old_settings_file)[0]
 
     if request.method == 'POST':
         print('Save new tf model', request.form)
@@ -170,6 +170,7 @@ def tfmodel():
         settings_dict['frame_size'] = int(request.form.get('frameSizeInput'))
         settings_dict['positive_prediction_time'] = int(request.form.get('positivePredictionTimeInput'))
         settings_dict['positive_prediction_counter'] = int(request.form.get('positivePredictionCounterInput'))
+        settings_dict['notification_cool_down'] = int(request.form.get('notificationCoolDownInput'))
         required_sensors = request.form.getlist('requiredSensorsSelect')
         for i in range(len(required_sensors)):
             required_sensors[i] = int(required_sensors[i])
