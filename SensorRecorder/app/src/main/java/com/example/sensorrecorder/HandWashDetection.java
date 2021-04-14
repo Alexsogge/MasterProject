@@ -1,7 +1,6 @@
 package com.example.sensorrecorder;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.hardware.Sensor;
@@ -21,7 +20,6 @@ import org.tensorflow.lite.Interpreter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -48,12 +46,15 @@ public class HandWashDetection {
 
     private final long initialPositivePredictedTimeFrame = (long) 3e9; // 3 seconds
     private final int initialRequiredPositivePredictions = 4;
+    private final long initialNotificationCoolDown = (long) 40e9; // 40 seconds
 
     private int[] requiredSensors;
     private int frameSize;
     private long positivePredictedTimeFrame;
     private int requiredPositivePredictions;
     private int inputShape;
+    private long notificationCoolDown;
+    private long lastNotificationTS;
 
     private Interpreter tfInterpreter;
     private List<String> labelList;
@@ -82,7 +83,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = false;
+    private boolean debugAutoTrue = true;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -152,6 +153,7 @@ public class HandWashDetection {
         this.activeSensorTypes = sensorTypes;
         this.sensorDimensions = sensorDimensions;
         this.activationThresholds = activationThresholds;
+        this.notificationCoolDown = initialNotificationCoolDown;
 
         requiredSensors = initialRequiredSensors;
         frameSize = initialFrameSize;
@@ -169,7 +171,7 @@ public class HandWashDetection {
 
         this.requiredSensorsDimensions = new int[requiredSensors.length];
         for(int i = 0; i < requiredSensors.length; i++){
-            this.requiredSensorsDimensions[i] = SensorManager.getNumChannels(requiredSensors[i]);
+            this.requiredSensorsDimensions[i] = SensorRecordingManager.getNumChannels(requiredSensors[i]);
             inputShape += 4 * frameSize * requiredSensorsDimensions[i];
         }
 
@@ -213,6 +215,7 @@ public class HandWashDetection {
         frameSize = jsonObject.getInt("frame_size");
         positivePredictedTimeFrame = (long)(jsonObject.getInt("positive_prediction_time")) * (long) 1e9;
         requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
+        notificationCoolDown = jsonObject.getInt("notification_cool_down");
     }
 
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
@@ -279,9 +282,12 @@ public class HandWashDetection {
     */
 
     private void showHandWashNotification(){
-        makeToast(mainActivity.getString(R.string.toast_pred_hw));
-        vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
-        NotificationSpawner.spawnHandWashPredictionNotification(mainActivity, lastPositivePrediction);
+        if(lastPositivePrediction > lastNotificationTS + notificationCoolDown) {
+            lastNotificationTS = lastPositivePrediction;
+            makeToast(mainActivity.getString(R.string.toast_pred_hw));
+            vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
+            NotificationSpawner.spawnHandWashPredictionNotification(mainActivity, lastPositivePrediction);
+        }
     }
 
     private boolean stillWaitingForSensor(){

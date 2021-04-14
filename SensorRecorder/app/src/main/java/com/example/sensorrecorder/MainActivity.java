@@ -28,14 +28,10 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.Observer;
 import androidx.wear.ambient.AmbientModeSupport;
-import androidx.work.Data;
-import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
 import java.io.IOException;
-import java.util.List;
 
 import com.example.sensorrecorder.Evaluation.EvaluationService;
 import com.example.sensorrecorder.EventHandlers.BatteryEventHandler;
@@ -43,7 +39,6 @@ import com.example.sensorrecorder.EventHandlers.ChargeEventHandler;
 import com.example.sensorrecorder.Networking.NetworkManager;
 import com.example.sensorrecorder.Networking.ServerTokenObserver;
 import com.example.sensorrecorder.Networking.UploadObserver;
-import com.example.sensorrecorder.Networking.UploadWorker;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -59,7 +54,7 @@ public class MainActivity extends FragmentActivity
 
     private TextView mTextView;
     private Intent intent;
-    public SensorManager sensorService;
+    public SensorRecordingManager sensorService;
     public EvaluationService evaluationService;
     public NetworkManager networkManager;
 
@@ -286,7 +281,7 @@ public class MainActivity extends FragmentActivity
     }
 
     private void startRecording(){
-        intent = new Intent(this, SensorManager.class );
+        intent = new Intent(this, SensorRecordingManager.class );
         bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);
@@ -302,7 +297,7 @@ public class MainActivity extends FragmentActivity
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
             // get SensorService instance when ready
-            SensorManager.LocalBinder binder = (SensorManager.LocalBinder) service;
+            SensorRecordingManager.LocalBinder binder = (SensorRecordingManager.LocalBinder) service;
             sensorService = binder.getService();
             sensorService.mainActivity = mainActivity;
             mBound = true;
@@ -310,8 +305,9 @@ public class MainActivity extends FragmentActivity
             sensorService.infoText = (TextView) findViewById(R.id.infoText);
             sensorService.startStopButton = startStopButton;
             networkManager.sensorService = sensorService;
-            batteryEventHandler.sensorManager = sensorService;
-
+            batteryEventHandler.sensorRecordingManager = sensorService;
+            if(sensorService.isRunning)
+                startStopButton.setText(getString(R.string.btn_stop));
         }
 
         @Override

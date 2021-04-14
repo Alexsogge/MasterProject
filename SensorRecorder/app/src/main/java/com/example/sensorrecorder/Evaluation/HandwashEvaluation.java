@@ -3,15 +3,13 @@ package com.example.sensorrecorder.Evaluation;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
-import android.text.Layout;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
 import com.example.sensorrecorder.R;
-import com.example.sensorrecorder.SensorManager;
+import com.example.sensorrecorder.SensorRecordingManager;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -58,10 +56,11 @@ public class HandwashEvaluation extends WearableActivity {
         questions.put(0, R.string.not_just_washed_hands);
         questions.put(1, R.string.str_eval_question_1);
         questions.put(2, R.string.str_eval_question_2);
+        questions.put(3, R.string.str_eval_question_3);
         answerViews.put(0, answerYN);
         answerViews.put(1, answerYN);
         answerViews.put(2, answerRating);
-
+        answerViews.put(3, answerRating);
 
         answers = new HashMap<>();
         answers.put(0, 1);
@@ -116,7 +115,7 @@ public class HandwashEvaluation extends WearableActivity {
         }
         line.append("\n");
         try {
-            SensorManager.dataProcessor.writeEvaluation(line.toString());
+            SensorRecordingManager.dataProcessor.writeEvaluation(line.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }

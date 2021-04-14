@@ -74,7 +74,7 @@
                 android:value="0" />
         </service>
 
-        <service android:name=".SensorManager" />
+        <service android:name=".SensorRecordingManager" />
         <service android:name=".Evaluation.EvaluationService" />
 
         <uses-library

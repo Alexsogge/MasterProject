@@ -4,14 +4,12 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.service.notification.StatusBarNotification;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
 import com.example.sensorrecorder.Evaluation.EvaluationService;
 import com.example.sensorrecorder.Evaluation.HandwashEvaluation;
@@ -64,7 +62,7 @@ public class NotificationSpawner {
             e.printStackTrace();
         }
 
-        Intent handwashIntent = new Intent(context, SensorManager.class);
+        Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
         // Log.d("not", "send notification with ts " + timestamp);
         handwashIntent.putExtra("trigger", "handWashTS");
         handwashIntent.putExtra("timestamp", timestamp);
@@ -89,7 +87,7 @@ public class NotificationSpawner {
         PendingIntent pintConfirmHandWash = PendingIntent.getService(context, 571, confirmHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         //PendingIntent pintConfirmHandWash = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent declineHandWashIntent = new Intent(context, SensorManager.class);
+        Intent declineHandWashIntent = new Intent(context, SensorRecordingManager.class);
         declineHandWashIntent.putExtra("trigger", "handWashDecline");
         declineHandWashIntent.putExtra("timestamp", timestamp);
         PendingIntent pintDeclineHandWash = PendingIntent.getService(context, 572, declineHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);

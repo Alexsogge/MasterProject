@@ -8,7 +8,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.example.sensorrecorder.SensorManager;
+import com.example.sensorrecorder.SensorRecordingManager;
 
 import java.io.IOException;
 
@@ -23,7 +23,7 @@ public class EvaluationService extends Service {
 
         if (intent.getStringExtra("trigger") != null) {
             if (intent.getStringExtra("trigger").equals("handWashConfirm")) {
-                if (SensorManager.isRunning) {
+                if (SensorRecordingManager.isRunning) {
                     long timestamp = intent.getLongExtra("timestamp", -1);
                     if (timestamp > -1) {
                         Intent startEvalIntent = new Intent(this, HandwashEvaluation.class);
@@ -35,12 +35,12 @@ public class EvaluationService extends Service {
             }
 
             if (intent.getStringExtra("trigger").equals("handWashDecline")) {
-                if (SensorManager.isRunning) {
+                if (SensorRecordingManager.isRunning) {
                     long timestamp = intent.getLongExtra("timestamp", -1);
                     if (timestamp > -1) {
                         try {
                             String line = timestamp + "\t" + 0 + "\n";
-                            SensorManager.dataProcessor.writeEvaluation(line);
+                            SensorRecordingManager.dataProcessor.writeEvaluation(line);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -53,7 +53,7 @@ public class EvaluationService extends Service {
                 if (timestamp > -1) {
                     try {
                         String line = timestamp + "\t" + -1 + "\n";
-                        SensorManager.dataProcessor.writeEvaluation(line);
+                        SensorRecordingManager.dataProcessor.writeEvaluation(line);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

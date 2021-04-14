@@ -12,19 +12,14 @@ import androidx.work.Constraints;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
-import androidx.work.WorkRequest;
 
 import com.example.sensorrecorder.HandWashDetection;
 import com.example.sensorrecorder.R;
-import com.example.sensorrecorder.SensorManager;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.example.sensorrecorder.SensorRecordingManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -35,7 +30,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class NetworkManager {
-    public SensorManager sensorService;
+    public SensorRecordingManager sensorService;
     private Activity mainActivity;
     private final Executor executor = Executors.newSingleThreadExecutor();
 
@@ -45,7 +40,7 @@ public class NetworkManager {
     private CountDownLatch sensorStopLatch;
 
 
-    public NetworkManager(final Activity mainActivity, SensorManager sensorService, SharedPreferences configs){
+    public NetworkManager(final Activity mainActivity, SensorRecordingManager sensorService, SharedPreferences configs){
         this.mainActivity = mainActivity;
         this.sensorService = sensorService;
         infoText = (TextView)mainActivity.findViewById(R.id.infoText);
@@ -57,8 +52,9 @@ public class NetworkManager {
         sensorStopLatch = new CountDownLatch(1);
         sensorService.waitForStopRecording(sensorStopLatch);
 
+
         // update info text
-        infoText.setText(mainActivity.getString(R.string.it_check_conn));
+        infoText.setText(mainActivity.getString(R.string.btn_stopping));
         infoText.invalidate();
 
         // check if server was specified
@@ -93,6 +89,10 @@ public class NetworkManager {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            // update info text
+            infoText.setText(mainActivity.getString(R.string.it_start_upload));
+            infoText.invalidate();
+
 
             OneTimeWorkRequest uploadWorkRequest = buildUploadWorkRequest();
             WorkManager.getInstance(mainActivity).cancelAllWork();
@@ -119,7 +119,7 @@ public class NetworkManager {
                 .setConstraints(constraints)
                 .setBackoffCriteria(
                         BackoffPolicy.LINEAR,
-                        1,
+                        5,
                         TimeUnit.MINUTES)
                 .addTag("uploadWorker")
                 .build();
@@ -135,7 +135,7 @@ public class NetworkManager {
                 .setConstraints(constraints)
                 .setBackoffCriteria(
                         BackoffPolicy.LINEAR,
-                        1,
+                        5,
                         TimeUnit.MINUTES)
                 .addTag("serverTokenWorker")
                 .build();

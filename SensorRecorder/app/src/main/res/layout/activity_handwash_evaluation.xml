@@ -37,6 +37,7 @@
             android:id="@+id/answerYesNo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10sp"
             android:gravity="bottom"
             android:orientation="horizontal"
             tools:visibility="visible">
@@ -66,14 +67,15 @@
 
             <RatingBar
                 android:id="@+id/answerRatingBar"
-                style="@style/Widget.AppCompat.RatingBar.Indicator"
+                style="@style/Widget.AppCompat.RatingBar.Small"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
+                android:layout_marginVertical="8sp"
                 android:isIndicator="false"
-                android:max="5"
-                android:numStars="5"
-                android:rating="3"
+                android:max="10"
+                android:numStars="10"
+                android:rating="5"
                 android:stepSize="1"
                 android:textAlignment="center" />
 

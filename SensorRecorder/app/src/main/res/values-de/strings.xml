@@ -45,10 +45,11 @@
     <string name="not_btn_hw">Hände gewaschen</string>
     <string name="not_btn_yes">Ja</string>
     <string name="not_btn_no">Nein</string>
-    <string name="not_just_washed_hands">Hast du dir eben die Hände gewaschen?</string>
+    <string name="not_just_washed_hands">Haben Sie sich eben die Hände gewaschen?</string>
 
-    <string name="str_eval_question_1">Long question text where user has to answer?</string>
-    <string name="str_eval_question_2">Another question text. You also have to answer?</string>
+    <string name="str_eval_question_1">War dieses Waschen zwanghaft?</string>
+    <string name="str_eval_question_2">Wie angespannt sind Sie im Moment?</string>
+    <string name="str_eval_question_3">Wie stark verspüren Sie im Moment den Drang, zu waschen?</string>
     <string name="btn_rate">Bewerten</string>
 
 </resources>

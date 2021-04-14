@@ -1,18 +1,14 @@
 package com.example.sensorrecorder;
 
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.media.MediaRecorder;
+import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
@@ -22,7 +18,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
@@ -42,11 +37,7 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.ops.transforms.Transforms;
 */
 
-import com.example.sensorrecorder.MathLib.TwoDArray;
-import com.google.android.gms.common.util.ArrayUtils;
-
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -55,7 +46,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -70,7 +60,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
-public class SensorManager extends Service implements SensorManagerInterface{
+public class SensorRecordingManager extends Service implements SensorManagerInterface{
     private final Executor executor = Executors.newSingleThreadExecutor(); // change according to your requirements
     private final IBinder binder = new LocalBinder();
     private final int samplingRate = 20000;
@@ -149,7 +139,6 @@ public class SensorManager extends Service implements SensorManagerInterface{
         // if a call wasn't the initial one it came from a notification button
         // therefore we have to determine which action should be triggered
         if (intent.getStringExtra("trigger") != null){
-
             // new hand wash event
             if (intent.getStringExtra("trigger").equals("handWash")) {
                 if(isRunning)
@@ -171,45 +160,15 @@ public class SensorManager extends Service implements SensorManagerInterface{
                 }
             }
 
-            if (intent.getStringExtra("trigger").equals("handWashConfirm")) {
-                if(isRunning) {
-                    long timestamp = intent.getLongExtra("timestamp", -1);
-                    if (timestamp > -1) {
-                        try {
-                            String line = timestamp + "\t" + 1 + "\n";
-                            dataProcessor.writeEvaluation(line);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-
-            if (intent.getStringExtra("trigger").equals("handWashDecline")) {
-                if(isRunning) {
-                    long timestamp = intent.getLongExtra("timestamp", -1);
-                    if (timestamp > -1) {
-                        try {
-                            String line = timestamp + "\t" + 0 + "\n";
-                            dataProcessor.writeEvaluation(line);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-
             // open app
             if (intent.getStringExtra("trigger").equals("open")){
                 Intent mainIntent = new Intent(this, MainActivity.class);
                 startActivity(mainIntent);
             }
-        }else {
-
+        } else {
             if (!initialized) {
                 initialized = true;
                 this.intent = intent;
-
                 sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
 
                 initSensors();
@@ -232,8 +191,21 @@ public class SensorManager extends Service implements SensorManagerInterface{
                 handWashDetection = MainActivity.mainActivity.handWashDetection;
 
                 // start recording at app startup
+                /*
+                // get charging state
+                IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = this.registerReceiver(null, ifilter);
+                int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                // if we're not charging, initial start recording
+                boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                        status == BatteryManager.BATTERY_STATUS_FULL;
+                Log.d("rec", "charge stuts: " + batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1));
+                if(!isCharging){
+                    Log.d("rec", "Start recording");
+                    startRecording();
+                }
+                */
                 startRecording();
-
             }
         }
         return START_STICKY;
@@ -383,7 +355,7 @@ public class SensorManager extends Service implements SensorManagerInterface{
         if (!batchMode){
             Log.e("sensorinfo", "Could not register sensors to batch");
         } else {
-            Log.e("sensorinfo", "Registered sensors to batch");
+            Log.d("sensorinfo", "Registered sensors to batch");
         }
     }
 
@@ -712,9 +684,9 @@ public class SensorManager extends Service implements SensorManagerInterface{
 
 
     public class LocalBinder extends Binder {
-        SensorManager getService() {
+        SensorRecordingManager getService() {
             // Return this instance of LocalService so clients can call public methods
-            return SensorManager.this;
+            return SensorRecordingManager.this;
         }
     }
 

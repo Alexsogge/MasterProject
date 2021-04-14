@@ -3,21 +3,14 @@ package com.example.sensorrecorder.Complication;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
-import android.hardware.Sensor;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationManager;
 import android.support.wearable.complications.ComplicationProviderService;
-import android.support.wearable.complications.ComplicationText;
 import android.util.Log;
 
-import androidx.appcompat.content.res.AppCompatResources;
-
 import com.example.sensorrecorder.R;
-import com.example.sensorrecorder.SensorManager;
+import com.example.sensorrecorder.SensorRecordingManager;
 
 import java.util.Locale;
 
@@ -59,7 +52,7 @@ public class ComplicationProvider  extends ComplicationProviderService{
                 ComplicationReceiver.getToggleIntent(
                         this, thisProvider, complicationId);
 
-        Intent handwashIntent = new Intent(this, SensorManager.class);
+        Intent handwashIntent = new Intent(this, SensorRecordingManager.class);
         handwashIntent.putExtra("trigger", "handWash");
         PendingIntent pintHandWash = PendingIntent.getService(this, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 

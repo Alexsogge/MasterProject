@@ -24,11 +24,11 @@ public class ServerTokenWorker extends NetworkWorker{
 
     public ServerTokenWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
-        sendStatus(STATUS_PENDING);
     }
 
     @Override
     public Result doWork() {
+        sendStatus(STATUS_PENDING);
         if(configs.getString(context.getString(R.string.conf_serverName), "").equals("")){
             return Result.failure(new Data.Builder().putInt(STATUS, STATUS_ERROR).build());
         }
