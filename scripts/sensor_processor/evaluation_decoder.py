@@ -14,7 +14,7 @@ class EvaluationDecoder:
 
     @classmethod
     def read_folder(cls, folder_name: str) -> np.ndarray:
-        predictions = read_csvs_in_folder(folder_name, 'evaluation', 4)
+        predictions = read_csvs_in_folder(folder_name, 'evaluation', 5)
 
         return predictions
 
