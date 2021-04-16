@@ -19,6 +19,7 @@ from auth_requests import *
 
 from preview_builder import generate_plot_data, get_data_array
 from plot_data import PlotData
+from data_factory import DataFactory
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite'}
@@ -235,15 +236,31 @@ def get_recording(recording):
     recording_files = []
     description = ""
     path = os.path.join(RECORDINGS_FOLDER, recording)
+    total_size = 0
     for file in os.listdir(path):
+        total_size += os.path.getsize(os.path.join(path, file))
         if config.hide_mic_files and '.zip' in file and contains_mic_files(file, path):
             continue
         if file == 'README.md':
             description = open(os.path.join(RECORDINGS_FOLDER, os.path.join(recording, "README.md")), 'r').read()
         recording_files.append(file)
 
+    sensor_data_file = None
+    sensor_data_flattened_file = None
+    generated_data_size = 0
+    if os.path.exists(os.path.join(path, DataFactory.sensor_data_file_name)):
+        sensor_data_file = os.path.join(path, DataFactory.sensor_data_file_name)
+        generated_data_size += os.path.getsize(sensor_data_file)
+    if os.path.exists(os.path.join(path, DataFactory.sensor_data_flattened_file_name)):
+        sensor_data_flattened_file = os.path.join(path, DataFactory.sensor_data_flattened_file_name)
+        generated_data_size += os.path.getsize(sensor_data_flattened_file)
+
+    total_size = convert_size(total_size)
+    generated_data_size = convert_size(generated_data_size)
     return render_template('show_recording.html', recording_name=recording, files=recording_files,
-                           description=description)
+                           description=description, total_size=total_size, sensor_data_file=sensor_data_file,
+                           sensor_data_flattened_file=sensor_data_flattened_file,
+                           generated_data_size = generated_data_size)
 
 
 @app.route('/recording/plot/<string:recording>/')
@@ -365,6 +382,19 @@ def recording_data(recording):
     return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
     #return jsonify({'data': {'series': series}})
 
+@app.route('/recording/np/generate/<string:recording>/')
+def generate_numpy_data(recording):
+    data_factory = DataFactory(recording, os.path.join(RECORDINGS_FOLDER, recording))
+    data_factory.generate_np_sensor_data_file()
+    return redirect(f'/recording/get/{recording}/')
+
+@app.route('/recording/np/delete/<string:recording>/')
+def delete_numpy_data(recording):
+    path = os.path.join(RECORDINGS_FOLDER, recording)
+    os.remove(os.path.join(path, DataFactory.sensor_data_file_name))
+    os.remove(os.path.join(path, DataFactory.sensor_data_flattened_file_name))
+    return redirect(f'/recording/get/{recording}/')
+
 
 @app.route('/tfmodel/get/latest/')
 def get_latest_tf_model():
@@ -457,6 +487,16 @@ def get_plot_data(recording):
                     del prepared_plot_data[oldest_data]
         prepared_plot_data[recording] = PlotData(recording, os.path.join(RECORDINGS_FOLDER, recording))
     return prepared_plot_data[recording]
+
+
+def convert_size(size_bytes):
+   if size_bytes == 0:
+       return "0B"
+   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes / p, 2)
+   return "%s %s" % (s, size_name[i])
 
 
 # just for debug

@@ -16,9 +16,42 @@
             </form>
         </div>
         <div class="col md-6">
-    </div>
-    <div class="row mt-3"></div>
-    <div class="row mt-2"><h3>Files</h3></div>
+        </div>
+        <div class="row mt-3">
+            <div class="col">
+                <div class="row"><h3>Data</h3></div>
+                <div class="row">
+                    <div class="col">
+                        <h4><a class="btn btn-primary" href="/recording/plot/{{ recording_name }}/">Data plot</a></h4>
+                    </div>
+                </div>
+
+                {% if not sensor_data_file %}
+                    <div class="row">
+                        <div class="col">
+                            <h4><a class="btn btn-primary" href="/recording/np/generate/{{ recording_name }}/">Generate numpy data</a></h4>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="row">
+                        <div class="col-md-2">
+                            <h4><a class="btn btn-primary" href="/{{ sensor_data_file }}" data-toggle="tooltip" data-placement="top" title="Shape: (num_values, 6)">Sensor numpy file</a></h4>
+                        </div>
+                        <div class="col-md-2">
+                            <h4><a class="btn btn-primary" href="/{{ sensor_data_flattened_file }}" data-toggle="tooltip" data-placement="top" title="Shape: (num_values * 6,)">Sensor numpy file flattened</a></h4>
+                        </div>
+                        <div class="col-md-2">
+                            <h4><a class="btn btn-danger btn-sm" href="/recording/np/delete/{{ recording_name }}/">Clean generated data ({{ generated_data_size }})</a></h4>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row mt-2">
+            <h3>Files
+            <small class="text-muted">{{ total_size }}</small>
+            </h3>
+        </div>
 
         {% for file in files %}
             <div class="row mt-1">
@@ -26,8 +59,5 @@
                 <div class="col"><a class="btn btn-danger" href="/recordingfile/delete/{{ recording_name }}/{{ file }}/">Delete</a></div>
             </div>
         {% endfor %}
-    <div class="row mt-3">
-        <h4><a class="btn btn-primary" href="/recording/plot/{{ recording_name }}/">Data plot</a></h4>
-    </div>
 
 {% endblock %}

@@ -13,9 +13,9 @@ class PlotData:
         self.last_access = time.time()
 
         if (os.path.exists(os.path.join(path, 'data_array_acc.npy'))):
-            self.recording_data_array, self.hand_wash_time_stamps = self.load_data_array()
+            self.recording_data_array, self.hand_wash_time_stamps, self.predictions, self.evaluations = self.load_data_array()
         else:
-            self.recording_data_array, self.hand_wash_time_stamps = self.create_new_data_array()
+            self.recording_data_array, self.hand_wash_time_stamps, self.predictions, self.evaluations = self.create_new_data_array()
         self.time_range = self.recording_data_array[-1, 0] - self.recording_data_array[0, 0]
         self.annotations, self.time_stamp_series = self.build_annotations()
 
@@ -23,13 +23,17 @@ class PlotData:
     def load_data_array(self):
         recording_array = np.load(os.path.join(self.path, 'data_array_acc.npy'))
         hand_wash_array = np.load(os.path.join(self.path, 'data_array_hand_wash.npy'))
-        return recording_array, hand_wash_array
+        prediction_array = np.load(os.path.join(self.path, 'data_array_prediction.npy'))
+        evaluation_array = np.load(os.path.join(self.path, 'data_array_evaluation.npy'))
+        return recording_array, hand_wash_array, prediction_array, evaluation_array
 
     def create_new_data_array(self):
-        recording_array, hand_wash_array = get_data_array(self.path)
+        recording_array, hand_wash_array, prediction_array, evaluation_array = get_data_array(self.path)
         np.save(os.path.join(self.path, 'data_array_acc.npy'), recording_array)
         np.save(os.path.join(self.path, 'data_array_hand_wash.npy'), hand_wash_array)
-        return recording_array, hand_wash_array
+        np.save(os.path.join(self.path, 'data_array_prediction.npy'), prediction_array)
+        np.save(os.path.join(self.path, 'data_array_evaluation.npy'), evaluation_array)
+        return recording_array, hand_wash_array, prediction_array, evaluation_array
 
     def get_index_of_ts(self, time_stamp):
         return np.searchsorted(self.recording_data_array[:, 0], time_stamp)
@@ -72,6 +76,12 @@ class PlotData:
             #annotations.append(annotation_entry)
             labels.append({'point': {'xAxis': 0, 'yAxis': 0, 'x': time_stamp, 'y': 15}, 'text': f'hand wash {i}'})
 
+        for i, time_stamp in enumerate(self.predictions[:, 0]):
+            if self.predictions[i, 1] > self.predictions[i, 2]:
+                labels.append({'point': {'xAxis': 0, 'yAxis': 0, 'x': time_stamp, 'y': 15}, 'text': f'n'})
+            else:
+                labels.append({'point': {'xAxis': 0, 'yAxis': 0, 'x': time_stamp, 'y': 15}, 'text': f'hw'})
+
         annotations.append({'draggable': '', 'labelOptions': {'backgroundColor': 'rgba(255,255,255,0.5)',
                                                               'verticalAlign': 'top', 'y': 15},
                            'labels': labels})
@@ -79,8 +89,6 @@ class PlotData:
 
         return annotations, time_stamp_series
         # return {'type': 'flags', 'data': annotations, 'onSeries': '0', 'shape': 'circlepin', 'width': 16,}, time_stamp_series
-
-
 
 
 
