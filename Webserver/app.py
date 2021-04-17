@@ -186,7 +186,20 @@ def tfmodel():
         else:
             upload_info_text = 'Saved new settings and model ' + filename
 
-    return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text, sensors=sensors, old_settings=old_settings)
+    all_model_files = list()
+    all_model_file_paths = list()
+    all_model_settings = list()
+    for file in os.listdir(TFMODEL_FOLDER):
+        if '.tflite' not in file:
+            continue
+        all_model_files.append(file)
+        all_model_file_paths.append(os.path.join(TFMODEL_FOLDER, file))
+        settings_name = os.path.splitext(file)[0] + '.json'
+        all_model_settings.append(os.path.join(TFMODEL_FOLDER, settings_name))
+
+    return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text,
+                           sensors=sensors, old_settings=old_settings, all_model_files=all_model_files,
+                           all_model_file_paths=all_model_file_paths, all_model_settings=all_model_settings)
 
 
 
