@@ -8,6 +8,7 @@
     <script src="https://code.highcharts.com/stock/modules/export-data.js"></script>
     <script src="https://code.highcharts.com/modules/annotations-advanced.js"></script>
     <link  href="{{ url_for('static', filename='cropper.min.css') }}" rel="stylesheet">
+    <link  href="{{ url_for('static', filename='recording_plot.css') }}" rel="stylesheet">
     <script src="{{ url_for('static', filename='cropper.min.js') }}"></script>
 {% endblock %}
 
@@ -18,13 +19,38 @@
     <div class="row">
         <img src="/{{ plot }}" id="plot" class="img-fluid" alt="Plot" style="display: block; max-width: 100%;">
     </div>
-    <div class="row">
-        <div id="chart">Loading interactive chart...</div>
+    <div class="row mt-3" id="loading-row" style="display: none">
+        <div class="col text-center">
+            <div class="row text-center">
+                <div class="col"><h3>Loading data...</h3></div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="d-flex justify-content-center">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3" id="reset-row" style="display: none">
+        <div class="col text-center">
+            <button type="button" class="btn btn-primary" onclick="clear_selection()">Reset</button>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div id="chart">Interactive chart</div>
     </div>
 
 
     <script>
      let cropper;
+     function clear_selection(){
+         cropper.reset();
+         cropper.clear();
+         document.getElementById('loading-row').style.display = 'none';
+         document.getElementById('reset-row').style.display = 'none';
+     }
 
     function loadHighcharts(start, end) {
         Highcharts.getJSON(`/recording/data/{{recording_name}}/?start=${start}&end=${end}`, function (data) {
@@ -44,6 +70,8 @@
                 series: data['data']['series']
             });
             window.scrollTo(0,document.body.scrollHeight);
+            document.getElementById('loading-row').style.display = 'none';
+            document.getElementById('reset-row').style.display = 'block';
         });
 
     }
@@ -65,6 +93,8 @@
             return;
         console.log(`timeStart ${timeStart} timeEnd ${timeEnd}`);
         loadHighcharts(timeStart, timeEnd);
+        document.getElementById('loading-row').style.display = 'block';
+        window.scrollTo(0,document.body.scrollHeight);
     }
 
     $(document).ready(function () {
@@ -84,6 +114,15 @@
             },
         });
 
+        $("#main").click(function(e) {
+            if(e.target.id == "main")
+                clear_selection();
+        });
+
+        $("#plot").click(function(e) {
+           // Do something
+           e.stopPropagation();
+        });
     });
 
     </script>
