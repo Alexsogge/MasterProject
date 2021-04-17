@@ -186,6 +186,7 @@ def tfmodel():
         else:
             upload_info_text = 'Saved new settings and model ' + filename
 
+    newest_tf_file = find_newest_tf_file()
     all_model_files = list()
     all_model_file_paths = list()
     all_model_settings = list()
@@ -199,7 +200,8 @@ def tfmodel():
 
     return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text,
                            sensors=sensors, old_settings=old_settings, all_model_files=all_model_files,
-                           all_model_file_paths=all_model_file_paths, all_model_settings=all_model_settings)
+                           all_model_file_paths=all_model_file_paths, all_model_settings=all_model_settings,
+                           newest_tf_file=newest_tf_file)
 
 
 
@@ -411,24 +413,27 @@ def delete_numpy_data(recording):
 
 @app.route('/tfmodel/get/latest/')
 def get_latest_tf_model():
-
-    latest_model = None
-    latest_time_stamp = 0
-
     if not os.path.exists(TFMODEL_FOLDER):
         abort(404, description="Resource not found")
 
+    latest_model = find_newest_tf_file()
+
+    print("found file ", latest_model)
+    if latest_model is not None:
+        return send_from_directory(TFMODEL_FOLDER, filename=latest_model, as_attachment=True)
+    abort(404, description="Resource not found")
+
+
+def find_newest_tf_file():
+    latest_model = None
+    latest_time_stamp = 0
     for file in os.listdir(TFMODEL_FOLDER):
         if 'tflite' in file:
             tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
             if tmp_c_time > latest_time_stamp:
                 latest_time_stamp = tmp_c_time
                 latest_model = file
-
-    print("found file ", latest_model)
-    if latest_model is not None:
-        return send_from_directory(TFMODEL_FOLDER, filename=latest_model, as_attachment=True)
-    abort(404, description="Resource not found")
+    return latest_model
 
 
 @app.route('/tfmodel/get/settings/')

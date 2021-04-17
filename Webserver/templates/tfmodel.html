@@ -86,7 +86,11 @@
         <div class="col">
             {% for file in all_model_files %}
                 <div class="row">
-                    <div class="col">{{ file }}</div>
+                    {% if file == newest_tf_file %}
+                        <div class="col text-primary">{{ file }}</div>
+                    {% else %}
+                        <div class="col">{{ file }}</div>
+                    {% endif %}
                     <div class="col-md-3"><a class=" btn btn-primary" href="/{{ all_model_file_paths[loop.index0] }}">download model</a> </div>
                     <div class="col-md-3"><a class=" btn btn-primary" href="/{{ all_model_settings[loop.index0] }}">download settings</a> </div>
                 </div>
