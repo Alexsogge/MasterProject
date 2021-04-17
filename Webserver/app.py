@@ -204,6 +204,16 @@ def tfmodel():
                            newest_tf_file=newest_tf_file)
 
 
+@app.route('/tfmodel/select/<string:tf_model>/')
+@basic_auth.login_required
+def select_tfmodel(tf_model):
+    tf_file = os.path.join(TFMODEL_FOLDER, tf_model)
+    if os.path.exists(tf_file):
+        os.utime(tf_file, None)
+    settings_file = os.path.join(TFMODEL_FOLDER, os.path.splitext(tf_model)[0] + '.json')
+    if os.path.exists(settings_file):
+        os.utime(settings_file, None)
+    return redirect('/tfmodel/')
 
 @app.route('/tokenauth/grant/<int:auth_id>/')
 @basic_auth.login_required

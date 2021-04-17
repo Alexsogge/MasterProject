@@ -91,8 +91,9 @@
                     {% else %}
                         <div class="col">{{ file }}</div>
                     {% endif %}
-                    <div class="col-md-3"><a class=" btn btn-primary" href="/{{ all_model_file_paths[loop.index0] }}">download model</a> </div>
-                    <div class="col-md-3"><a class=" btn btn-primary" href="/{{ all_model_settings[loop.index0] }}">download settings</a> </div>
+                    <div class="col-md-2"><a class=" btn btn-primary" href="/{{ all_model_file_paths[loop.index0] }}">download model</a> </div>
+                    <div class="col-md-2"><a class=" btn btn-primary" href="/{{ all_model_settings[loop.index0] }}">download settings</a> </div>
+                    <div class="col-md-2"><a class=" btn btn-success" href="/tfmodel/select/{{ file }}/">Set active</a> </div>
                 </div>
             {% endfor %}
         </div>
