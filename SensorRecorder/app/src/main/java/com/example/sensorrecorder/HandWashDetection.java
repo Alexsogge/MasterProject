@@ -83,7 +83,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = true;
+    private boolean debugAutoTrue = false;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -215,7 +215,7 @@ public class HandWashDetection {
         frameSize = jsonObject.getInt("frame_size");
         positivePredictedTimeFrame = (long)(jsonObject.getInt("positive_prediction_time")) * (long) 1e9;
         requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
-        notificationCoolDown = jsonObject.getInt("notification_cool_down");
+        notificationCoolDown = jsonObject.getInt("notification_cool_down") * (long) 1e9;
     }
 
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
@@ -258,28 +258,6 @@ public class HandWashDetection {
         return outData;
     }
 
-    /*
-    private void executeNewPredictionTask() {
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final boolean predictedHandwash = new PredictionTask(sensorDimensions, activationThresholds, sensorBuffers, sensorTimeStamps).call();
-                    if(predictedHandwash) {
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                showHandWashNotification();
-                            }
-                        });
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-    */
 
     private void showHandWashNotification(){
         if(lastPositivePrediction > lastNotificationTS + notificationCoolDown) {
@@ -470,123 +448,4 @@ public class HandWashDetection {
         }
         return -1;
     }
-
-
-    /*
-    class PredictionTask implements Callable<Boolean>{
-        private int[] sensorDimensions;
-        private float[] activationThresholds;
-        private float[][][] sensorBuffers;
-        private long[][] sensorTimeStamps;
-
-        public PredictionTask(int[] sensorDimensions, float[]activationThresholds, float[][][] sensorBuffers, long[][] sensorTimeStamps){
-            this.sensorDimensions = sensorDimensions;
-            this.activationThresholds = activationThresholds;
-            this.sensorBuffers = sensorBuffers;
-            this.sensorTimeStamps = sensorTimeStamps;
-        }
-
-        @Override
-        public Boolean call() throws Exception {
-            boolean foundHandWash = doPrediction();
-            return foundHandWash;
-        }
-
-
-        private boolean doPrediction(){
-            boolean foundHandWash = false;
-            for(int i = 51; i < sensorTimeStamps[0].length; i+=25){
-                for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++){
-                    long ts = possibleHandWash(sensorIndex, i);
-                    if (ts > -1){
-                        Log.d("pred", "add pred at: " + ts);
-                        foundHandWash |= doHandWashPrediction(i, ts);
-                        i += 50;
-                        break;
-                    }
-                }
-            }
-            return foundHandWash;
-        }
-
-        private boolean doHandWashPrediction(int sensorPointer, long timestamp){
-            boolean foundHandWash = false;
-            // create tmp array of right dimension for TF model
-            float[][] vals = new float[50][overallSensorDimensions];
-
-            int dimOffset = 0;
-            for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++) {
-                for(int i = 49; i >= 0; i--){
-                    for(int axes = 0; axes < sensorDimensions[sensorIndex]; axes++){
-                        vals[i][dimOffset + axes] = sensorBuffers[sensorIndex][sensorPointer-i][axes];
-                    }
-                }
-                dimOffset += sensorDimensions[sensorIndex];
-            }
-
-            // System.arraycopy(sensorBuffers[sensorIndex][sensorPointer - i], 0, vals[i], 0, vals[0].length);
-
-            // create 2D-Array out of tmp array
-            TwoDArray tdArray = new TwoDArray(vals);
-            // get all required features
-            float[] features = tdArray.allFeatures();
-            // create byte buffer out of features
-            ByteBuffer frame = ByteBuffer.allocateDirect(4*features.length);
-            frame.order(ByteOrder.nativeOrder());
-            for(int i = 0; i < features.length; i++){
-                frame.putFloat(features[i]);
-            }
-            // use tflite model to determine hand wash
-            float[][] labelProbArray = RunInference(frame);
-
-            // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
-
-            // observe prediction and write to disk
-            float max_pred = labelProbArray[0][1];
-            String gesture = "Noise";
-            if (labelProbArray[0][0] > max_pred && labelProbArray[0][0] > 0.9){
-                gesture = "Handwash";
-                max_pred = labelProbArray[0][0];
-                foundHandWash = true;
-            }
-            // Log.d("Pred", "Results in " + gesture + " to " + max_pred * 100 + "%");
-            try {
-                addPrediction(gesture, labelProbArray[0], timestamp);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return foundHandWash;
-        }
-
-
-        private long possibleHandWash(int sensorIndex, int pointer) {
-            // simple approach to determine if the user is currently washing their hands
-            // check if one of the acceleration or gyroscope axes has been a certain impact
-
-            long timeStamp = sensorTimeStamps[sensorIndex][pointer];
-            int offset = pointer - 25;
-            for (int axes = 0; axes < sensorDimensions[sensorIndex]; axes++) {
-                float min = Float.MAX_VALUE;
-                float max = Float.MIN_VALUE;
-
-                for (int i = offset; i <= pointer; i++) {
-                    if(sensorBuffers[sensorIndex][i][axes] < min)
-                        min = sensorBuffers[sensorIndex][i][axes];
-                    if(sensorBuffers[sensorIndex][i][axes] > max) {
-                        max = sensorBuffers[sensorIndex][i][axes];
-                    }
-                }
-                float diff = Math.abs(max-min);
-                if (diff > activationThresholds[sensorIndex]) {
-                    Log.d("pred", sensorIndex + " thr: " + diff);
-                    return timeStamp;
-                }
-            }
-            return -1;
-        }
-
-    }
-
-     */
-
 }

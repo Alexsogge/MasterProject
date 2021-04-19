@@ -137,10 +137,12 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
         }
     }
 
+    /**
+     * Simple approach to determine if the user is currently washing their hands
+     * check if one of the axes has been a certain impact.
+     * @return time stamp where impact happened
+     */
     private long possibleHandWash() {
-        // simple approach to determine if the user is currently washing their hands
-        // check if one of the axes has been a certain impact
-
         long timeStamp = sensorTimestampsBuffer[sensorPointer-1];
         int offset = Math.max(1, sensorPointer - 25);
         for (int axes = 0; axes < sensorDimension; axes++) {
@@ -183,6 +185,10 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
         long[] timestamps;
         int flushedSensorPointer;
 
+        /**
+         * Create a copy of all sensor buffers to use them in background while sensor service
+         * already writes new ones
+         */
         public FlushBufferTask(){
             flushedSensorPointer = sensorPointer;
             bufferValues = new float[sensorValuesBuffer.length][sensorValuesBuffer[0].length];
@@ -193,6 +199,9 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             System.arraycopy(sensorTimestampsBuffer, 0, timestamps, 0, timestamps.length);
         }
 
+        /**
+         * Execute async work
+         */
         @Override
         public void run() {
             try {
@@ -205,6 +214,10 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
                 closed = true;
         }
 
+        /**
+         * Write sensor data into its container
+         * @throws IOException
+         */
         private void writeSensorData() throws IOException {
             // Log.d("sensor", "Write data " + closed);
             StringBuilder data = new StringBuilder();
@@ -236,7 +249,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
                     }
                 }
             }
-
             if (useZIPStream) {
                 dataProcessor.writeSensorData(mySensor.getStringType(), data.toString());
             }

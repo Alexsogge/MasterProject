@@ -42,6 +42,7 @@ public class UploadObserver implements Observer<List<WorkInfo>> {
                     // Log.d("worker", "pending ");
                 }
                 if(status == UploadWorker.STATUS_PROGRESS){
+                    infoText.setText(context.getResources().getString(R.string.it_uploading));
                     int value = progress.getInt(UploadWorker.PROGRESS, 0);
                     // Log.d("worker", "progress: "+ value);
                     uploadProgressBar.setProgress(value);

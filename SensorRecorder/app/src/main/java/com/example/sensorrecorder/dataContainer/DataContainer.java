@@ -16,7 +16,6 @@ public class DataContainer {
     public File recordingFile;
     public boolean isActive = false;
 
-
     public DataContainer(String name, String extension){
         this.name = name;
         this.extension = extension;
@@ -69,7 +68,7 @@ public class DataContainer {
         // search for all files which are created during backup process
         ArrayList<File> variants = new ArrayList<File>();
 
-        for(File subdirectory: getSubdirectories()) {
+        for(File subdirectory: getAllSubdirectories()) {
             variants.addAll(getAllVariantsInSubDirectory(subdirectory));
         }
         return variants;
@@ -88,16 +87,17 @@ public class DataContainer {
         return variants;
     }
 
-    public static ArrayList<File> getSubdirectories(){
+    public static ArrayList<File> getAllSubdirectories(){
         ArrayList<File> subdirectories = new ArrayList<File>();
         File subdirectory;
         for (int i = 0; i < 999; i++){
             subdirectory = new File(recordingFilePath, recordSubDirectoryPrefix + "_" + i + "/");
             if(subdirectory.exists()){
-                if(subdirectory.list().length > 0)
+                if(subdirectory.list().length >= 2) {
                     subdirectories.add(subdirectory);
-            } else {
-                break;
+                } else if(subdirectory.list().length == 1 && subdirectory.list()[0].charAt(0) != '.'){
+                    subdirectories.add(subdirectory);
+                }
             }
         }
         return subdirectories;

@@ -34,7 +34,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="25dip"
-                android:text="@string/btn_start" />
+                android:text="@string/btn_stop" />
 
             <com.example.sensorrecorder.CustomSpinner
                 android:id="@+id/handwash_spinner"

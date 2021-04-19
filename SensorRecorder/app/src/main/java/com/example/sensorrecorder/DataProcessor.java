@@ -195,7 +195,8 @@ public class DataProcessor {
         File directory = new File(subDirectory);
         ArrayList<File> files = new ArrayList<>();
         for(File file: directory.listFiles()){
-            files.add(file);
+            if(file.getName().charAt(0) != '.')
+                files.add(file);
         }
         return files;
     }

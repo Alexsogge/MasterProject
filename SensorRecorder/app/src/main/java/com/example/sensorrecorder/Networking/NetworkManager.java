@@ -24,7 +24,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import kotlin.Pair;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -71,7 +74,7 @@ public class NetworkManager {
     private void makeToast(final String text){
         mainActivity.runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show();
+                Toast.makeText(mainActivity, text, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -160,29 +163,40 @@ public class NetworkManager {
         protected String doInBackground(String... strings) {
             String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
             try {
-                downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
+                String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
                 downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
-                makeToast(mainActivity.getString(R.string.toast_downloaded_tf));
+                makeToast(mainActivity.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName);
             } catch (IOException e) {
                 e.printStackTrace();
             }
             return null;
         }
 
-        private void downloadTFFile(String url, String filename) throws IOException {
+        private String downloadTFFile(String url, String filename) throws IOException {
+            String fileName = "default name";
+            Pattern p = Pattern.compile(".+filename=(.+?)\\..*");
             Request request = new Request.Builder().url(url).build();
             Response response = null;
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
                 makeToast(mainActivity.getString(R.string.toast_failed_to_dl_file) + response);
+            } else {
+                File path = HandWashDetection.modelFilePath;
+                if (!path.exists())
+                    path.mkdirs();
+                File tfFile = new File(path, filename);
+                FileOutputStream fos = new FileOutputStream(tfFile);
+                fos.write(response.body().bytes());
+                fos.close();
+                String contentDisposition = response.header("content-disposition");
+                if(contentDisposition != null) {
+                    Matcher m = p.matcher(contentDisposition);
+                    if(m.find()) {
+                        fileName = m.group(1);
+                    }
+                }
             }
-            File path = HandWashDetection.modelFilePath;
-            if(!path.exists())
-                path.mkdirs();
-            File tfFile = new File(path, filename);
-            FileOutputStream fos = new FileOutputStream(tfFile);
-            fos.write(response.body().bytes());
-            fos.close();
+            return fileName;
         }
     }
 }

@@ -4,21 +4,17 @@ import android.app.Activity;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.media.MediaRecorder;
-import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
@@ -26,7 +22,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 
@@ -39,8 +34,6 @@ import org.nd4j.linalg.ops.transforms.Transforms;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -78,16 +71,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     public Button startStopButton;
     public static boolean isRunning = true;
     public TextView infoText;
-    private Vibrator vibrator;
 
     // service stuff
-    public boolean stopping;
     private Intent intent;
-    private Handler mainLoopHandler;
     private boolean initialized = false;
-    private NotificationCompat.Builder notificationBuilder;
     private PowerManager.WakeLock wakeLock;
-
 
     // sensor recording stuff
     private android.hardware.SensorManager sensorManager;
@@ -96,26 +84,15 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private int[] sensorDimensions;
     private long sensorStartTime;
 
-
     // data files
     public static DataProcessor dataProcessor;
 
-
     // ffmpeg stuff
     private FFMpegProcess mFFmpeg;
-    private OutputStream[] sensorPipeOutputs;
-
-    private ByteBuffer mBuf = ByteBuffer.allocate(4 * 3);
-    private Long mStartTimeNS = -1l;
-    private CountDownLatch mSyncLatch = null;
 
     // Microphone stuff
     private MediaRecorder mediaRecorder;
-    private long last_mic_record;
     private boolean ongoing_mic_record = false;
-    private float mic_activate_threshold_acc = 8;
-    private float mic_activate_threshold_gyro = 8;
-    private Handler micHandler;
     private int micCounter = 0;
     private ReentrantLock mediaRecorderLock = new ReentrantLock();
 
@@ -130,9 +107,15 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
     // ML stuff
     public HandWashDetection handWashDetection;
-    private long lastHandwashPrediction;
-    private long lastPossibleHandWash;
 
+
+    /**
+     * Initial method of service. It's called if we start the service or send triggers over an intent
+     * @param intent
+     * @param flags
+     * @param startId
+     * @return
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // due to we call this function multiple times from the notification buttons we have to determine when we called it the first time
@@ -165,28 +148,24 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 Intent mainIntent = new Intent(this, MainActivity.class);
                 startActivity(mainIntent);
             }
+        // if there isn't a trigger we just start the service
         } else {
             if (!initialized) {
                 initialized = true;
                 this.intent = intent;
-                sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
 
-                initSensors();
-                // acceleration_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-                // gyro_sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
-                mainLoopHandler = new Handler(Looper.getMainLooper());
                 PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
 
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                         "SensorRecorder::WakelockTag");
 
                 dataProcessor = new DataProcessor();
+                sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
+                initSensors();
                 loadDataContainers();
 
                 configs = this.getSharedPreferences(getString(R.string.configs), Context.MODE_PRIVATE);
-                micHandler = new Handler();
-                vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
                 handWashDetection = MainActivity.mainActivity.handWashDetection;
 
@@ -211,9 +190,42 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         return START_STICKY;
     }
 
-    private void loadDataContainers(){
-        // initialize all existing data container we could use
 
+    /**
+     * Initialize the used sensors. These can vary for different devices since they don't support
+     * all sensors. So we take the union of available and wanted sensors and save them as active
+     * sensors.
+     */
+    private void initSensors(){
+        // get sensors which are supported by the device
+        ArrayList<Sensor> availableSensors = new ArrayList<>();
+        for(int i = 0; i < possibleSensors.length; i++){
+            int possibleSensorType = possibleSensors[i];
+            Sensor availableSensor = sensorManager.getDefaultSensor(possibleSensorType);
+            if (availableSensor != null){
+                availableSensors.add(availableSensor);
+            }
+        }
+
+        // setup active sensors
+        activeSensors = new Sensor[availableSensors.size()];
+        sensorDimensions = new int[availableSensors.size()];
+        // each sensor gets its own listener service
+        sensorServices = new SensorListenerService[availableSensors.size()];
+
+        // initialize active sensors
+        for(int i = 0; i < availableSensors.size(); i++){
+            Sensor availableSensor = availableSensors.get(i);
+            activeSensors[i] = availableSensor;
+            sensorDimensions[i] = getNumChannels(availableSensor.getType());
+            sensorServices[i] = new SensorListenerService(this, availableSensor, i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(availableSensor.getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
+        }
+    }
+
+    /**
+     * Initialize all existing data container we could use
+     */
+    private void loadDataContainers(){
         try {
             dataProcessor.loadDefaultContainers();
             for(Sensor sensor: activeSensors){
@@ -225,36 +237,19 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
     }
 
-    private void initSensors(){
-        ArrayList<Sensor> availableSensors = new ArrayList<>();
-        for(int i = 0; i < possibleSensors.length; i++){
-            int possibleSensorType = possibleSensors[i];
-            Sensor availableSensor = sensorManager.getDefaultSensor(possibleSensorType);
-            if (availableSensor != null){
-                availableSensors.add(availableSensor);
-            }
-        }
-
-        activeSensors = new Sensor[availableSensors.size()];
-        sensorDimensions = new int[availableSensors.size()];
-        sensorPipeOutputs = new OutputStream[activeSensors.length];
-        sensorServices = new SensorListenerService[availableSensors.size()];
-
-        for(int i = 0; i < availableSensors.size(); i++){
-            Sensor availableSensor = availableSensors.get(i);
-            activeSensors[i] = availableSensor;
-            sensorDimensions[i] = getNumChannels(availableSensor.getType());
-            sensorServices[i] = new SensorListenerService(this, availableSensor, i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(availableSensor.getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
-        }
-    }
-
-    private void resetSensorBuffers(){
+    /**
+     * Reinitialize sensor listener services with new ones
+     * @ Todo: Maybe delete this, because of ugly
+     */
+    private void resetSensorListeners(){
         for(int i = 0; i < activeSensors.length; i++){
             sensorServices[i] = new SensorListenerService(this, activeSensors[i], i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(activeSensors[i].getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
         }
     }
 
-
+    /**
+     * Use ffmpeg package and set up everything needed
+     */
     private void setupFFMPEGfromLocal(){
         String platform = Build.BOARD + " " + Build.DEVICE + " " + Build.VERSION.SDK_INT,
                 output = getDefaultOutputPath(getApplicationContext()),
@@ -313,17 +308,23 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
             e.printStackTrace();
         }
-
-        sensorPipeOutputs = new OutputStream[activeSensors.length];
-        mBuf.order(ByteOrder.nativeOrder());
     }
 
-
+    /**
+     * Used by ffmpeg setup
+     * @param context
+     * @return
+     */
     public static String getDefaultOutputPath(Context context) {
         File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
         return new File(path, getDefaultFileName(context)).toString();
     }
 
+    /**
+     * Used by ffmpeg setup
+     * @param context
+     * @return
+     */
     public static String getDefaultFileName(Context context) {
         TimeZone tz = TimeZone.getTimeZone("UTC");
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
@@ -333,6 +334,10 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         return df.format(new Date()) + "_" + aid + ".mkv";
     }
 
+    /**
+     * Used by ffmpeg setup
+     * @return
+     */
     public static String getCurrentDateAsIso() {
         // see https://stackoverflow.com/questions/3914404/how-to-get-current-moment-in-iso-8601-format
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
@@ -340,9 +345,13 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         return df.format(new Date());
     }
 
+    /**
+     * Register active sensors to sensor manager to enable receive of sensor events.
+     * Each sensor service runs in its own thread
+     */
     public void registerToManager(){
         // create buffers
-        resetSensorBuffers();
+        resetSensorListeners();
 
         // due to the ffmpeg service can't run on the ui thread we have to initialize the sensor recorder which writes to the pipe also in an separate thread
         boolean batchMode = true;
@@ -359,13 +368,19 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
     }
 
+    /**
+     * Unregister active sensors from sensor manager
+     */
     private void unregisterFromManager(){
         for(SensorListenerService sensorService: sensorServices){
             sensorManager.unregisterListener(sensorService);
-
         }
     }
 
+    /**
+     * Flag each sensor service as stopped und do a last flush.
+     * They will report all pending events and ignore new ones from now on.
+     */
     private void stopSensors(){
         for(SensorListenerService sensorService: sensorServices){
             sensorService.close();
@@ -373,8 +388,13 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
     }
 
+    /**
+     * Start the active listening to sensor events.
+     * We have to set a wakelock to prevent the system goes to doze mode and stops our recording.
+     * Also we start a foreground notification to inform the user about the running service.
+     * After that we clean every state and start up all managers
+     */
     public void startRecording(){
-        // we have to set a wakelock to prevent the system goes to doze mode and stops our recording
         wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
         // show the foreground notification
         startForeground(1, NotificationSpawner.createRecordingNotification(this, this.intent));
@@ -389,7 +409,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // reset all containers before we activate the new ones
         dataProcessor.deactivateAllContainer();
         try {
-            ActivateUsedContainer();
+            activateUsedContainer();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -412,7 +432,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         sensorStartTime = SystemClock.elapsedRealtimeNanos();
         registerToManager();
 
-       initPrediction();
+        initPrediction();
 
         // update ui stuff
         isRunning = true;
@@ -420,7 +440,15 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             startStopButton.setText(getResources().getString(R.string.btn_stop));
     }
 
+    /**
+     * Stop the active listening to sensor events.
+     * First unregister sensors and du a last flush. Because this happens in a separate thread,
+     * we start a new task which waits for the complete close and then proceed to save all data.
+     * The stopLatch is used so signalise when stop and save is completed
+     * @param stopLatch
+     */
     private void stopRecording(CountDownLatch stopLatch){
+        // if we*re not recording we can simply  ignore this call
         if(!isRunning) {
             stopLatch.countDown();
             return;
@@ -429,7 +457,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         startStopButton.setText(getResources().getString(R.string.btn_stopping));
         Log.d("mgr", "Stop recording");
         // stop sensor manager
-        //unregisterFromManager();
         stopSensors();
 
         Log.d("mgr", "unregistered sensors");
@@ -439,18 +466,28 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             wakeLock.release();
     }
 
+    /**
+     * Call stopRecoding and ignore save task signal
+     */
     public void directlyStopRecording(){
         CountDownLatch stopLatch = new CountDownLatch(1);
         stopRecording(stopLatch);
     }
 
+    /**
+     * Call stopRecording and get signal when all data is saved
+     * @param stopLatch
+     */
     public void waitForStopRecording(CountDownLatch stopLatch){
         stopRecording(stopLatch);
     }
 
 
-    private void ActivateUsedContainer() throws IOException {
-        // depending on current config, set the actually used ones to active
+    /**
+     * Depending on current config, set the actually used ones to active
+     * @throws IOException
+     */
+    private void activateUsedContainer() throws IOException {
         if(useZIPStream) {
             dataProcessor.activateSensorContainers();
         }
@@ -458,6 +495,10 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     }
 
 
+    /**
+     * Setup the media recorder which is used to record the microphone.
+     * We use the most minimal quality settings which are possible
+     */
     private void initMediaRecorder(){
         File new_recording_mic_file;
         try {
@@ -477,6 +518,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
     }
 
+    /**
+     * Since our available sensors can differ from the used in the prediction model,
+     * we have to union them.
+     * With this sensors we set up our prediction
+     */
     private void initPrediction(){
         ArrayList<Integer> usedTFSensors = new ArrayList<>();
         for (int i = 0; i < activeSensors.length; i++){
@@ -497,11 +543,28 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         handWashDetection.setup(dataProcessor, sensorTypes, newSensorDims, activationThresholds, sensor_queue_size);
     }
 
+    /**
+     * Start the microphone recorder
+     */
     private void startMediaRecorder(){
         initMediaRecorder();
         mediaRecorder.start();
     }
 
+    /**
+     * Pause current microphone recording to save energy.
+     * Depending on the config we just pause the media recorder or stop it entirely
+     */
+    private void pauseMediaRecorder(){
+        if(useMultipleMic)
+            stopMediaRecorder();
+        else
+            mediaRecorder.pause();
+    }
+
+    /**
+     * Resume current microphone recording
+     */
     private void resumeMediaRecorder(){
         if(useMultipleMic) {
             initMediaRecorder();
@@ -510,13 +573,9 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             mediaRecorder.resume();
     }
 
-    private void pauseMediaRecorder(){
-        if(useMultipleMic)
-            stopMediaRecorder();
-        else
-            mediaRecorder.pause();
-    }
-
+    /**
+     * Stop the microphone recorder
+     */
     private void stopMediaRecorder(){
         mediaRecorderLock.lock();
         try {
@@ -530,30 +589,30 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
     }
 
-    public void flushSensor(){
-        for(SensorListenerService sensorService: sensorServices){
-            sensorManager.flush(sensorService);
-        }
-        // sensorManager.flush(this);
+    /**
+     * Flag current recording status and pause recording
+     */
+    private void stopMicRecording(){
+        ongoing_mic_record = false;
+        pauseMediaRecorder();
     }
 
-    private void setInfoText(final String text){
-        mainLoopHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                infoText.setText(text);
-                infoText.invalidate();
-            }
-        });
-    }
 
+    /**
+     * Add new battery status to current data set
+     * @param percent
+     * @throws IOException
+     */
     public void addBatteryState(float percent) throws IOException {
         long timestamp = SystemClock.elapsedRealtimeNanos();
         String line = timestamp + "\t"+ percent + "\n";
         dataProcessor.writeBatteryTS(line);
     }
 
-
+    /**
+     * Add new hand wash event to current data set.
+     * Event time stamp is to current time when this method is called
+     */
     public void addHandWashEventNow(){
         long timestamp = SystemClock.elapsedRealtimeNanos();
         try {
@@ -563,6 +622,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             e.printStackTrace();
         }
     }
+
+    /**
+     * Add new hand wash event to current data set.
+     * Event time stamp is to current time when this method is called minus given seconds
+     */
     public void addHandWashEventBefore(long past_seconds){
         long timestamp = (SystemClock.elapsedRealtimeNanos() - (past_seconds * 1000 * 1000000));
         try {
@@ -572,19 +636,33 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
     }
 
+    /**
+     * Add hand wash event with given timestamp to current data set.
+     */
     private void addHandWashEvent(long time_stamp) throws IOException {
         String lineContent = time_stamp + "\n";
         dataProcessor.writeHandWashTS(lineContent);
     }
 
-
-
+    /**
+     * This method is called from sensor services if their buffer is full.
+     * We use them to predict hand wash events
+     * @param sensorIndex: The sensor which recorded the data
+     * @param buffer: Array of sensor values
+     * @param timestamps: Array with time stamp for each sensor value
+     */
     @Override
     public void flushBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
         if(isSensorUsedInTFModel(sensorIndex))
             handWashDetection.queueBuffer(sensorIndex, buffer, timestamps);
     }
 
+    /**
+     * This method is called from sensor services if there was a certain impact on their sensors.
+     * These signalise us to start the microphone recording.
+     * After that we queue a task which stops the recording after two seconds.
+     * @param timestamp: when the impact happened
+     */
     @Override
     public void startMicRecording(long timestamp) {
         mediaRecorderLock.lock();
@@ -594,7 +672,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 resumeMediaRecorder();
                 //Log.d("mic", "resumed media recorder");
                 ongoing_mic_record = true;
-                last_mic_record = System.currentTimeMillis();
                 String lineContent = timestamp + "\n";
                 try {
                     dataProcessor.writeMicTS(lineContent);
@@ -615,13 +692,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     }
 
 
-    private void stopMicRecording(){
-        ongoing_mic_record = false;
-        last_mic_record = System.currentTimeMillis();
-        pauseMediaRecorder();
-    }
-
-
+    /**
+     * It seems that android doesn't provide a function to get the actual dimension of a sensor.
+     * @param sensorType
+     * @return
+     */
     public static int getNumChannels(int sensorType) {
         /*
          * https://developer.android.com/reference/android/hardware/SensorEvent#sensor
@@ -646,6 +721,10 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
     }
 
+    /**
+     * We just can trigger toast on the UI-thread
+     * @param text
+     */
     private void makeToast(final String text){
         mainActivity.runOnUiThread(new Runnable() {
             public void run() {
@@ -654,6 +733,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         });
     }
 
+    /**
+     * Get the required sensor value for a given sensor to trigger a prediction.
+     * @param sensorType
+     * @return
+     */
     public float getHandWashActivateThreshold(int sensorType){
         int sensorIndex = 0;
         for(int i = 0; i < possibleSensors.length; i++){
@@ -665,6 +749,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         return possibleHandWashActivateThresholds[sensorIndex];
     }
 
+    /**
+     * Check if given sensor is used in our prediction
+     * @param sensorIndex
+     * @return
+     */
     private boolean isSensorUsedInTFModel(int sensorIndex){
         int sensorType = activeSensors[sensorIndex].getType();
         for(int i = 0; i < sensorsUsedInTFModel.length; i++){
@@ -675,12 +764,16 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     }
 
 
+    /**
+     * Binder is used to share object instances between activity and service
+     * @param intent
+     * @return
+     */
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return binder;
     }
-
 
 
     public class LocalBinder extends Binder {
@@ -696,6 +789,10 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     }
 
 
+    /**
+     * This task waits until all sensor listeners have stopped.
+     * After that it saves all data and close the streams.
+     */
     private class StopSessionTask implements Runnable{
         private CountDownLatch stopLatch;
 

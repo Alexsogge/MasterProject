@@ -22,7 +22,8 @@
     <string name="toast_auth_granted">Autentifizierung erhalten</string>
     <string name="toast_not_auth">Nicht autentifiziert: &#160;</string>
     <string name="toast_cant_conn_to_server">Keine Verbindung zum Server</string>
-    <string name="toast_got_token">Token erhalten</string>
+    <string name="toast_got_token">Neuer Token erhalten</string>
+    <string name="toast_loaded_token">Gespeicherten Token geladen</string>
     <string name="toast_error_during_request">Fehler bei der Anfrage</string>
     <string name="toast_downloaded_tf">TF modell runtergeldaen</string>
     <string name="toast_failed_to_dl_file">Fehler beim laden der Datei: &#160;</string>

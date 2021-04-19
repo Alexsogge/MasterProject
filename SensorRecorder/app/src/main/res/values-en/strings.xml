@@ -24,7 +24,8 @@
     <string name="toast_auth_granted">Authentication granted</string>
     <string name="toast_not_auth">Not authenticated: &#160;</string>
     <string name="toast_cant_conn_to_server">Can\'t connect to server</string>
-    <string name="toast_got_token">Got Token</string>
+    <string name="toast_got_token">Got new Token</string>
+    <string name="toast_loaded_token">Loaded stored Token</string>
     <string name="toast_error_during_request">Error during request</string>
     <string name="toast_downloaded_tf">Downloaded TF model</string>
     <string name="toast_failed_to_dl_file">Failed to download file: &#160;</string>

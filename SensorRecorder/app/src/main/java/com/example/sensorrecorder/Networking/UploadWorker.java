@@ -1,43 +1,29 @@
 package com.example.sensorrecorder.Networking;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-import android.util.Log;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.work.Data;
-import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.example.sensorrecorder.DataProcessor;
-import com.example.sensorrecorder.ProgressRequestBody;
 import com.example.sensorrecorder.R;
 import com.example.sensorrecorder.dataContainer.DataContainer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -78,9 +64,9 @@ public class UploadWorker extends NetworkWorker {
         // we need an upload token from the server to signalise which files belong together
         directoryUploadTokens.clear();
         toUploadDirectories.clear();
-        for(File directory: DataContainer.getSubdirectories()) {
+        for(File directory: DataContainer.getAllSubdirectories()) {
             toUploadDirectories.add(directory.getPath());
-            if(getUploadToken(directory.getPath()) == STATUS_ERROR){
+            if(loadUploadToken(directory.getPath()) == STATUS_ERROR){
                 sendStatus(STATUS_ERROR);
                 return Result.retry();
             }
@@ -166,49 +152,88 @@ public class UploadWorker extends NetworkWorker {
                 throw new IOException(context.getString(R.string.str_unexpected_code) + response);
             } else {
                 File directory = file.getParentFile();
-                // remove file after upload
-                file.delete();
-                // test if this is last file
-                if (directory.list().length == 1) {
+
+                // test if this is last file and delete directory if this is the case
+                boolean deleteDirectory = true;
+                for(String remainedFile: directory.list()){
+                    if(!(remainedFile.charAt(0) == '.' || remainedFile.equals(file.getName())))
+                        deleteDirectory = false;
+                }
+                if(deleteDirectory) {
+                    for (File remainedFile: directory.listFiles()){
+                        remainedFile.delete();
+                    }
                     directory.delete();
                 }
+                else
+                    // remove file after upload
+                    file.delete();
                 return STATUS_SUCCESS;
             }
         }
     }
 
 
-    private int getUploadToken(String directory) {
+    private int loadUploadToken(String directory){
+        String token;
+        try {
+            token = getStoredUploadToken(directory);
+            if (token == null){
+                token = requestUploadToken(directory);
+                if (token == null)
+                    return STATUS_ERROR;
+                storeUploadToken(directory, token);
+            }
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+            return STATUS_ERROR;
+        }
+        directoryUploadTokens.put(directory, token);
+        return STATUS_SUCCESS;
+    }
+
+    private String getStoredUploadToken(String directory) throws IOException {
+        String token = null;
+        File tokenFile = new File(directory, ".token.txt");
+        if(tokenFile.exists()) {
+            BufferedReader br = new BufferedReader(new FileReader(tokenFile));
+            token = br.readLine();
+            br.close();
+            makeToast(context.getString(R.string.toast_got_token));
+        }
+        return token;
+    }
+
+    private void storeUploadToken(String directory, String token) throws IOException {
+        File tokenFile = new File(directory, ".token.txt");
+        FileOutputStream outputStream = new FileOutputStream(tokenFile);
+        outputStream.write(token.getBytes());
+        outputStream.flush();
+        outputStream.close();
+    }
+
+    private String requestUploadToken(String directory) throws IOException, JSONException {
         String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
         String serverToken = configs.getString(context.getString(R.string.conf_serverToken), "");
         Request request = new Request.Builder()
                 .url(serverName + "/recording/new/")
                 .addHeader("Authorization", "Bearer " + serverToken)
                 .build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()){
-                throw new IOException(context.getString(R.string.str_unexpected_code) + response);
-            } else {
-                String jsonData = response.body().string();
-                JSONObject Jobject = new JSONObject(jsonData);
-                String status = Jobject.getString("status");
-                if (status.equals("success")){
-                    directoryUploadTokens.put(directory, Jobject.getString("uuid"));
-                    makeToast(context.getString(R.string.toast_got_token));
-                    return STATUS_SUCCESS;
-                } else{
-                    makeToast(context.getString(R.string.toast_error_during_request));
-                    return STATUS_ERROR;
-                }
+        Response response = client.newCall(request).execute();
+        if (!response.isSuccessful()){
+            return null;
+        } else {
+            String jsonData = response.body().string();
+            JSONObject Jobject = new JSONObject(jsonData);
+            String status = Jobject.getString("status");
+            if (status.equals("success")){
+                //directoryUploadTokens.put(directory, Jobject.getString("uuid"));
+                makeToast(context.getString(R.string.toast_got_token));
+                return Jobject.getString("uuid");
+            } else{
+                makeToast(context.getString(R.string.toast_error_during_request));
+                return null;
             }
-
-            //System.out.println(response.body().string());
-        } catch (ConnectException | java.net.SocketTimeoutException e) {
-            makeToast(context.getString(R.string.toast_cant_conn_to_server));
-            return STATUS_ERROR;
-        } catch (IOException | JSONException e) {
-            e.printStackTrace();
         }
-        return STATUS_ERROR;
     }
 }
