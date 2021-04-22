@@ -1,7 +1,7 @@
 version: "2.4"
 services:
   flask:
-    build: ./Webserver
+    build: ./src/Webserver
     volumes:
       - ./data/uploads:/code/uploads
       - static_data:/code/static
@@ -19,7 +19,7 @@ services:
    links:
      - flask
    ports:
-     - "8080:80" 
+     - "80:80" 
 
 volumes:
   static_data:
