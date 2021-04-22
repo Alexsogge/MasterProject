@@ -1,0 +1,25 @@
+version: "2.4"
+services:
+  flask:
+    build: ./Webserver
+    volumes:
+      - ./data/uploads:/code/uploads
+      - static_data:/code/static
+      - ./conf/flask_conf:/code/conf
+
+  nginx:
+   image: nginx
+   volumes:
+     - ./conf/nginx/default.conf:/etc/nginx/conf.d/default.conf
+     - ./data/uploads:/uploads
+     - static_data:/static
+   depends_on:
+     - flask
+   restart: unless-stopped
+   links:
+     - flask
+   ports:
+     - "8080:80" 
+
+volumes:
+  static_data:
