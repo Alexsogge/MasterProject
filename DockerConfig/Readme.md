@@ -8,4 +8,4 @@ Place the `Webserver` directory in `./src/`.
 Place the `default.conf` in `./conf/nginx/`.  
 Place the `docker-compose.yml` in `./`.  
 Run `docker-compose up -d`.  
-Open the url `localhost:80`.  
+Open the url [localhost:8000](http://localhost:8000).  
