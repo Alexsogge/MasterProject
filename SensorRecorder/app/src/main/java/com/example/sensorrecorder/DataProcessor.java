@@ -1,10 +1,8 @@
 package com.example.sensorrecorder;
 
-import android.util.Log;
-
-import com.example.sensorrecorder.dataContainer.DataContainer;
-import com.example.sensorrecorder.dataContainer.OutputStreamContainer;
-import com.example.sensorrecorder.dataContainer.ZipContainer;
+import com.example.sensorrecorder.DataContainer.DataContainer;
+import com.example.sensorrecorder.DataContainer.OutputStreamContainer;
+import com.example.sensorrecorder.DataContainer.ZipContainer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,8 +26,12 @@ public class DataProcessor {
 
     public OutputStreamContainer containerEvaluation;
 
-    public static ArrayList<DataContainer> allDataContainers;
+    public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
+
+    public static long lastEvaluationTS;
+    public static long lastPredictionTS;
+    public static int predictions;
 
     public DataProcessor(){
         sensorContainers = new HashMap<>();
@@ -156,8 +158,18 @@ public class DataProcessor {
         sensorContainers.get(sensorName).writeData(line);
     }
 
-    public void writeEvaluation(String line) throws IOException {
+    public void writeEvaluation(String line, boolean isPrediction, long predictionTS) throws IOException {
         containerEvaluation.writeData(line);
+        if(isPrediction) {
+            if (lastPredictionTS != predictionTS)
+                predictions++;
+            lastPredictionTS = predictionTS;
+        }
+    }
+
+    public void writeEvaluation(String line, long timestamp) throws IOException {
+        containerEvaluation.writeData(line);
+        lastEvaluationTS = timestamp;
     }
 
     public void packMicFilesIntoZip() throws IOException {

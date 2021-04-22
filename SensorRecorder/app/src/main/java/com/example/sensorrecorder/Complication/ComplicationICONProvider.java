@@ -16,9 +16,9 @@ import com.example.sensorrecorder.SensorRecordingManager;
 
 import java.util.Locale;
 
-public class ComplicationProvider  extends ComplicationProviderService{
+public class ComplicationICONProvider extends ComplicationProviderService{
 
-    private static final String TAG = "ComplicationProvider";
+    private static final String TAG = "ComplicationICONProvider";
     /*
      * Called when a complication has been activated. The method is for any one-time
      * (per complication) set-up.
@@ -58,19 +58,15 @@ public class ComplicationProvider  extends ComplicationProviderService{
         handwashIntent.putExtra("trigger", "handWash");
         PendingIntent pintHandWash = PendingIntent.getService(this, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-
-        int predictions = DataProcessor.predictions;
-        String predictionsText = String.format(Locale.getDefault(), "%d", predictions);
-
         ComplicationData complicationData = null;
 
         switch (dataType) {
-            case ComplicationData.TYPE_SHORT_TEXT:
+            case ComplicationData.TYPE_ICON:
                 complicationData =
-                        new ComplicationData.Builder(ComplicationData.TYPE_SHORT_TEXT)
+                        new ComplicationData.Builder(ComplicationData.TYPE_ICON)
                                 .setIcon(Icon.createWithResource(this, R.drawable.ic_hand_wash))
                                 .setTapAction(pintHandWash)
-                                .setShortText(ComplicationText.plainText(predictionsText))
+                                //.setShortText(ComplicationText.plainText(predictionsText))
                                 .build();
                 break;
             default:

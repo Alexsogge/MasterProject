@@ -115,7 +115,7 @@ public class HandwashEvaluation extends WearableActivity {
         }
         line.append("\n");
         try {
-            SensorRecordingManager.dataProcessor.writeEvaluation(line.toString());
+            SensorRecordingManager.dataProcessor.writeEvaluation(line.toString(), timestamp);
         } catch (IOException e) {
             e.printStackTrace();
         }

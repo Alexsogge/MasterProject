@@ -1,4 +1,4 @@
-package com.example.sensorrecorder.dataContainer;
+package com.example.sensorrecorder.DataContainer;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;

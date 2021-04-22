@@ -207,15 +207,21 @@ public class HandWashDetection {
         String jsonString = stringBuilder.toString();
 
         JSONObject jsonObject = new JSONObject(jsonString);
-        JSONArray jsonSensors = jsonObject.getJSONArray("required_sensors");
-        requiredSensors = new int[jsonObject.length()];
-        for (int i = 0; i < jsonSensors.length(); i++){
-            requiredSensors[i] = jsonSensors.getInt(i);
+        if(jsonObject.has("required_sensors")) {
+            JSONArray jsonSensors = jsonObject.getJSONArray("required_sensors");
+            requiredSensors = new int[jsonObject.length()];
+            for (int i = 0; i < jsonSensors.length(); i++) {
+                requiredSensors[i] = jsonSensors.getInt(i);
+            }
         }
-        frameSize = jsonObject.getInt("frame_size");
-        positivePredictedTimeFrame = (long)(jsonObject.getInt("positive_prediction_time")) * (long) 1e9;
-        requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
-        notificationCoolDown = jsonObject.getInt("notification_cool_down") * (long) 1e9;
+        if(jsonObject.has("frame_size"))
+            frameSize = jsonObject.getInt("frame_size");
+        if(jsonObject.has("positive_prediction_time"))
+            positivePredictedTimeFrame = (long)(jsonObject.getInt("positive_prediction_time")) * (long) 1e9;
+        if(jsonObject.has("positive_prediction_counter"))
+            requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
+        if(jsonObject.has("notification_cool_down"))
+            notificationCoolDown = (long)jsonObject.getInt("notification_cool_down") * (long) 1e9;
     }
 
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
@@ -260,11 +266,14 @@ public class HandWashDetection {
 
 
     private void showHandWashNotification(){
-        if(lastPositivePrediction > lastNotificationTS + notificationCoolDown) {
+        if(lastPositivePrediction > DataProcessor.lastEvaluationTS + notificationCoolDown) {
             lastNotificationTS = lastPositivePrediction;
             makeToast(mainActivity.getString(R.string.toast_pred_hw));
             vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
             NotificationSpawner.spawnHandWashPredictionNotification(mainActivity, lastPositivePrediction);
+            Log.d("pred", "spawn notification");
+        } else {
+            Log.d("pred", "ignore notification");
         }
     }
 

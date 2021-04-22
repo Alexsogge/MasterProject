@@ -1,4 +1,4 @@
-package com.example.sensorrecorder;
+package com.example.sensorrecorder.Networking;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -8,7 +8,7 @@ import androidx.work.WorkerParameters;
 
 import com.example.sensorrecorder.DataProcessor;
 import com.example.sensorrecorder.R;
-import com.example.sensorrecorder.dataContainer.DataContainer;
+import com.example.sensorrecorder.DataContainer.DataContainer;
 
 import org.json.JSONException;
 import org.json.JSONObject;

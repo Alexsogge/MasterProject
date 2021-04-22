@@ -30,8 +30,8 @@ public class ComplicationReceiver extends BroadcastReceiver {
         ComponentName provider = extras.getParcelable(EXTRA_PROVIDER_COMPONENT);
         int complicationId = extras.getInt(EXTRA_COMPLICATION_ID);
 
-
-        MainActivity.mainActivity.sensorService.addHandWashEventNow();
+        Log.d("CompRec", "Comlication on receive");
+        // MainActivity.mainActivity.sensorService.addHandWashEventNow();
 
         // Request an update for the complication that has just been tapped.
         ProviderUpdateRequester requester = new ProviderUpdateRequester(context, provider);
@@ -44,7 +44,7 @@ public class ComplicationReceiver extends BroadcastReceiver {
      */
     static PendingIntent getToggleIntent(
             Context context, ComponentName provider, int complicationId) {
-        Intent intent = new Intent(context, ComplicationReceiver.class);
+        Intent intent = new Intent(context, ComplicationProvider.class);
         intent.putExtra(EXTRA_PROVIDER_COMPONENT, provider);
         intent.putExtra(EXTRA_COMPLICATION_ID, complicationId);
 

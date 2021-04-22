@@ -63,8 +63,13 @@ public class ConfActivity extends WearableActivity {
         downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
 
-        if (configs.contains(getString(R.string.conf_serverName)))
-            serverNameInput.setText(configs.getString(getString(R.string.conf_serverName), getString(R.string.predefined_serverName)));
+        if (configs.contains(getString(R.string.conf_serverName))) {
+            String serverName = configs.getString(getString(R.string.conf_serverName), getString(R.string.predefined_serverName));
+            serverNameInput.setText(serverName);
+            if(serverName.equals(""))
+                downloadTFModelButton.setEnabled(false);
+        } else
+            downloadTFModelButton.setEnabled(false);
         if (configs.contains(getString(R.string.conf_userIdentifier)))
             userIdentifierInput.setText(configs.getString(getString(R.string.conf_userIdentifier), ""));
         if(configs.contains(getString(R.string.conf_serverToken)))
