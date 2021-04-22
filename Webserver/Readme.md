@@ -67,7 +67,7 @@ location /uploads {
 
 ## Docker way
 I provide a dockerfile that does roughly what has just been described in the Manual section. You should also use a separate nginx service for all static files as seen before.  
-See [DockerConfig](https://github.com/Alexsogge/MasterProject/DockerConfig) for my docker-compose setup.
+See [DockerConfig](https://github.com/Alexsogge/MasterProject/tree/master/DockerConfig) for my docker-compose setup.
 
 
 
