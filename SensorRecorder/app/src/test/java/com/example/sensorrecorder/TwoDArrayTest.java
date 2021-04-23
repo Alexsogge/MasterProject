@@ -1,9 +1,9 @@
-package com.example.sensorrecorder;
+package unifr.sensorrecorder;
 
 
 
 
-import com.example.sensorrecorder.MathLib.TwoDArray;
+import unifr.sensorrecorder.MathLib.TwoDArray;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

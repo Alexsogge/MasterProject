@@ -66,6 +66,6 @@
     <string name="conf_useMKV" translatable="false">useMKV</string>
     <string name="conf_useMic" translatable="false">useMic</string>
     <string name="conf_multipleMic" translatable="false">multipleMic</string>
-    <string name="predefined_serverName" translatable="false">https://records.example.org</string>
+    <string name="predefined_serverName" translatable="false">https://earth.informatik.uni-freiburg.de/handwash/</string>
     <string name="title_activity_handwash_evaluation" translatable="false">HandwashEvaluation</string>
 </resources>
