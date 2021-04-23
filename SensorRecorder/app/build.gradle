@@ -5,7 +5,7 @@ android {
     buildToolsVersion "29.0.3"
 
     defaultConfig {
-        applicationId "com.example.sensorrecorder"
+        applicationId "unifr.sensorrecorder"
         minSdkVersion 26
         targetSdkVersion 29
         versionCode 1
