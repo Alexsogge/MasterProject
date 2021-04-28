@@ -87,7 +87,7 @@ public class NotificationSpawner {
         PendingIntent pintConfirmHandWash = PendingIntent.getService(context, 571, confirmHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         //PendingIntent pintConfirmHandWash = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent declineHandWashIntent = new Intent(context, SensorRecordingManager.class);
+        Intent declineHandWashIntent = new Intent(context, EvaluationService.class);
         declineHandWashIntent.putExtra("trigger", "handWashDecline");
         declineHandWashIntent.putExtra("timestamp", timestamp);
         PendingIntent pintDeclineHandWash = PendingIntent.getService(context, 572, declineHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);

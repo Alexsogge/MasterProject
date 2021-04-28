@@ -1,5 +1,7 @@
 package com.example.sensorrecorder;
 
+import android.content.Context;
+
 import com.example.sensorrecorder.DataContainer.DataContainer;
 import com.example.sensorrecorder.DataContainer.OutputStreamContainer;
 import com.example.sensorrecorder.DataContainer.ZipContainer;
@@ -44,25 +46,25 @@ public class DataProcessor {
         allDataContainers.clear();
         streamContainers.clear();
 
-        containerMKV = new DataContainer("sensor_recording_android", "mkv");
+        containerMKV = new DataContainer("ffmpeg", "mkv");
         allDataContainers.add(containerMKV);
 
-        containerHandWashTimeStamps = new OutputStreamContainer("sensor_recording_hand_wash_time_stamps", "csv");
+        containerHandWashTimeStamps = new OutputStreamContainer("hand_wash_time_stamps", "csv");
         streamContainers.add(containerHandWashTimeStamps);
 
-        containerMicTimeStamps = new OutputStreamContainer("sensor_recording_mic_time_stamps", "csv");
+        containerMicTimeStamps = new OutputStreamContainer("mic_time_stamps", "csv");
         streamContainers.add(containerMicTimeStamps);
 
-        containerMic = new ZipContainer("sensor_recording_mic", "zip");
+        containerMic = new ZipContainer("recording_mic", "zip");
         allDataContainers.add(containerMic);
 
-        containerBattery = new OutputStreamContainer("sensor_recording_battery", "csv");
+        containerBattery = new OutputStreamContainer("battery", "csv");
         streamContainers.add(containerBattery);
 
-        containerPrediction = new OutputStreamContainer("sensor_recording_prediction", "csv");
+        containerPrediction = new OutputStreamContainer("prediction", "csv");
         streamContainers.add(containerPrediction);
 
-        containerEvaluation = new OutputStreamContainer("sensor_recording_evaluation", "csv");
+        containerEvaluation = new OutputStreamContainer("evaluation", "csv");
         streamContainers.add(containerEvaluation);
         // add stream containers to all
         allDataContainers.addAll(streamContainers);

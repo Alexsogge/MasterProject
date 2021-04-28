@@ -32,6 +32,8 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.ops.transforms.Transforms;
 */
 
+import com.example.sensorrecorder.DataContainer.DataContainer;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -426,6 +428,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             setupFFMPEGfromLocal();
 
         // initialize all fileoutputstreams
+        DataContainer.generateFileNameSuffix(this);
         dataProcessor.openFileStream();
 
         // setup sensor manager

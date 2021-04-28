@@ -72,7 +72,7 @@
                 android:value="SHORT_TEXT, ICON" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="300" />
+                android:value="600" />
         </service>
 
         <service

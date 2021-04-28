@@ -46,7 +46,7 @@
     <string name="not_btn_hw">Hände gewaschen</string>
     <string name="not_btn_yes">Ja</string>
     <string name="not_btn_no">Nein</string>
-    <string name="not_just_washed_hands">Haben Sie sich eben die Hände gewaschen?</string>
+    <string name="not_just_washed_hands">Eben Hände gewaschen?</string>
 
     <string name="str_eval_question_1">War dieses Waschen zwanghaft?</string>
     <string name="str_eval_question_2">Wie angespannt sind Sie im Moment?</string>

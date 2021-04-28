@@ -1,14 +1,24 @@
 package com.example.sensorrecorder.DataContainer;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Environment;
+import android.provider.Settings;
+
+import com.example.sensorrecorder.R;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 
 public class DataContainer {
     public static final File recordingFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
     public static final String recordSubDirectoryPrefix = "recording";
+    public static String fileNameSuffix = "";
 
     public String name;
     public String extension;
@@ -24,6 +34,31 @@ public class DataContainer {
 
         recordingFile = new File(recordingFilePath, fileName);
     }
+
+
+    public static void generateFileNameSuffix(Context context){
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+        df.setTimeZone(tz);
+        String aid = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+        SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
+        int currentRun = configs.getInt(context.getString(R.string.val_current_run), 0);
+        SharedPreferences.Editor configEditor = configs.edit();
+        configEditor.putInt(context.getString(R.string.val_current_run), currentRun+1);
+        configEditor.apply();
+
+        fileNameSuffix = "_" + currentRun + "_" + df.format(new Date()) + "_" + aid;
+    }
+
+    private String getCurrentDateAsIso() {
+        // see https://stackoverflow.com/questions/3914404/how-to-get-current-moment-in-iso-8601-format
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return df.format(new Date());
+    }
+
+
 
     public void setActive() throws IOException {
         isActive = true;
@@ -54,12 +89,15 @@ public class DataContainer {
         if(!subPath.exists())
             subPath.mkdirs();
         if (isActive) {
-            File dst = null;
+            File dst = new File(subPath, name + fileNameSuffix + "." + extension);;
+            /*
             for (int i = 0; i < 999; i++) {
+
                 dst = new File(subPath, name + "_" + i + "." + extension);
                 if (!dst.exists())
                     break;
             }
+            */
             recordingFile.renameTo(dst);
         }
     }

@@ -65,7 +65,7 @@ public class HandWashDetection {
 
     private long lastPositivePrediction;
     private int positivePredictedCounter;
-
+    private boolean lastPrediction;
 
     private int[] activeSensorTypes;
     private int[] sensorDimensions;
@@ -323,7 +323,25 @@ public class HandWashDetection {
             }
             if(fadeOutCounter > 0) {
                 // Log.d("pred", "add pred at: " + ts);
-                foundHandWash |= doHandWashPrediction(i, sensorTimeStamps[0][i]);
+                long timestamp = sensorTimeStamps[0][i];
+                boolean prediction = doHandWashPrediction(i, timestamp);
+                // Log.d("pred", "p: " + prediction);
+                if (prediction) {
+                    if (timestamp < lastPositivePrediction + positivePredictedTimeFrame) {
+                        positivePredictedCounter++;
+                        // Log.d("pred", "count to " + positivePredictedCounter);
+                        if (positivePredictedCounter >= requiredPositivePredictions) {
+                            positivePredictedCounter = 0;
+                            foundHandWash = true;
+                        }
+                    } else {
+                        positivePredictedCounter = 1;
+                    }
+                    lastPositivePrediction = timestamp;
+                } else if(!lastPrediction){
+                    positivePredictedCounter = 0;
+                }
+                lastPrediction = prediction;
                 i += (frameSize / 1.5) - 25;
             }
             if (fadeOutCounter > 0)
@@ -391,17 +409,7 @@ public class HandWashDetection {
             gesture = "Handwash";
             max_pred = labelProbArray[0][1];
             // test if there are multiple positive predictions within given time frameBuffer
-            if(timestamp < lastPositivePrediction + positivePredictedTimeFrame){
-                positivePredictedCounter++;
-                // Log.d("pred", "count to " + positivePredictedCounter);
-                if (positivePredictedCounter >= requiredPositivePredictions){
-                    positivePredictedCounter = 0;
-                    foundHandWash = true;
-                }
-            } else {
-                positivePredictedCounter = 1;
-            }
-            lastPositivePrediction = timestamp;
+            foundHandWash = true;
         }
         // Log.d("Pred", "Results in " + gesture + " to " + max_pred * 100 + "%");
         try {

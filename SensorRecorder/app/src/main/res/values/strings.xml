@@ -57,7 +57,7 @@
     <!--
     Stuff for settings and static strings
     -->
-    <string name="app_name" translatable="false">SensorRecorder</string>
+    <string name="app_name" translatable="false">HandWash Recorder</string>
     <string name="configs" translatable="false">configs</string>
     <string name="conf_serverName" translatable="false">serverName</string>
     <string name="conf_userIdentifier" translatable="false">userIdentifier</string>
@@ -66,6 +66,7 @@
     <string name="conf_useMKV" translatable="false">useMKV</string>
     <string name="conf_useMic" translatable="false">useMic</string>
     <string name="conf_multipleMic" translatable="false">multipleMic</string>
+    <string name="val_current_run" translatable="false">valCurrentRun</string>
     <string name="predefined_serverName" translatable="false">https://records.example.org</string>
     <string name="title_activity_handwash_evaluation" translatable="false">HandwashEvaluation</string>
 </resources>

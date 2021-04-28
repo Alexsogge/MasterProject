@@ -17,7 +17,7 @@ public class ZipContainer extends OutputStreamContainer{
         if(isActive) {
             super.openStream();
             zipOutputStream = new ZipOutputStream(outputStream);
-            zipOutputStream.putNextEntry(new ZipEntry(name + "." + innerFileExtension));
+            zipOutputStream.putNextEntry(new ZipEntry(name + fileNameSuffix + "." + innerFileExtension));
         }
     }
 
