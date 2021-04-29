@@ -1,7 +1,9 @@
 package unifr.sensorrecorder;
 
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,6 +18,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.support.wearable.complications.ProviderUpdateRequester;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -32,7 +35,7 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.ops.transforms.Transforms;
 */
 
-import com.example.sensorrecorder.DataContainer.DataContainer;
+
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +51,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
+import unifr.sensorrecorder.Complication.ComplicationProvider;
+import unifr.sensorrecorder.Complication.ComplicationReceiver;
+import unifr.sensorrecorder.DataContainer.DataContainer;
 
 
 import static android.Manifest.permission.RECORD_AUDIO;
@@ -123,7 +129,16 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // due to we call this function multiple times from the notification buttons we have to determine when we called it the first time
         // if a call wasn't the initial one it came from a notification button
         // therefore we have to determine which action should be triggered
+
+
         if (intent.getStringExtra("trigger") != null){
+            // Update all complications
+            ComponentName provider = new ComponentName(this, ComplicationProvider.class);
+            for (int i = 0; i<=4 ; i++) {
+                int complicationId = 4;
+                ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
+                requester.requestUpdate(complicationId);
+            }
             // new hand wash event
             if (intent.getStringExtra("trigger").equals("handWash")) {
                 if(isRunning)

@@ -31,7 +31,8 @@ public class DataProcessor {
 
     public static long lastEvaluationTS;
     public static long lastPredictionTS;
-    public static int predictions;
+    public static int predictions = 0;
+    public static int handWashes = 0;
 
     public DataProcessor(){
         sensorContainers = new HashMap<>();
@@ -144,6 +145,7 @@ public class DataProcessor {
 
     public void writeHandWashTS(String line) throws IOException {
         containerHandWashTimeStamps.writeData(line);
+        handWashes++;
     }
 
     public void writePrediction(String line) throws IOException {

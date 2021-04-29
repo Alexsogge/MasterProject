@@ -9,6 +9,18 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
+
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".Evaluation.HandwashEvaluation"
             android:label="@string/title_activity_handwash_evaluation"
@@ -25,16 +37,7 @@
                app to run.
         -->
 
-        <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <activity android:name=".ConfActivity" />
 
@@ -57,6 +60,7 @@
                app to run.
         -->
         <receiver android:name=".Complication.ComplicationReceiver" />
+        <receiver android:name=".Complication.ComplicationHandWashReceiver" />
 
         <service
             android:name=".Complication.ComplicationProvider"
@@ -72,7 +76,7 @@
                 android:value="SHORT_TEXT, ICON" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="600" />
+                android:value="300" />
         </service>
 
         <service

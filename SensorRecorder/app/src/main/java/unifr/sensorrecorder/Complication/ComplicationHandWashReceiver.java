@@ -5,18 +5,17 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.wearable.complications.ProviderUpdateRequester;
 import android.util.Log;
 
-import unifr.sensorrecorder.MainActivity;
+import unifr.sensorrecorder.SensorRecordingManager;
 
-public class ComplicationReceiver extends BroadcastReceiver {
+public class ComplicationHandWashReceiver extends BroadcastReceiver {
 
-    public static final String EXTRA_PROVIDER_COMPONENT =
+    private static final String EXTRA_PROVIDER_COMPONENT =
             "unifr.android.wearable.watchface.provider.action.PROVIDER_COMPONENT";
-    public static final String EXTRA_COMPLICATION_ID =
+    private static final String EXTRA_COMPLICATION_ID =
             "unifr.android.wearable.watchface.provider.action.COMPLICATION_ID";
 
     static final int MAX_NUMBER = 20;
@@ -30,7 +29,16 @@ public class ComplicationReceiver extends BroadcastReceiver {
         ComponentName provider = extras.getParcelable(EXTRA_PROVIDER_COMPONENT);
         int complicationId = extras.getInt(EXTRA_COMPLICATION_ID);
 
-        Log.d("CompRec", "Comlication on receive");
+        Log.d("CompRec", "Comlication hand wash on receive");
+        Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
+        handwashIntent.putExtra("trigger", "handWash");
+        PendingIntent pintHandWash = PendingIntent.getService(context, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pintHandWash.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
+        }
+
         // MainActivity.mainActivity.sensorService.addHandWashEventNow();
 
         // Request an update for the complication that has just been tapped.
@@ -44,13 +52,13 @@ public class ComplicationReceiver extends BroadcastReceiver {
      */
     static PendingIntent getToggleIntent(
             Context context, ComponentName provider, int complicationId) {
-        Intent intent = new Intent(context, ComplicationReceiver.class);
+        Intent intent = new Intent(context, ComplicationHandWashReceiver.class);
         Log.d("comp", "Prov:" + provider);
         Log.d("comp", "compID:" + complicationId);
         intent.putExtra(EXTRA_PROVIDER_COMPONENT, provider);
         intent.putExtra(EXTRA_COMPLICATION_ID, complicationId);
 
-        Log.d("CompRec", "get toggle intent");
+        Log.d("CompRec", "get toggle hand wash intent");
         // Pass complicationId as the requestCode to ensure that different complications get
         // different intents.
         return PendingIntent.getBroadcast(

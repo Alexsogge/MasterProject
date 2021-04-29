@@ -20,6 +20,7 @@ import org.tensorflow.lite.Interpreter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -116,11 +117,15 @@ public class HandWashDetection {
     private MappedByteBuffer loadModelFile(Activity activity) throws IOException {
 
         File modelFile = new File(modelFilePath, modelName);
-        if(modelFile.exists()){
-            FileInputStream inputStream = new FileInputStream(modelFile);
-            FileChannel fileChannel = inputStream.getChannel();
-            makeToast(mainActivity.getString(R.string.toast_use_dl_tf));
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
+        try {
+            if (modelFile.exists()) {
+                FileInputStream inputStream = new FileInputStream(modelFile);
+                FileChannel fileChannel = inputStream.getChannel();
+                makeToast(mainActivity.getString(R.string.toast_use_dl_tf));
+                return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
+            }
+        } catch (FileNotFoundException e){
+            e.printStackTrace();
         }
         AssetManager assetManager = activity.getAssets();
         String[] assets = assetManager.list("");

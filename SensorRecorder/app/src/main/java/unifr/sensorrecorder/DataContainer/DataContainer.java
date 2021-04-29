@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Environment;
 import android.provider.Settings;
 
-import com.example.sensorrecorder.R;
+import unifr.sensorrecorder.R;
 
 import java.io.File;
 import java.io.IOException;

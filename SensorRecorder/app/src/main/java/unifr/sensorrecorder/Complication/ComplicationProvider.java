@@ -51,15 +51,11 @@ public class ComplicationProvider  extends ComplicationProviderService{
         ComponentName thisProvider = new ComponentName(this, getClass());
         // We pass the complication id, so we can only update the specific complication tapped.
         PendingIntent complicationPendingIntent =
-                ComplicationReceiver.getToggleIntent(
+                ComplicationHandWashReceiver.getToggleIntent(
                         this, thisProvider, complicationId);
 
-        Intent handwashIntent = new Intent(this, SensorRecordingManager.class);
-        handwashIntent.putExtra("trigger", "handWash");
-        PendingIntent pintHandWash = PendingIntent.getService(this, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-
-        int predictions = DataProcessor.predictions;
+        int predictions = DataProcessor.handWashes;
         String predictionsText = String.format(Locale.getDefault(), "%d", predictions);
 
         ComplicationData complicationData = null;
@@ -69,7 +65,7 @@ public class ComplicationProvider  extends ComplicationProviderService{
                 complicationData =
                         new ComplicationData.Builder(ComplicationData.TYPE_SHORT_TEXT)
                                 .setIcon(Icon.createWithResource(this, R.drawable.ic_hand_wash))
-                                .setTapAction(pintHandWash)
+                                .setTapAction(complicationPendingIntent)
                                 .setShortText(ComplicationText.plainText(predictionsText))
                                 .build();
                 break;
