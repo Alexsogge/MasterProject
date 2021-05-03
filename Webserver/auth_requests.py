@@ -11,7 +11,6 @@ class AuthRequests:
     def __init__(self):
         self.open_auth_requests = {}
 
-
     def get_free_id(self):
         next_id = 0
         while next_id in self.open_auth_requests:

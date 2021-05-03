@@ -3,6 +3,7 @@ import numpy as np
 
 nano_sec = 0.000000001
 
+
 def generate_plot_data(folder_name):
     processor = DataProcessor(folder_name)
     processor.plot_data(True)

@@ -18,7 +18,8 @@ At the same time, a zip file is created which also contains all files. This is u
 
 ## Configuration
 At the first start a new config file `./conf/config.yml` is created. This already contains a random generated server secret and all other default values.  
-**please change the values for username and password**  
+Default login credentials are `username: admin` and `pw: admin`. 
+**Please change the values for username and password**  
 These settings can also be managed via the frontend.
 
 # How to set up

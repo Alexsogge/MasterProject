@@ -5,9 +5,9 @@
         <h1>Sensor Recorder Webservice</h1>
     </div>
     <div class="row mb-3">
-        <a href="/auth/check/">View authentication requests</a>
+        <a href="{{url_for('views.get_open_auth_requests')}}">View authentication requests</a>
     </div>
     <div class="row mb-3">
-        <a href="/recording/list/">View recordings</a>
+        <a href="{{url_for('views.list_recordings')}}">View recordings</a>
     </div>
 {% endblock %}

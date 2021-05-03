@@ -21,7 +21,7 @@
         <h4>Upload new model file</h4>
     </div>
     <div class="row">
-        <form action="/tfmodel/" method="post" enctype="multipart/form-data">
+        <form action="{{url_for('views.tfmodel')}}" method="post" enctype="multipart/form-data">
 
             <div class="form-group">
                 <label for="frameSizeInput">Window size</label>
@@ -91,9 +91,9 @@
                     {% else %}
                         <div class="col">{{ file }}</div>
                     {% endif %}
-                    <div class="col-md-2"><a class=" btn btn-primary" href="/{{ all_model_file_paths[loop.index0] }}">download model</a> </div>
-                    <div class="col-md-2"><a class=" btn btn-primary" href="/{{ all_model_settings[loop.index0] }}">download settings</a> </div>
-                    <div class="col-md-2"><a class=" btn btn-success" href="/tfmodel/select/{{ file }}/">Set active</a> </div>
+                    <div class="col-md-2"><a class=" btn btn-primary" href="{{url_for('views.uploaded_tf_file', path=all_model_file_paths[loop.index0])}}">download model</a> </div>
+                    <div class="col-md-2"><a class=" btn btn-primary" href="{{url_for('views.uploaded_tf_file', path=all_model_settings[loop.index0])}}">download settings</a> </div>
+                    <div class="col-md-2"><a class=" btn btn-success" href="{{url_for('views.select_tfmodel', tf_model=file)}}">Set active</a> </div>
                 </div>
             {% endfor %}
         </div>

@@ -5,7 +5,7 @@
         <h1>Settings</h1>
     </div>
     <div class="row">
-        <form action="/settings/" method="post">
+        <form action="{{url_for('views.settings')}}" method="post">
             {% for key, value in setting_entries.items() %}
             <div class="form-group">
                 <label for="input_{{ key }}">{{ key}}</label>

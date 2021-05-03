@@ -10,7 +10,7 @@
 <body>
 
 <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
-    <a class="navbar-brand" href="/">Home</a>
+    <a class="navbar-brand" href="{{ url_for('views.index') }}">Home</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExample03" aria-controls="navbarsExample03" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -18,21 +18,16 @@
     <div class="collapse navbar-collapse" id="navbarsExample03">
         <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-                <a class="nav-link" href="/recording/list/">Recordings</a>
+                <a class="nav-link" href="{{url_for('views.list_recordings')}}">Recordings</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/tokenauth/check/">Authentication requests</a>
+                <a class="nav-link" href="{{url_for('views.get_open_auth_requests')}}">Authentication requests</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/settings/">Settings</a>
+                <a class="nav-link" href="{{url_for('views.settings')}}">Settings</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/tfmodel/">TF model</a>
-            </li>
-        </ul>
-        <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="/">Login</a>
+                <a class="nav-link" href="{{url_for('views.tfmodel')}}">TF model</a>
             </li>
         </ul>
     </div>

@@ -3,10 +3,16 @@ import random
 import string
 import os
 
-version = 1.2
+version = 1.3
 secret_key_iterations = 42
 
-config_values = {'version': version, 'upload_directory': 'uploads',
+ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite'}
+UPLOAD_FOLDER = 'uploads'
+
+RECORDINGS_FOLDER = os.path.join(UPLOAD_FOLDER, 'recordings')
+TFMODEL_FOLDER = os.path.join(UPLOAD_FOLDER, 'tf_models')
+
+config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix': '',
                  'client_secret': '', 'user': 'admin', 'user_pw': 'admin',
                  'hide_mic_files': True, 'rename_mic_files': True, 'pack_mic_files': False}
 
@@ -15,6 +21,7 @@ class Config:
     file_encoding = 'utf-8'
 
     upload_directory: str = None
+    url_prefix: str = ''
     client_secret: str = None
 
     user: str = None
@@ -83,5 +90,5 @@ class Config:
         self.create(old_config)
 
 
-
+config = Config()
 
