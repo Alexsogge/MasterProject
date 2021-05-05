@@ -22,7 +22,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("pred", "created evaluation service");
+        Log.d("pred", "created evaluation receiver");
 
         if (intent.getStringExtra("trigger") != null) {
             if (intent.getStringExtra("trigger").equals("handWashConfirm")) {

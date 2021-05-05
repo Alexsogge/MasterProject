@@ -16,7 +16,6 @@ import android.service.notification.StatusBarNotification;
 
 import androidx.core.app.NotificationCompat;
 
-import unifr.sensorrecorder.Evaluation.EvaluationService;
 import unifr.sensorrecorder.Evaluation.HandwashEvaluation;
 import unifr.sensorrecorder.Evaluation.OverallEvaluation;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;

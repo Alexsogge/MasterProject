@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:id="@+id/rlMarker">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tvProgress"
+        android:gravity="center"
+        android:padding="10dp"
+        android:textColor="@android:color/white"
+        android:background="@drawable/marker_shape"
+        android:text="0 miles"/>
+
+    <View
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:id="@+id/vArrow"
+        android:gravity="center"
+        android:rotation="180"
+        android:layout_below="@id/tvProgress"
+        android:background="@drawable/marker_arrow_shape"/>
+
+</RelativeLayout>

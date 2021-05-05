@@ -23,7 +23,6 @@
             android:id="@+id/textQuestionText"
             android:layout_width="wrap_content"
             android:layout_height="70dp"
-            android:layout_marginTop="8dp"
             android:gravity="bottom"
             android:text="@string/str_eval_question_1"
             android:textAlignment="center"
@@ -124,6 +123,76 @@
                 android:padding="0sp"
                 android:text="gar nicht"
                 app:layout_constraintBaseline_toBaselineOf="@+id/rtb_desc_r"
+                app:layout_constraintLeft_toLeftOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/answerRating2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_horizontal"
+            android:measureWithLargestChild="false"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/textQuestionText">
+
+
+            <Button
+                android:id="@+id/answerRateButton2"
+                style="@style/Widget.AppCompat.Button.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="28dip"
+                android:paddingHorizontal="30dp"
+                android:paddingVertical="10dp"
+                android:text="@string/btn_rate"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent" />
+
+            <RatingBar
+                android:id="@+id/answerRatingBar2"
+                style="@style/Widget.AppCompat.RatingBar.Indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:isIndicator="false"
+                android:max="5"
+                android:numStars="5"
+                android:rating="3"
+                android:stepSize="1"
+                android:textAlignment="center"
+                app:layout_constraintBottom_toTopOf="@id/rtb_desc_l2"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.0" />
+
+
+            <TextView
+                android:id="@+id/rtb_desc_r2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="8dp"
+                android:clickable="true"
+                android:paddingHorizontal="0sp"
+                android:text="sehr"
+                android:textAlignment="viewEnd"
+                app:layout_constraintBottom_toTopOf="@id/answerRateButton2"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/answerRatingBar2" />
+
+            <TextView
+                android:id="@+id/rtb_desc_l2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:padding="0sp"
+                android:text="gar nicht"
+                app:layout_constraintBaseline_toBaselineOf="@+id/rtb_desc_r2"
                 app:layout_constraintLeft_toLeftOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>

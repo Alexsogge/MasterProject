@@ -36,8 +36,6 @@ import androidx.wear.ambient.AmbientModeSupport;
 import androidx.work.WorkManager;
 
 import java.io.IOException;
-
-import unifr.sensorrecorder.Evaluation.EvaluationService;
 import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
 import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
@@ -60,7 +58,7 @@ public class MainActivity extends FragmentActivity
     private TextView mTextView;
     private Intent intent;
     public SensorRecordingManager sensorService;
-    public EvaluationService evaluationService;
+    // public EvaluationService evaluationService;
     public NetworkManager networkManager;
 
     private boolean mBound = false;
@@ -306,7 +304,7 @@ public class MainActivity extends FragmentActivity
         Calendar calendar = Calendar.getInstance();
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
-        targetDate.set(Calendar.HOUR_OF_DAY, 20);
+        targetDate.set(Calendar.HOUR_OF_DAY, 18);
         targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
         //if(targetDate.before(calendar))
@@ -345,23 +343,6 @@ public class MainActivity extends FragmentActivity
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
-        }
-    };
-
-
-    private ServiceConnection evaluationConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className,
-                                       IBinder service) {
-            // get SensorService instance when ready
-            EvaluationService.EvalServiceBinder binder = (EvaluationService.EvalServiceBinder) service;
-            evaluationService = binder.getService();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-
         }
     };
 

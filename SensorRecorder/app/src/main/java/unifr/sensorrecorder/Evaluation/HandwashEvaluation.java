@@ -24,8 +24,11 @@ public class HandwashEvaluation extends WearableActivity {
     private Button evalButtonNo;
     private Button rateButton;
     private RatingBar ratingBar;
+    private Button rateButton2;
+    private RatingBar ratingBar2;
     private View answerYN;
     private View answerRating;
+    private View answerRating2;
     private TextView ratingBarDescL;
     private TextView ratingBarDescR;
 
@@ -49,11 +52,16 @@ public class HandwashEvaluation extends WearableActivity {
         evalButtonNo = (Button) findViewById(R.id.buttonEvalNo);
         rateButton = (Button) findViewById(R.id.answerRateButton);
         ratingBar = (RatingBar) findViewById(R.id.answerRatingBar);
+        rateButton2 = (Button) findViewById(R.id.answerRateButton2);
+        ratingBar2 = (RatingBar) findViewById(R.id.answerRatingBar2);
+
 
         answerYN = (View) findViewById(R.id.answerYesNo);
         answerRating = (View) findViewById(R.id.answerRating);
+        answerRating2 = (View) findViewById(R.id.answerRating2);
         answerYN.setVisibility(View.GONE);
         answerRating.setVisibility(View.GONE);
+        answerRating2.setVisibility(View.GONE);
 
         ratingBarDescL = (TextView) findViewById(R.id.rtb_desc_l);
         ratingBarDescR = (TextView) findViewById(R.id.rtb_desc_r);
@@ -68,7 +76,7 @@ public class HandwashEvaluation extends WearableActivity {
         answerViews.put(0, answerYN);
         answerViews.put(1, answerYN);
         answerViews.put(2, answerRating);
-        answerViews.put(3, answerRating);
+        answerViews.put(3, answerRating2);
 
         answers = new HashMap<>();
         answers.put(0, 1);
@@ -99,6 +107,12 @@ public class HandwashEvaluation extends WearableActivity {
             @Override
             public void onClick(View v) {
                 setAnswer(Math.round(ratingBar.getRating()));
+            }
+        });
+        rateButton2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setAnswer(Math.round(ratingBar2.getRating()));
             }
         });
         ratingBarDescL.setOnClickListener(new View.OnClickListener() {

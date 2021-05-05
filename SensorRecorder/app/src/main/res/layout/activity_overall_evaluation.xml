@@ -35,7 +35,16 @@
             android:numStars="5"
             android:rating="3"
             android:stepSize="1"
-            android:textAlignment="center" />
+            android:textAlignment="center"
+            android:visibility="gone" />
+
+        <SeekBar
+            android:id="@+id/ovEvSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
+            android:max="10"
+            android:progress="5" />
 
         <Button
             android:id="@+id/ovEvRateButton"
@@ -44,5 +53,13 @@
             android:layout_height="wrap_content"
             android:text="@string/btn_rate" />
     </LinearLayout>
+
+    <include
+        layout="@layout/marker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:layout_marginTop="40dp"
+        android:visibility="gone"></include>
 
 </androidx.wear.widget.BoxInsetLayout>

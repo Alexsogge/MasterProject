@@ -106,7 +106,6 @@
                 android:value="0" />
         </service>
         <service android:name=".SensorRecordingManager" />
-        <service android:name=".Evaluation.EvaluationService" />
 
         <uses-library
             android:name="com.google.android.wearable"

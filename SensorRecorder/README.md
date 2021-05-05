@@ -5,7 +5,8 @@ All recorded values are stored in .csv files which are packed into zips. These f
 
 # Configuration
 When starting for the first time, the configuration menu opens. Here you have to set the Server name, an identification name to distinguish this device from others during the authentication process and which/how the recorded values should be stored.  
-After all settings have been done, press the apply button. 
+After all settings have been done, press the apply button.  
+At this point a authentication request with the given identification is send to the web server. Before the user can upload files, these request has to be granted. 
 
 # HandWash detection
 During the recording process, the application also observes gestures to determine hand washing moments. If this happens, a notification pops up, where the user is asked whether he has just washed his hands. If he presses yes some evaluation questions have to be answered. 
