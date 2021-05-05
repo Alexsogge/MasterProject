@@ -153,6 +153,9 @@ public class HandwashEvaluation extends WearableActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
+
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);
         moveTaskToBack(true);

@@ -6,9 +6,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.wearable.complications.ProviderUpdateRequester;
 import android.util.Log;
 
+import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
+import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.SensorRecordingManager;
 
 public class ComplicationHandWashReceiver extends BroadcastReceiver {
@@ -39,11 +42,10 @@ public class ComplicationHandWashReceiver extends BroadcastReceiver {
             e.printStackTrace();
         }
 
-        // MainActivity.mainActivity.sensorService.addHandWashEventNow();
-
         // Request an update for the complication that has just been tapped.
         ProviderUpdateRequester requester = new ProviderUpdateRequester(context, provider);
         requester.requestUpdate(complicationId);
+
     }
 
     /**

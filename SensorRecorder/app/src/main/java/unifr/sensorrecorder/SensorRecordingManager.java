@@ -54,6 +54,7 @@ import de.uni_freiburg.ffmpeg.FFMpegProcess;
 import unifr.sensorrecorder.Complication.ComplicationProvider;
 import unifr.sensorrecorder.Complication.ComplicationReceiver;
 import unifr.sensorrecorder.DataContainer.DataContainer;
+import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 
 
 import static android.Manifest.permission.RECORD_AUDIO;
@@ -132,13 +133,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
 
         if (intent.getStringExtra("trigger") != null){
-            // Update all complications
-            ComponentName provider = new ComponentName(this, ComplicationProvider.class);
-            for (int i = 0; i<=4 ; i++) {
-                int complicationId = 4;
-                ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
-                requester.requestUpdate(complicationId);
-            }
             // new hand wash event
             if (intent.getStringExtra("trigger").equals("handWash")) {
                 if(isRunning)
@@ -660,6 +654,25 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private void addHandWashEvent(long time_stamp) throws IOException {
         String lineContent = time_stamp + "\n";
         dataProcessor.writeHandWashTS(lineContent);
+
+        // Update all complications
+        ComponentName provider = new ComponentName(this, ComplicationProvider.class);
+        for (int i = 0; i<=4 ; i++) {
+            int complicationId = 4;
+            ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
+            requester.requestUpdate(complicationId);
+        }
+
+        // open Evaluation
+        Intent confirmHandWashIntent = new Intent(this, EvaluationReceiver.class);
+        confirmHandWashIntent.putExtra("trigger", "handWashConfirm");
+        confirmHandWashIntent.putExtra("timestamp", time_stamp);
+        PendingIntent pintConfirmHandWash = PendingIntent.getBroadcast(this, NotificationSpawner.EVALUATION_REQUEST_CODE, confirmHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pintConfirmHandWash.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
