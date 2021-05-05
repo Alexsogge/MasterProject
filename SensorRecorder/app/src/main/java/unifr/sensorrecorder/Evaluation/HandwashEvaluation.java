@@ -1,5 +1,7 @@
 package unifr.sensorrecorder.Evaluation;
 
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
@@ -8,6 +10,7 @@ import android.widget.Button;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
+import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
 
@@ -23,6 +26,8 @@ public class HandwashEvaluation extends WearableActivity {
     private RatingBar ratingBar;
     private View answerYN;
     private View answerRating;
+    private TextView ratingBarDescL;
+    private TextView ratingBarDescR;
 
     private long timestamp;
 
@@ -49,6 +54,9 @@ public class HandwashEvaluation extends WearableActivity {
         answerRating = (View) findViewById(R.id.answerRating);
         answerYN.setVisibility(View.GONE);
         answerRating.setVisibility(View.GONE);
+
+        ratingBarDescL = (TextView) findViewById(R.id.rtb_desc_l);
+        ratingBarDescR = (TextView) findViewById(R.id.rtb_desc_r);
 
 
         questions = new HashMap<>();
@@ -93,6 +101,18 @@ public class HandwashEvaluation extends WearableActivity {
                 setAnswer(Math.round(ratingBar.getRating()));
             }
         });
+        ratingBarDescL.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ratingBar.setRating(0);
+            }
+        });
+        ratingBarDescR.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ratingBar.setRating(10);
+            }
+        });
     }
 
     private void setAnswer(int value){
@@ -119,6 +139,8 @@ public class HandwashEvaluation extends WearableActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);
         moveTaskToBack(true);
         finish();
     }

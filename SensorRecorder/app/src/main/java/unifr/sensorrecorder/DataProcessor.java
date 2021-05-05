@@ -1,6 +1,7 @@
 package unifr.sensorrecorder;
 
 import unifr.sensorrecorder.DataContainer.DataContainer;
+import unifr.sensorrecorder.DataContainer.MultyEntryZipContainer;
 import unifr.sensorrecorder.DataContainer.OutputStreamContainer;
 import unifr.sensorrecorder.DataContainer.ZipContainer;
 
@@ -17,6 +18,7 @@ import java.util.zip.ZipOutputStream;
 
 public class DataProcessor {
     public HashMap<String, ZipContainer> sensorContainers;
+    //public MultyEntryZipContainer sensorContainer;
     public DataContainer containerMKV;
     public OutputStreamContainer containerHandWashTimeStamps;
     public DataContainer containerMic;
@@ -25,6 +27,7 @@ public class DataProcessor {
     public OutputStreamContainer containerPrediction;
 
     public OutputStreamContainer containerEvaluation;
+    public OutputStreamContainer containerOverallEvaluation;
 
     public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
@@ -44,6 +47,9 @@ public class DataProcessor {
         sensorContainers.clear();
         allDataContainers.clear();
         streamContainers.clear();
+
+        //sensorContainer = new MultyEntryZipContainer("sensors", "csv");
+        //streamContainers.add(sensorContainer);
 
         containerMKV = new DataContainer("ffmpeg", "mkv");
         allDataContainers.add(containerMKV);
@@ -65,6 +71,10 @@ public class DataProcessor {
 
         containerEvaluation = new OutputStreamContainer("evaluation", "csv");
         streamContainers.add(containerEvaluation);
+
+        containerOverallEvaluation = new OutputStreamContainer("overallEvaluation", "csv");
+        allDataContainers.add(containerOverallEvaluation);
+
         // add stream containers to all
         allDataContainers.addAll(streamContainers);
     }
@@ -75,18 +85,23 @@ public class DataProcessor {
         sensorContainers.put(sensorName, sensorContainer);
         streamContainers.add(sensorContainer);
         allDataContainers.add(sensorContainer);
+        //sensorContainer.addEntry(sensorName, filename);
     }
 
     public void closeSensorStreams() throws IOException {
         for(ZipContainer container: sensorContainers.values()){
             container.close();
         }
+
+        //sensorContainer.close();
     }
 
     public void activateSensorContainers() throws IOException {
         for(ZipContainer container: sensorContainers.values()){
             container.setActive();
         }
+
+        //sensorContainer.setActive();
     }
 
     public void activateDefaultContainer(boolean useMKVStream, boolean useMic) throws IOException {
@@ -158,6 +173,7 @@ public class DataProcessor {
 
     public void writeSensorData(String sensorName, String line) throws IOException {
         sensorContainers.get(sensorName).writeData(line);
+        //sensorContainer.writeData(sensorName, line);
     }
 
     public void writeEvaluation(String line, boolean isPrediction, long predictionTS) throws IOException {
@@ -172,6 +188,14 @@ public class DataProcessor {
     public void writeEvaluation(String line, long timestamp) throws IOException {
         containerEvaluation.writeData(line);
         lastEvaluationTS = timestamp;
+    }
+
+    public void writeOverallEvaluation(String line) throws IOException {
+        containerOverallEvaluation.setActive();
+        containerOverallEvaluation.openStream();
+        containerOverallEvaluation.writeData(line);
+        containerOverallEvaluation.flush();
+        containerOverallEvaluation.close();
     }
 
     public void packMicFilesIntoZip() throws IOException {

@@ -53,6 +53,9 @@
     <string name="str_eval_question_3">How strongly do you feel the urge to wash at the moment?</string>
     <string name="btn_rate">Rate</string>
 
+    <string name="not_oar_title">Daily rating</string>
+    <string name="not_oar_text">Please rate your day</string>
+    <string name="str_oar_question">Today was the urge to wash my hands:</string>
 
     <!--
     Stuff for settings and static strings
@@ -66,6 +69,8 @@
     <string name="conf_useMKV" translatable="false">useMKV</string>
     <string name="conf_useMic" translatable="false">useMic</string>
     <string name="conf_multipleMic" translatable="false">multipleMic</string>
-    <string name="predefined_serverName" translatable="false">https://earth.informatik.uni-freiburg.de/handwash/</string>
+    <string name="val_current_run" translatable="false">valCurrentRun</string>
+    <string name="predefined_serverName" translatable="false">https://records.henkela.de</string>
     <string name="title_activity_handwash_evaluation" translatable="false">HandwashEvaluation</string>
+    <string name="title_activity_overall_evaluation" translatable="false">OverallEvaluation</string>
 </resources>

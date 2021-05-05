@@ -1,6 +1,8 @@
 package unifr.sensorrecorder;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -8,9 +10,11 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.icu.util.Calendar;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
@@ -36,6 +40,7 @@ import java.io.IOException;
 import unifr.sensorrecorder.Evaluation.EvaluationService;
 import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
 import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
 import unifr.sensorrecorder.Networking.NetworkManager;
 import unifr.sensorrecorder.Networking.ServerTokenObserver;
 import unifr.sensorrecorder.Networking.UploadObserver;
@@ -84,6 +89,7 @@ public class MainActivity extends FragmentActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d("main", "create main activity");
         if(!isActive) {
             isActive = true;
             turnOffDozeMode(this);
@@ -92,6 +98,7 @@ public class MainActivity extends FragmentActivity
             WorkManager.getInstance(mainActivity).pruneWork();
 
             mainActivity = this;
+            setOverallEvaluationReminder();
 
             // set scroll view to correct size
             adjustInset();
@@ -110,6 +117,9 @@ public class MainActivity extends FragmentActivity
 
             if (!waitForConfigs)
                 initServices();
+
+            // NotificationSpawner.showOverallEvaluationNotification(this);
+            // NotificationSpawner.spawnHandWashPredictionNotification(this, 1000);
 
         }
 
@@ -288,6 +298,28 @@ public class MainActivity extends FragmentActivity
         } else {
             startService(intent);
         }
+    }
+
+    private void setOverallEvaluationReminder(){
+        cancelOverallEvaluationReminder();
+
+        Calendar calendar = Calendar.getInstance();
+        Calendar targetDate = Calendar.getInstance();
+        targetDate.setTimeInMillis(System.currentTimeMillis());
+        targetDate.set(Calendar.HOUR_OF_DAY, 20);
+        targetDate.set(Calendar.MINUTE, 0);
+        targetDate.set(Calendar.SECOND, 0);
+        //if(targetDate.before(calendar))
+        //    targetDate.add(Calendar.DATE, 1);
+
+        Intent reminderReceiver = new Intent(this, OverallEvaluationReminder.class);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), AlarmManager.INTERVAL_DAY, reminderPint);
+    }
+
+    private void cancelOverallEvaluationReminder(){
+
     }
 
 

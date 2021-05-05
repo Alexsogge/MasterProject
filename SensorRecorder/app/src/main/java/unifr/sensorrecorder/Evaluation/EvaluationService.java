@@ -1,6 +1,9 @@
 package unifr.sensorrecorder.Evaluation;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
@@ -9,6 +12,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import unifr.sensorrecorder.DataProcessor;
+import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.SensorRecordingManager;
 
 import java.io.IOException;
@@ -29,9 +33,15 @@ public class EvaluationService extends Service {
                     if (timestamp > -1) {
                         DataProcessor.lastEvaluationTS = timestamp;
                         Intent startEvalIntent = new Intent(this, HandwashEvaluation.class);
-                        startEvalIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startEvalIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startEvalIntent.putExtra("timestamp", timestamp);
-                        startActivity(startEvalIntent);
+                        // startActivity(startEvalIntent);
+                        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 12, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        try {
+                            resultPendingIntent.send();
+                        } catch (PendingIntent.CanceledException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -48,6 +58,9 @@ public class EvaluationService extends Service {
                         }
                     }
                 }
+                NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);
+
             }
             if (intent.getStringExtra("trigger").equals("close")) {
                 long timestamp = intent.getLongExtra("timestamp", -1);
@@ -60,6 +73,8 @@ public class EvaluationService extends Service {
                         e.printStackTrace();
                     }
                 }
+                NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);
             }
         }
 

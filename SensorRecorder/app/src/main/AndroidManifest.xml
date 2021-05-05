@@ -10,6 +10,11 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
+
+        <!--
+               Set to true if your app is Standalone, that is, it does not require the handheld
+               app to run.
+        -->
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
@@ -22,28 +27,30 @@
         </activity>
 
         <activity
-            android:name=".Evaluation.HandwashEvaluation"
-            android:label="@string/title_activity_handwash_evaluation"
-            android:showOnLockScreen="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:name=".Evaluation.OverallEvaluation"
+            android:label="@string/title_activity_overall_evaluation"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true">
         </activity>
 
-        <!--
-               Set to true if your app is Standalone, that is, it does not require the handheld
-               app to run.
-        -->
-
-
-
+        <activity
+            android:name=".Evaluation.HandwashEvaluation"
+            android:label="@string/title_activity_handwash_evaluation"
+            android:showOnLockScreen="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true">
+        </activity>
         <activity android:name=".ConfActivity" />
 
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
+        <!--
+               Set to true if your app is Standalone, that is, it does not require the handheld
+               app to run.
+        -->
         <receiver
             android:name=".EventHandlers.BootEventHandler"
             android:enabled="true"
@@ -55,17 +62,20 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+
+        <receiver android:name=".Complication.ComplicationReceiver" />
         <!--
                Set to true if your app is Standalone, that is, it does not require the handheld
                app to run.
         -->
-        <receiver android:name=".Complication.ComplicationReceiver" />
         <receiver android:name=".Complication.ComplicationHandWashReceiver" />
+        <receiver android:name=".EventHandlers.OverallEvaluationReminder" />
+        <receiver android:name=".EventHandlers.EvaluationReceiver" />
 
         <service
             android:name=".Complication.ComplicationProvider"
-            android:label="Sensor recorder Handwash"
             android:icon="@drawable/ic_hand_wash"
+            android:label="Sensor recorder Handwash"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -81,8 +91,8 @@
 
         <service
             android:name=".Complication.ComplicationICONProvider"
-            android:label="Hand wash button"
             android:icon="@drawable/ic_hand_wash"
+            android:label="Hand wash button"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -95,7 +105,6 @@
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="0" />
         </service>
-
         <service android:name=".SensorRecordingManager" />
         <service android:name=".Evaluation.EvaluationService" />
 
@@ -105,7 +114,6 @@
     </application>
 
     <uses-feature android:name="android.hardware.type.watch" />
-
     <uses-feature
         android:name="android."
         android:required="false" />
@@ -115,14 +123,11 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
-    <uses-permission android:name="android.permission.INTERNET" />
-
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- uses-permission android:name="android.permission.RECORD_AUDIO" / -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-          <!--uses-permission android:name="android.permission.RECORD_AUDIO" /-->
     <uses-permission android:name="android.permission.VIBRATE" />
-
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
 </manifest>

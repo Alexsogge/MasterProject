@@ -55,4 +55,8 @@
     <string name="str_eval_question_3">How strongly do you feel the urge to wash at the moment?</string>
     <string name="btn_rate">Rate</string>
 
+    <string name="not_oar_title">Daily rating</string>
+    <string name="not_oar_text">Please rate your day</string>
+    <string name="str_oar_question">Today was the urge to wash my hands:</string>
+
 </resources>

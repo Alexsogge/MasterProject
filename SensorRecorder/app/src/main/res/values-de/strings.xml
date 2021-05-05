@@ -49,8 +49,12 @@
     <string name="not_just_washed_hands">Eben Hände gewaschen?</string>
 
     <string name="str_eval_question_1">War dieses Waschen zwanghaft?</string>
-    <string name="str_eval_question_2">Wie angespannt sind Sie im Moment?</string>
-    <string name="str_eval_question_3">Wie stark verspüren Sie im Moment den Drang, zu waschen?</string>
+    <string name="str_eval_question_2">Wie beunruhigt /angespannt sind Sie gerade?</string>
+    <string name="str_eval_question_3">Wie stark ist ihr Drang, zu waschen?</string>
     <string name="btn_rate">Bewerten</string>
+
+    <string name="not_oar_title">Tägliche Bewertung</string>
+    <string name="not_oar_text">Bitte bewerten Sie Ihren Tag</string>
+    <string name="str_oar_question">Wie intensiv oder häufig war ihr Händewaschen heute insgesamt?</string>
 
 </resources>
