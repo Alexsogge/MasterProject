@@ -4,23 +4,16 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorEventListener2;
-import android.util.Log;
-
-import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
-
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import unifr.sensorrecorder.DataContainer.DataProcessor;
 
 public class SensorListenerService implements SensorEventListener, SensorEventListener2 {
     private final Executor executor = Executors.newSingleThreadExecutor();

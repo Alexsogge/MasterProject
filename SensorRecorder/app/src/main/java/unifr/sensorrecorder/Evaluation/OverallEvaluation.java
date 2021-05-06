@@ -7,7 +7,6 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
@@ -26,7 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import unifr.sensorrecorder.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
@@ -104,7 +103,7 @@ public class OverallEvaluation extends WearableActivity {
                 line.append("\n");
 
                 try {
-                    SensorRecordingManager.dataProcessor.writeOverallEvaluation(line.toString());
+                    DataProcessorProvider.getProcessor().writeOverallEvaluation(line.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

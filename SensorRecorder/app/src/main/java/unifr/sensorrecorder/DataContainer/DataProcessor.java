@@ -1,4 +1,4 @@
-package unifr.sensorrecorder;
+package unifr.sensorrecorder.DataContainer;
 
 import unifr.sensorrecorder.DataContainer.DataContainer;
 import unifr.sensorrecorder.DataContainer.MultyEntryZipContainer;
@@ -32,10 +32,10 @@ public class DataProcessor {
     public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
 
-    public static long lastEvaluationTS;
-    public static long lastPredictionTS;
-    public static int predictions = 0;
-    public static int handWashes = 0;
+    public long lastEvaluationTS;
+    public long lastPredictionTS;
+    public int predictions = 0;
+    public int handWashes = 0;
 
     public DataProcessor(){
         sensorContainers = new HashMap<>();

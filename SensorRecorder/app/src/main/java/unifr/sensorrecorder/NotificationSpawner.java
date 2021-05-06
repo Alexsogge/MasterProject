@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.service.notification.StatusBarNotification;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
@@ -24,6 +25,7 @@ public class NotificationSpawner {
 
     private static final String RECORDING_CHANNEL_ID = "ForegroundServiceChannel";
     private static final String PREDICTION_CHANNEL_ID = "PredictionChannel";
+    private static final String OverallEvaluation_CHANNEL_ID = "OverallEvaluationChannel";
     public static final int DAILY_REMINDER_REQUEST_CODE = 13;
     public static final int EVALUATION_REQUEST_CODE = 12;
     private static Intent recordingServiceIntent;
@@ -31,7 +33,6 @@ public class NotificationSpawner {
     private static int notificationCounter = 2;
 
     public static Notification createRecordingNotification(Context context, Intent recordingServiceIntent){
-        createNotificationChannel(context, RECORDING_CHANNEL_ID, "Foreground Service Channel");
         Intent notificationIntent = new Intent(context, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(context,
                 0, notificationIntent, 0);
@@ -62,8 +63,7 @@ public class NotificationSpawner {
 
     public static void spawnHandWashPredictionNotification(Context context, long timestamp){
         //NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
-        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel");
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         try {
             closeOldPredictionNotification(notificationManager);
         } catch (PendingIntent.CanceledException e) {
@@ -133,21 +133,20 @@ public class NotificationSpawner {
 
 
     public static void showOverallEvaluationNotification(Context context){
+        Log.d("not", "show overall notification");
         Intent startEvalIntent = new Intent(context, OverallEvaluation.class);
         startEvalIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent resultPendingIntent = PendingIntent.getActivity(context, DAILY_REMINDER_REQUEST_CODE, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
-
-
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, RECORDING_CHANNEL_ID)
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, OverallEvaluation_CHANNEL_ID)
                 .setContentTitle(context.getResources().getString(R.string.not_oar_title))
                 .setContentText(context.getResources().getString(R.string.not_oar_text))
                 //.setStyle(new NotificationCompat.BigTextStyle()
                 //        .bigText("Sensor recorder is active"))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setSmallIcon(R.drawable.preference_wrapped_icon)
-                //.setVibrate(new long[]{1000, 500, 1000, 500})
+                // .setVibrate(new long[]{1000, 500, 1000, 500})
                 // .setSound(alarmSound)
                 //.addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_hw), pintHandWash)
                 // .addAction(R.drawable.action_item_background, "Open", pintOpen);
@@ -167,19 +166,36 @@ public class NotificationSpawner {
         }
     }
 
-    private static void createNotificationChannel(Context context, String chanelID, String chanelName) {
+    private static void createNotificationChannel(Context context, String chanelID, String chanelName, long[] vibrationPattern) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
                     chanelID,
                     chanelName,
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_HIGH
             );
-            serviceChannel.enableVibration(true);
-            serviceChannel.setVibrationPattern(new long[]{1000, 500, 1000, 5000});
+            if(vibrationPattern != null) {
+                serviceChannel.enableVibration(true);
+                serviceChannel.setVibrationPattern(vibrationPattern);
+            }
 
-            NotificationManager manager = context.getSystemService(NotificationManager.class);
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             manager.createNotificationChannel(serviceChannel);
         }
+    }
+
+    public static void createChannels(Context context){
+        long[] vibrationPattern = new long[]{0, 1000, 500, 1000};
+        createNotificationChannel(context, RECORDING_CHANNEL_ID, "Recording Channel", vibrationPattern);
+        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", new long[]{0, 500, 300, 500});
+        createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", vibrationPattern);
+    }
+
+    public static void deleteAllChannels(Context context){
+        NotificationManager notificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.deleteNotificationChannel(RECORDING_CHANNEL_ID);
+        notificationManager.deleteNotificationChannel(PREDICTION_CHANNEL_ID);
+        notificationManager.deleteNotificationChannel(OverallEvaluation_CHANNEL_ID);
     }
 
 }

@@ -7,14 +7,10 @@ import android.graphics.drawable.Icon;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationManager;
 import android.support.wearable.complications.ComplicationProviderService;
-import android.support.wearable.complications.ComplicationText;
 import android.util.Log;
 
-import unifr.sensorrecorder.DataProcessor;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
-
-import java.util.Locale;
 
 public class ComplicationICONProvider extends ComplicationProviderService{
 

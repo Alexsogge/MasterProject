@@ -2,6 +2,7 @@ package unifr.sensorrecorder;
 
 import android.Manifest;
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
@@ -95,6 +96,9 @@ public class MainActivity extends FragmentActivity
             WorkManager.getInstance(mainActivity).cancelAllWork();
             WorkManager.getInstance(mainActivity).pruneWork();
 
+            NotificationSpawner.deleteAllChannels(this.getApplicationContext());
+            NotificationSpawner.createChannels(this.getApplicationContext());
+
             mainActivity = this;
             setOverallEvaluationReminder();
 
@@ -116,8 +120,8 @@ public class MainActivity extends FragmentActivity
             if (!waitForConfigs)
                 initServices();
 
-            // NotificationSpawner.showOverallEvaluationNotification(this);
-            // NotificationSpawner.spawnHandWashPredictionNotification(this, 1000);
+            // NotificationSpawner.showOverallEvaluationNotification(this.getApplicationContext());
+            // NotificationSpawner.spawnHandWashPredictionNotification(this.getApplicationContext(), 1000);
 
         }
 
@@ -304,8 +308,8 @@ public class MainActivity extends FragmentActivity
         Calendar calendar = Calendar.getInstance();
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
-        targetDate.set(Calendar.HOUR_OF_DAY, 18);
-        targetDate.set(Calendar.MINUTE, 0);
+        targetDate.set(Calendar.HOUR_OF_DAY, 15);
+        targetDate.set(Calendar.MINUTE, 25);
         targetDate.set(Calendar.SECOND, 0);
         //if(targetDate.before(calendar))
         //    targetDate.add(Calendar.DATE, 1);
@@ -408,6 +412,13 @@ public class MainActivity extends FragmentActivity
     protected void onPause () {
         super.onPause();
         Log.d("sensorrecorderevent", "Pause main actitvity");
+    }
+
+    public void onDestroy () {
+        super.onDestroy();
+        Log.d("activity", "on stop main");
+        unregisterReceiver(batteryEventHandler);
+        unregisterReceiver(chargeEventHandler);
     }
 
     @Override

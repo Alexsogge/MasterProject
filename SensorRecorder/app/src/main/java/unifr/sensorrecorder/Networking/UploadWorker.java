@@ -6,7 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.work.Data;
 import androidx.work.WorkerParameters;
 
-import unifr.sensorrecorder.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessor;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.DataContainer.DataContainer;
 

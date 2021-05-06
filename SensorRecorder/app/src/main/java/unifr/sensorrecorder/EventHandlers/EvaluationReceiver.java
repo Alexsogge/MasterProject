@@ -9,7 +9,8 @@ import android.util.Log;
 
 import java.io.IOException;
 
-import unifr.sensorrecorder.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
 import unifr.sensorrecorder.Evaluation.HandwashEvaluation;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.SensorRecordingManager;
@@ -22,14 +23,12 @@ public class EvaluationReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("pred", "created evaluation receiver");
-
         if (intent.getStringExtra("trigger") != null) {
             if (intent.getStringExtra("trigger").equals("handWashConfirm")) {
                 if (SensorRecordingManager.isRunning) {
                     long timestamp = intent.getLongExtra("timestamp", -1);
                     if (timestamp > -1) {
-                        DataProcessor.lastEvaluationTS = timestamp;
+                        DataProcessorProvider.getProcessor().lastEvaluationTS = timestamp;
                         Intent startEvalIntent = new Intent(context, HandwashEvaluation.class);
                         startEvalIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startEvalIntent.putExtra("timestamp", timestamp);
@@ -50,7 +49,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
                     if (timestamp > -1) {
                         try {
                             String line = timestamp + "\t" + 0 + "\n";
-                            SensorRecordingManager.dataProcessor.writeEvaluation(line, false, 0);
+                            DataProcessorProvider.getProcessor().writeEvaluation(line, false, 0);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -62,11 +61,10 @@ public class EvaluationReceiver extends BroadcastReceiver {
             }
             if (intent.getStringExtra("trigger").equals("close")) {
                 long timestamp = intent.getLongExtra("timestamp", -1);
-                Log.d("eval", "Close evaluation: " + timestamp);
                 if (timestamp > -1) {
                     try {
                         String line = timestamp + "\t" + -1 + "\n";
-                        SensorRecordingManager.dataProcessor.writeEvaluation(line, true, timestamp);
+                        DataProcessorProvider.getProcessor().writeEvaluation(line, true, timestamp);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

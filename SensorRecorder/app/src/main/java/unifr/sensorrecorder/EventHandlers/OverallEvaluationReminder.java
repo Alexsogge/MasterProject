@@ -10,7 +10,6 @@ import unifr.sensorrecorder.NotificationSpawner;
 public class OverallEvaluationReminder extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("not", "ringring");
-        NotificationSpawner.showOverallEvaluationNotification(context);
+        NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
     }
 }

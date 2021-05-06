@@ -10,6 +10,8 @@ import android.widget.Button;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
+import unifr.sensorrecorder.DataContainer.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
@@ -149,7 +151,7 @@ public class HandwashEvaluation extends WearableActivity {
         }
         line.append("\n");
         try {
-            SensorRecordingManager.dataProcessor.writeEvaluation(line.toString(), timestamp);
+            DataProcessorProvider.getProcessor().writeEvaluation(line.toString(), timestamp);
         } catch (IOException e) {
             e.printStackTrace();
         }

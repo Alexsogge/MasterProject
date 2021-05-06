@@ -52,8 +52,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
 import unifr.sensorrecorder.Complication.ComplicationProvider;
-import unifr.sensorrecorder.Complication.ComplicationReceiver;
 import unifr.sensorrecorder.DataContainer.DataContainer;
+import unifr.sensorrecorder.DataContainer.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 
 
@@ -94,7 +95,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private long sensorStartTime;
 
     // data files
-    public static DataProcessor dataProcessor;
+    private DataProcessor dataProcessor;
 
     // ffmpeg stuff
     private FFMpegProcess mFFmpeg;
@@ -171,7 +172,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                         "SensorRecorder::WakelockTag");
 
-                dataProcessor = new DataProcessor();
+                dataProcessor = DataProcessorProvider.getProcessor();
                 sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
                 initSensors();
                 loadDataContainers();
@@ -408,7 +409,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     public void startRecording(){
         wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
         // show the foreground notification
-        startForeground(1, NotificationSpawner.createRecordingNotification(this, this.intent));
+        startForeground(1, NotificationSpawner.createRecordingNotification(this.getApplicationContext(), this.intent));
 
         // load config
         useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true) && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED;

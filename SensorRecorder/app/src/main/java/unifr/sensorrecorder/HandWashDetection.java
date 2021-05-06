@@ -33,6 +33,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
+import unifr.sensorrecorder.DataContainer.DataProcessor;
+import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
+
 import static android.content.Context.VIBRATOR_SERVICE;
 
 public class HandWashDetection {
@@ -84,7 +87,7 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
-    private boolean debugAutoTrue = false;
+    private boolean debugAutoTrue = true;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -271,11 +274,11 @@ public class HandWashDetection {
 
 
     private void showHandWashNotification(){
-        if(lastPositivePrediction > DataProcessor.lastEvaluationTS + notificationCoolDown) {
+        if(lastPositivePrediction > DataProcessorProvider.getProcessor().lastEvaluationTS + notificationCoolDown) {
             lastNotificationTS = lastPositivePrediction;
             makeToast(mainActivity.getString(R.string.toast_pred_hw));
-            vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
-            NotificationSpawner.spawnHandWashPredictionNotification(mainActivity, lastPositivePrediction);
+            // vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
+            NotificationSpawner.spawnHandWashPredictionNotification(mainActivity.getApplicationContext(), lastPositivePrediction);
             Log.d("pred", "spawn notification");
         } else {
             Log.d("pred", "ignore notification");
