@@ -166,7 +166,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 initialized = true;
                 this.intent = intent;
 
-
                 PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
 
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
@@ -455,7 +454,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
     /**
      * Stop the active listening to sensor events.
-     * First unregister sensors and du a last flush. Because this happens in a separate thread,
+     * First unregister sensors and do a last flush. Because this happens in a separate thread,
      * we start a new task which waits for the complete close and then proceed to save all data.
      * The stopLatch is used so signalise when stop and save is completed
      * @param stopLatch
