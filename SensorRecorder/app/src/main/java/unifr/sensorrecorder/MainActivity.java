@@ -308,8 +308,8 @@ public class MainActivity extends FragmentActivity
         Calendar calendar = Calendar.getInstance();
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
-        targetDate.set(Calendar.HOUR_OF_DAY, 15);
-        targetDate.set(Calendar.MINUTE, 25);
+        targetDate.set(Calendar.HOUR_OF_DAY, 18);
+        targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
         //if(targetDate.before(calendar))
         //    targetDate.add(Calendar.DATE, 1);

@@ -109,7 +109,7 @@
                 android:layout_marginBottom="8dp"
                 android:clickable="true"
                 android:paddingHorizontal="0sp"
-                android:text="sehr"
+                android:text="9"
                 android:textAlignment="viewEnd"
                 app:layout_constraintBottom_toTopOf="@id/answerRateButton"
                 app:layout_constraintRight_toRightOf="parent"
@@ -121,7 +121,7 @@
                 android:layout_height="wrap_content"
                 android:clickable="true"
                 android:padding="0sp"
-                android:text="gar nicht"
+                android:text="0"
                 app:layout_constraintBaseline_toBaselineOf="@+id/rtb_desc_r"
                 app:layout_constraintLeft_toLeftOf="parent" />
 
@@ -179,7 +179,7 @@
                 android:layout_marginBottom="8dp"
                 android:clickable="true"
                 android:paddingHorizontal="0sp"
-                android:text="sehr"
+                android:text="4"
                 android:textAlignment="viewEnd"
                 app:layout_constraintBottom_toTopOf="@id/answerRateButton2"
                 app:layout_constraintRight_toRightOf="parent"
@@ -191,7 +191,7 @@
                 android:layout_height="wrap_content"
                 android:clickable="true"
                 android:padding="0sp"
-                android:text="gar nicht"
+                android:text="0"
                 app:layout_constraintBaseline_toBaselineOf="@+id/rtb_desc_r2"
                 app:layout_constraintLeft_toLeftOf="parent" />
 
