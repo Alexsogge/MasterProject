@@ -35,7 +35,17 @@ To stop the recording we call `stopRecording()` in SensorRecordingManager. At fi
 Now we're in idle state where we could start a new recording or upload some data.
 
 ## Upload data
+For everything which is network relevant, we use [NetworkManager](./app/src/main/java/unifr/sensorrecorder/Networking/NetworkManager.java). To start an upload we call the function `DoFileUpload()`. At the beginning this stops the recording. Since the sensor stop is carried out asynchronously, the upload task also has to wait for the stop in an asynchronous task. We use a sync latch to signalise, if the recording is completely stopped. The actual upload process can start now.  
 
+### Worker
+Since during the communication with an external device many different errors can occur. For example the server could be not reachable or runs into an error or there is no network connection. Android provides Workers which can be used for sensitive tasks. These make sure that certain preconditions exist (Network connection) an repeat their task if something bad happens. They run in background and we can define a backoff criteria which defines at what time intervals the task is repeated. We use [ServerTokenWorker](./app/src/main/java/unifr/sensorrecorder/Networking/ServerTokenWorker.java) to requests the server token for authentication and [UploadWorker](./app/src/main/java/unifr/sensorrecorder/Networking/UploadWorker.java) for the actual upload task.       
+
+#### ServerTokenWorker
+
+
+#### UploadWorker
+
+#### WorkerObserver
 
 ## DataProcessor
 The (DataProcessor](./app/src/main/java/unifr/sensorrecorder/DataContainer/DataProcessor.java) handles everything that has to do with writing to the storage. Since there are many pointer where we write some data, there exists on instance in our Application, which is accessible via the static call `DataProcessorProvider.getProcessor()`. The initialization and managing stuff happens in SensorRecorderManager during `startRecording` and `stopRecording`. Thereby we can write new data at any time, for example by calling `writePrediction()`.

@@ -53,7 +53,7 @@ public class NotificationSpawner {
                 //.setStyle(new NotificationCompat.BigTextStyle()
                 //        .bigText("Sensor recorder is active"))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setSmallIcon(R.drawable.preference_wrapped_icon)
+                .setSmallIcon(R.drawable.ic_hand_wash)
                 .addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_hw), pintHandWash)
                 // .addAction(R.drawable.action_item_background, "Open", pintOpen);
                 .setContentIntent(pintOpen);
@@ -119,13 +119,14 @@ public class NotificationSpawner {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, PREDICTION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_hand_wash)
                 .setContentTitle(context.getResources().getString(R.string.not_just_washed_hands))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 //.setContentIntent(pintOpen)
                 .addAction(R.drawable.ic_check, context.getResources().getString(R.string.not_btn_yes), pintConfirmHandWash)
                 .addAction(R.drawable.ic_close, context.getResources().getString(R.string.not_btn_no), pintDeclineHandWash)
                 //.setFullScreenIntent(pintFS, true)
                 //.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setDeleteIntent(pintClose)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 //.setAutoCancel(true)
         ;
         notificationManager.notify(EVALUATION_REQUEST_CODE, builder.build());
@@ -144,10 +145,11 @@ public class NotificationSpawner {
                 .setContentText(context.getResources().getString(R.string.not_oar_text))
                 //.setStyle(new NotificationCompat.BigTextStyle()
                 //        .bigText("Sensor recorder is active"))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setSmallIcon(R.drawable.preference_wrapped_icon)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_hand_wash)
                 // .setVibrate(new long[]{1000, 500, 1000, 500})
                 // .setSound(alarmSound)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 //.addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_hw), pintHandWash)
                 // .addAction(R.drawable.action_item_background, "Open", pintOpen);
                 .setContentIntent(resultPendingIntent);
@@ -186,7 +188,7 @@ public class NotificationSpawner {
     public static void createChannels(Context context){
         long[] vibrationPattern = new long[]{0, 1000, 500, 1000};
         createNotificationChannel(context, RECORDING_CHANNEL_ID, "Recording Channel", vibrationPattern);
-        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", new long[]{0, 500, 300, 500});
+        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", new long[]{0, 700, 500, 700});
         createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", vibrationPattern);
     }
 

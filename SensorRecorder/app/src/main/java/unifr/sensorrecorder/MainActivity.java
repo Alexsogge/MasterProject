@@ -96,7 +96,7 @@ public class MainActivity extends FragmentActivity
             WorkManager.getInstance(mainActivity).cancelAllWork();
             WorkManager.getInstance(mainActivity).pruneWork();
 
-            NotificationSpawner.deleteAllChannels(this.getApplicationContext());
+            // NotificationSpawner.deleteAllChannels(this.getApplicationContext());
             NotificationSpawner.createChannels(this.getApplicationContext());
 
             mainActivity = this;
