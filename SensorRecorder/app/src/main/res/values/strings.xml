@@ -57,6 +57,9 @@
     <string name="not_oar_text">Please rate your day</string>
     <string name="str_oar_question">Today was the urge to wash my hands:</string>
 
+    <string name="not_update_tf_title">New prediction model available</string>
+    <string name="not_update_tf_text">Update to &#160;</string>
+
     <!--
     Stuff for settings and static strings
     -->
@@ -69,7 +72,11 @@
     <string name="conf_useMKV" translatable="false">useMKV</string>
     <string name="conf_useMic" translatable="false">useMic</string>
     <string name="conf_multipleMic" translatable="false">multipleMic</string>
+    <string name="conf_check_for_tf_update" translatable="false">checkForTfUpdate</string>
     <string name="val_current_run" translatable="false">valCurrentRun</string>
+    <string name="val_current_tf_model" translatable="false">valCurrentTFModel</string>
+    <string name="val_last_checked_tf_model" translatable="false">valLastCheckedTFModel</string>
+    <string name="val_do_skip_tf_model" translatable="false">valLastCheckedTFModel</string>
     <string name="predefined_serverName" translatable="false">https://earth.informatik.uni-freiburg.de/handwash/</string>
     <string name="title_activity_handwash_evaluation" translatable="false">HandwashEvaluation</string>
     <string name="title_activity_overall_evaluation" translatable="false">OverallEvaluation</string>

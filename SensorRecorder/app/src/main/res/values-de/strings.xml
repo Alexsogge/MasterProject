@@ -57,4 +57,7 @@
     <string name="not_oar_text">Bitte bewerten Sie Ihren Tag</string>
     <string name="str_oar_question">Wie intensiv oder häufig war ihr Händewaschen heute insgesamt?</string>
 
+    <string name="not_update_tf_title">Neues erkennungs modell verfügbar</string>
+    <string name="not_update_tf_text">Aktualisieren zu &#160;</string>
+
 </resources>

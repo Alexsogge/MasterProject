@@ -392,6 +392,19 @@ def get_latest_tf_model_settings():
     abort(404, description="Resource not found")
 
 
+@view.route('/tfmodel/check/latest/')
+def check_latest_tf_model():
+    if not os.path.exists(TFMODEL_FOLDER):
+        abort(404, description="Resource not found")
+
+    latest_model = find_newest_tf_file()
+
+    print("found file ", latest_model)
+    if latest_model is not None:
+        return jsonify({'activeModel': latest_model})
+    abort(404, description="Resource not found")
+
+
 @view.route("/auth")
 @basic_auth.login_required
 def nginx_auth():

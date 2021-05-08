@@ -4,30 +4,30 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
-import unifr.sensorrecorder.Evaluation.HandwashEvaluation;
 import unifr.sensorrecorder.Evaluation.OverallEvaluation;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
+import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
 
 public class NotificationSpawner {
 
     private static final String RECORDING_CHANNEL_ID = "ForegroundServiceChannel";
     private static final String PREDICTION_CHANNEL_ID = "PredictionChannel";
     private static final String OverallEvaluation_CHANNEL_ID = "OverallEvaluationChannel";
+    private static final String UPDATETFMODEL_CHANNEL_ID = "UpdateTFModelChannel";
     public static final int DAILY_REMINDER_REQUEST_CODE = 13;
     public static final int EVALUATION_REQUEST_CODE = 12;
+    public static final int UPDATETFMODEL_REQUEST_CODE = 14;
+
     private static Intent recordingServiceIntent;
 
     private static int notificationCounter = 2;
@@ -134,7 +134,6 @@ public class NotificationSpawner {
 
 
     public static void showOverallEvaluationNotification(Context context){
-        Log.d("not", "show overall notification");
         Intent startEvalIntent = new Intent(context, OverallEvaluation.class);
         startEvalIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent resultPendingIntent = PendingIntent.getActivity(context, DAILY_REMINDER_REQUEST_CODE, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -157,6 +156,33 @@ public class NotificationSpawner {
         nm.notify(DAILY_REMINDER_REQUEST_CODE, notificationBuilder.build());
     }
 
+    public static void showUpdateTFModelNotification(Context context, String modelName){
+        Log.d("not", "show update tf model notification");
+        Intent startUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
+        PendingIntent startUpdatePendingIntent = PendingIntent.getBroadcast(context, 43, startUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent skipUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
+        skipUpdateIntent.putExtra("SKIP", modelName);
+        PendingIntent skipUpdatePendingIntent = PendingIntent.getBroadcast(context, 44, skipUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, UPDATETFMODEL_CHANNEL_ID)
+                .setContentTitle( context.getResources().getString(R.string.not_update_tf_title))
+                .setContentText( context.getResources().getString(R.string.not_update_tf_text) + modelName + "?")
+                //.setStyle(new NotificationCompat.BigTextStyle()
+                //        .bigText("Sensor recorder is active"))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_hand_wash)
+                // .setVibrate(new long[]{1000, 500, 1000, 500})
+                // .setSound(alarmSound)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_yes), startUpdatePendingIntent)
+                .addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_no), skipUpdatePendingIntent)
+                .setAutoCancel(true)
+                // .setContentIntent(resultPendingIntent)
+                ;
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        nm.notify(UPDATETFMODEL_REQUEST_CODE, notificationBuilder.build());
+    }
 
     private static void closeOldPredictionNotification(NotificationManager notificationManager) throws PendingIntent.CanceledException {
         StatusBarNotification[] activeNotifications = notificationManager.getActiveNotifications();
@@ -188,8 +214,9 @@ public class NotificationSpawner {
     public static void createChannels(Context context){
         long[] vibrationPattern = new long[]{0, 1000, 500, 1000};
         createNotificationChannel(context, RECORDING_CHANNEL_ID, "Recording Channel", vibrationPattern);
-        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", new long[]{0, 700, 500, 700});
+        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", new long[]{700, 500, 700, 500});
         createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", vibrationPattern);
+        createNotificationChannel(context, UPDATETFMODEL_CHANNEL_ID, "Update TF model Channel", vibrationPattern);
     }
 
     public static void deleteAllChannels(Context context){
@@ -198,6 +225,7 @@ public class NotificationSpawner {
         notificationManager.deleteNotificationChannel(RECORDING_CHANNEL_ID);
         notificationManager.deleteNotificationChannel(PREDICTION_CHANNEL_ID);
         notificationManager.deleteNotificationChannel(OverallEvaluation_CHANNEL_ID);
+        notificationManager.deleteNotificationChannel(UPDATETFMODEL_CHANNEL_ID);
     }
 
 }

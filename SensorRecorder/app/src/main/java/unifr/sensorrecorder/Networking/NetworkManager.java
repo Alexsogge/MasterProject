@@ -7,19 +7,26 @@ import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.app.NotificationCompat;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import unifr.sensorrecorder.HandWashDetection;
+import unifr.sensorrecorder.MainActivity;
+import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -80,8 +87,6 @@ public class NetworkManager {
     }
 
 
-
-
     private class UploadTaskStarter implements Runnable{
 
         @Override
@@ -110,6 +115,25 @@ public class NetworkManager {
             } else {
                 WorkManager.getInstance(mainActivity).enqueue(uploadWorkRequest);
             }
+        }
+    }
+
+    public void restartRecording(){
+        executor.execute(new RestartRecordingTask());
+    }
+
+    private class RestartRecordingTask implements Runnable{
+        @Override
+        public void run() {
+            sensorStopLatch = new CountDownLatch(1);
+            sensorService.waitForStopRecording(sensorStopLatch);
+            // wait for finished sensors
+            try {
+                sensorStopLatch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            ((MainActivity)mainActivity).toggleStartRecording();
         }
     }
 
@@ -150,6 +174,10 @@ public class NetworkManager {
         new NetworkManager.HTTPGetTFModel().execute();
     }
 
+    public void checkForFModelUpdate(){
+        new NetworkManager.HTTPCheckForNewTFModel().execute();
+    }
+
     public void requestServerToken(){
         OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
         WorkManager.getInstance(mainActivity).enqueue(serverTokenWorkRequest);
@@ -166,6 +194,9 @@ public class NetworkManager {
                 String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
                 downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
                 makeToast(mainActivity.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName);
+                SharedPreferences.Editor configEditor = configs.edit();
+                configEditor.putString(mainActivity.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
+                configEditor.apply();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -196,7 +227,52 @@ public class NetworkManager {
                     }
                 }
             }
+
             return fileName;
         }
     }
+
+
+    protected final class HTTPCheckForNewTFModel extends AsyncTask<String, String, String> {
+
+        private final OkHttpClient client = new OkHttpClient();
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
+            try {
+                String tfFileName = getActiveTFFile(serverName + "/tfmodel/check/latest/");
+                if(tfFileName.length() > 0){
+                    String currentModel = configs.getString(mainActivity.getString(R.string.val_current_tf_model), "");
+                    String doSkip = configs.getString(mainActivity.getString(R.string.val_do_skip_tf_model), "");
+                    if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
+                        NotificationSpawner.showUpdateTFModelNotification(mainActivity.getApplicationContext(), tfFileName);
+                    }
+                    SharedPreferences.Editor configEditor = configs.edit();
+                    configEditor.putString(mainActivity.getApplicationContext().getString(R.string.val_last_checked_tf_model),tfFileName);
+                    configEditor.apply();
+                }
+
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        private String getActiveTFFile(String url) throws IOException, JSONException {
+            Request request = new Request.Builder().url(url).build();
+            Response response = null;
+            response = client.newCall(request).execute();
+            if (!response.isSuccessful()) {
+                makeToast(mainActivity.getString(R.string.toast_failed_to_dl_file) + response);
+            } else {
+                String jsonData = response.body().string();
+                JSONObject jObject = new JSONObject(jsonData);
+                if(jObject.has("activeModel"))
+                    return jObject.getString("activeModel");
+            }
+            return "";
+        }
+    }
+
 }

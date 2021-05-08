@@ -44,12 +44,12 @@ public class HandWashDetection {
     public static final String modelSettingsName = "predictionModel.json";
     private final Executor executor = Executors.newSingleThreadExecutor(); // change according to your requirements
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final int[] initialRequiredSensors = new int[]{Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD};
+    private final int[] initialRequiredSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE};
     private final int[] hasToBeTranslatedSensors = new int[]{Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_MAGNETIC_FIELD};
     private final int initialFrameSize = 50;
 
     private final long initialPositivePredictedTimeFrame = (long) 3e9; // 3 seconds
-    private final int initialRequiredPositivePredictions = 4;
+    private final int initialRequiredPositivePredictions = 3;
     private final long initialNotificationCoolDown = (long) 40e9; // 40 seconds
 
     private int[] requiredSensors;
@@ -88,6 +88,7 @@ public class HandWashDetection {
     private MappedByteBuffer tfliteModel;
 
     private boolean debugAutoTrue = false;
+    private boolean discardDoubleFalsePredicted = false;
 
 
     protected HandWashDetection(Activity activity) throws IOException {
@@ -346,7 +347,7 @@ public class HandWashDetection {
                         positivePredictedCounter = 1;
                     }
                     lastPositivePrediction = timestamp;
-                } else if(!lastPrediction){
+                } else if(!lastPrediction && discardDoubleFalsePredicted){
                     positivePredictedCounter = 0;
                 }
                 lastPrediction = prediction;
@@ -453,7 +454,7 @@ public class HandWashDetection {
         // check if one of the acceleration or gyroscope axes has been a certain impact
 
         long timeStamp = sensorTimeStamps[sensorIndex][pointer];
-        int offset = pointer - 25;
+        int offset = Math.max(0, pointer - 25);
         for (int axes = 0; axes < sensorDimensions[sensorIndex]; axes++) {
             float min = Float.MAX_VALUE;
             float max = Float.MIN_VALUE;

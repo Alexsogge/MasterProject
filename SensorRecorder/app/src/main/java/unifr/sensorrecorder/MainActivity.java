@@ -40,6 +40,7 @@ import java.io.IOException;
 import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
 import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
+import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
 import unifr.sensorrecorder.Networking.NetworkManager;
 import unifr.sensorrecorder.Networking.ServerTokenObserver;
 import unifr.sensorrecorder.Networking.UploadObserver;
@@ -75,6 +76,7 @@ public class MainActivity extends FragmentActivity
     private String [] permissions = {Manifest.permission.RECORD_AUDIO};
     private BatteryEventHandler batteryEventHandler;
     private ChargeEventHandler chargeEventHandler;
+    private UpdateTFModelReceiver updateTFModelReceiver;
     private Button startStopButton;
     private Button uploadButton;
 
@@ -222,6 +224,8 @@ public class MainActivity extends FragmentActivity
     }
 
     public void toggleStartRecording(){
+        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
+            networkManager.checkForFModelUpdate();
         handWashDetection.initModel();
         sensorService.startRecording();
     }
@@ -250,6 +254,8 @@ public class MainActivity extends FragmentActivity
         networkManager = new NetworkManager(this, null, configs);
         batteryEventHandler = new BatteryEventHandler();
         chargeEventHandler = new ChargeEventHandler();
+        updateTFModelReceiver = new UpdateTFModelReceiver(networkManager);
+
 //        Intent intentEvalServ = new Intent(this, EvaluationService.class);
 //        bindService(intentEvalServ, evaluationConnection, Context.BIND_AUTO_CREATE);
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -289,10 +295,16 @@ public class MainActivity extends FragmentActivity
         filter2.addAction(Intent.ACTION_POWER_DISCONNECTED);
         this.registerReceiver(chargeEventHandler, filter2);
 
+        IntentFilter filter3 = new IntentFilter();
+        filter3.addAction(UpdateTFModelReceiver.BROADCAST_ACTION);
+        this.registerReceiver(updateTFModelReceiver, filter3);
+
         startRecording();
     }
 
     private void startRecording(){
+        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
+            networkManager.checkForFModelUpdate();
         intent = new Intent(this, SensorRecordingManager.class );
         bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -418,7 +430,11 @@ public class MainActivity extends FragmentActivity
         super.onDestroy();
         Log.d("activity", "on stop main");
         unregisterReceiver(batteryEventHandler);
+        batteryEventHandler = null;
         unregisterReceiver(chargeEventHandler);
+        chargeEventHandler = null;
+        unregisterReceiver(updateTFModelReceiver);
+        updateTFModelReceiver = null;
     }
 
     @Override

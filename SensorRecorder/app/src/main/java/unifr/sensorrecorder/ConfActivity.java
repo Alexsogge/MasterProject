@@ -32,6 +32,7 @@ public class ConfActivity extends WearableActivity {
     private CheckBox useZipsCheckbox;
     private CheckBox useMKVCheckbox;
     private CheckBox useMicCheckbox;
+    private CheckBox updateTFCheckbox;
     private Switch multipleMicSwitch;
     private Button downloadTFModelButton;
     private Button deleteTokenButton;
@@ -58,6 +59,7 @@ public class ConfActivity extends WearableActivity {
         useZipsCheckbox = (CheckBox) findViewById(R.id.useZipCheckbox);
         useMKVCheckbox = (CheckBox) findViewById(R.id.useMKVCheckbox);
         useMicCheckbox = (CheckBox) findViewById(R.id.useMicCheckbox);
+        updateTFCheckbox = (CheckBox) findViewById(R.id.updateTFCheckbox);
         multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
 
         downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
@@ -79,6 +81,8 @@ public class ConfActivity extends WearableActivity {
             useZipsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useZip), true));
         if(configs.contains(getString(R.string.conf_useMKV)))
             useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
+        if(configs.contains(getString(R.string.conf_check_for_tf_update)))
+            updateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_check_for_tf_update), true));
 
         if(ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){
             useMicCheckbox.setChecked(false);
@@ -140,6 +144,7 @@ public class ConfActivity extends WearableActivity {
                 configEditor.putBoolean(getString(R.string.conf_useMKV), useMKVCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_useMic), useMicCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_multipleMic), multipleMicSwitch.isChecked());
+                configEditor.putBoolean(getString(R.string.conf_check_for_tf_update), updateTFCheckbox.isChecked());
 
                 configEditor.apply();
 

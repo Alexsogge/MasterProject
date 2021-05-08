@@ -92,6 +92,14 @@
                     android:textColor="#FFFFFF" />
             </LinearLayout>
 
+            <CheckBox
+                android:id="@+id/updateTFCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Check for tf updates"
+                android:textAlignment="center" />
+
             <Button
                 android:id="@+id/buttonApply"
                 android:layout_width="match_parent"

@@ -59,4 +59,7 @@
     <string name="not_oar_text">Please rate your day</string>
     <string name="str_oar_question">Today was the urge to wash my hands:</string>
 
+    <string name="not_update_tf_title">New prediction model available</string>
+    <string name="not_update_tf_text">Update to &#160;</string>
+
 </resources>
