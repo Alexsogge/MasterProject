@@ -76,7 +76,7 @@
         <service
             android:name=".Complication.ComplicationProvider"
             android:icon="@drawable/ic_hand_wash"
-            android:label="Sensor recorder Handwash"
+            android:label="Hand wash counter"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />

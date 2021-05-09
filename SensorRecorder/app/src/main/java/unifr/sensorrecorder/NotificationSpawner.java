@@ -192,6 +192,7 @@ public class NotificationSpawner {
                 break;
             }
         }
+        notificationManager.cancel(EVALUATION_REQUEST_CODE);
     }
 
     private static void createNotificationChannel(Context context, String chanelID, String chanelName, long[] vibrationPattern) {
@@ -214,7 +215,7 @@ public class NotificationSpawner {
     public static void createChannels(Context context){
         long[] vibrationPattern = new long[]{0, 1000, 500, 1000};
         createNotificationChannel(context, RECORDING_CHANNEL_ID, "Recording Channel", vibrationPattern);
-        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", new long[]{700, 500, 700, 500});
+        createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", null);
         createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", vibrationPattern);
         createNotificationChannel(context, UPDATETFMODEL_CHANNEL_ID, "Update TF model Channel", vibrationPattern);
     }
