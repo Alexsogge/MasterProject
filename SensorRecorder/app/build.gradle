@@ -10,8 +10,8 @@ android {
         applicationId "unifr.sensorrecorder"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 5
-        versionName "1.2"
+        versionCode 6
+        versionName "1.3"
 
     }
 
