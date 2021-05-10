@@ -40,12 +40,6 @@ public class NotificationSpawner {
         Intent handwashIntent = new Intent(recordingServiceIntent);
         handwashIntent.putExtra("trigger", "handWash");
         PendingIntent pintHandWash = PendingIntent.getService(context, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        // Intent openIntent = new Intent(intent);
-        Intent openIntent = new Intent(context, MainActivity.class);
-
-        openIntent.putExtra("trigger", "open");
-        PendingIntent pintOpen = PendingIntent.getActivity(context, 579, openIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, RECORDING_CHANNEL_ID)
                 .setContentTitle(context.getResources().getString(R.string.not_running))
@@ -55,8 +49,7 @@ public class NotificationSpawner {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.ic_hand_wash)
                 .addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_hw), pintHandWash)
-                // .addAction(R.drawable.action_item_background, "Open", pintOpen);
-                .setContentIntent(pintOpen);
+                ;
 
         return notificationBuilder.build();
     }
