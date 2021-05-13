@@ -5,6 +5,7 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.media.MediaRecorder;
@@ -55,6 +56,8 @@ import unifr.sensorrecorder.Complication.ComplicationProvider;
 import unifr.sensorrecorder.DataContainer.DataContainer;
 import unifr.sensorrecorder.DataContainer.DataProcessor;
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
+import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
+import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 
 
@@ -84,6 +87,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private Intent intent;
     private boolean initialized = false;
     private PowerManager.WakeLock wakeLock;
+    private BatteryEventHandler batteryEventHandler;
+    private ChargeEventHandler chargeEventHandler;
 
     // sensor recording stuff
     private android.hardware.SensorManager sensorManager;
@@ -188,6 +193,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                     e.printStackTrace();
                 }
 
+                registerReceivers();
+
                 // start recording at app startup
                 /*
                 // get charging state
@@ -213,6 +220,18 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         this.startStopButton = startStopButton;
     }
 
+    private void registerReceivers(){
+        batteryEventHandler = new BatteryEventHandler();
+        batteryEventHandler.sensorRecordingManager = this;
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+        this.registerReceiver(batteryEventHandler, filter);
+
+        chargeEventHandler = new ChargeEventHandler();
+        IntentFilter filter2 = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
+        filter2.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        this.registerReceiver(chargeEventHandler, filter2);
+    }
 
     /**
      * Initialize the used sensors. These can vary for different devices since they don't support
@@ -841,6 +860,10 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     @Override
     public void onDestroy(){
         this.unregisterFromManager();
+        unregisterReceiver(batteryEventHandler);
+        batteryEventHandler = null;
+        unregisterReceiver(chargeEventHandler);
+        chargeEventHandler = null;
     }
 
 

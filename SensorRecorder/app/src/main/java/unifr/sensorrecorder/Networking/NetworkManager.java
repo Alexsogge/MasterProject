@@ -272,6 +272,7 @@ public class NetworkManager {
                 if(tfFileName.length() > 0){
                     String currentModel = configs.getString(context.getString(R.string.val_current_tf_model), "");
                     String doSkip = configs.getString(context.getString(R.string.val_do_skip_tf_model), "");
+                    // Log.d("net", "active: " + tfFileName + " using " + currentModel + " skip " + doSkip);
                     if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
                         NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
                     }

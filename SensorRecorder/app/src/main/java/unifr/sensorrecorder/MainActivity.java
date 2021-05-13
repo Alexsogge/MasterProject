@@ -74,8 +74,6 @@ public class MainActivity extends FragmentActivity
     // Requesting permission to RECORD_AUDIO and
     private boolean permissionToRecordAccepted = false;
     private String [] permissions = {Manifest.permission.RECORD_AUDIO};
-    private BatteryEventHandler batteryEventHandler;
-    private ChargeEventHandler chargeEventHandler;
     private UpdateTFModelReceiver updateTFModelReceiver;
     private Button startStopButton;
     private Button uploadButton;
@@ -102,7 +100,6 @@ public class MainActivity extends FragmentActivity
 
             // set scroll view to correct size
             adjustInset();
-
 
             // initialize user interface elements
             initUI();
@@ -246,8 +243,6 @@ public class MainActivity extends FragmentActivity
     private void initServices(){
         networkManager = StaticDataProvider.getNetworkManager();
         networkManager.initialize(this, sensorService, configs, infoText);
-        batteryEventHandler = new BatteryEventHandler();
-        chargeEventHandler = new ChargeEventHandler();
         updateTFModelReceiver = new UpdateTFModelReceiver();
 
 //        Intent intentEvalServ = new Intent(this, EvaluationService.class);
@@ -281,18 +276,12 @@ public class MainActivity extends FragmentActivity
         // set system calls for battery changes
         // implicit broadcasts are not supported in manifest.xml since API level 26
         // https://developer.android.com/guide/components/broadcast-exceptions
-        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        filter.addAction(Intent.ACTION_BATTERY_LOW);
-        this.registerReceiver(batteryEventHandler, filter);
 
-        IntentFilter filter2 = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
-        filter2.addAction(Intent.ACTION_POWER_DISCONNECTED);
-        this.registerReceiver(chargeEventHandler, filter2);
-
+        /*
         IntentFilter filter3 = new IntentFilter();
         filter3.addAction(UpdateTFModelReceiver.BROADCAST_ACTION);
         this.registerReceiver(updateTFModelReceiver, filter3);
-
+        */
         startRecording();
     }
 
@@ -343,7 +332,6 @@ public class MainActivity extends FragmentActivity
             // initialize services components
             sensorService.initUIElements(startStopButton);
             networkManager.sensorService = sensorService;
-            batteryEventHandler.sensorRecordingManager = sensorService;
             if(sensorService.isRunning)
                 startStopButton.setText(getString(R.string.btn_stop));
         }
@@ -418,15 +406,17 @@ public class MainActivity extends FragmentActivity
         Log.d("sensorrecorderevent", "Pause main actitvity");
     }
 
+    public void onStop() {
+        super.onStop();
+        Log.d("activity", "on stop main");
+    }
+
     public void onDestroy () {
         super.onDestroy();
-        Log.d("activity", "on stop main");
-        unregisterReceiver(batteryEventHandler);
-        batteryEventHandler = null;
-        unregisterReceiver(chargeEventHandler);
-        chargeEventHandler = null;
-        unregisterReceiver(updateTFModelReceiver);
-        updateTFModelReceiver = null;
+        Log.d("activity", "on destroy main");
+
+        //unregisterReceiver(updateTFModelReceiver);
+        //updateTFModelReceiver = null;
     }
 
     @Override

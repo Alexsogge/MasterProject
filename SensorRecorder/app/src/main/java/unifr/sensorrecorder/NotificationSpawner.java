@@ -146,11 +146,13 @@ public class NotificationSpawner {
     }
 
     public static void showUpdateTFModelNotification(Context context, String modelName){
-        Log.d("not", "show update tf model notification");
-        Intent startUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
+        // Log.d("not", "show update tf model notification");
+        //Intent startUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
+        Intent startUpdateIntent = new Intent(context, UpdateTFModelReceiver.class);
         PendingIntent startUpdatePendingIntent = PendingIntent.getBroadcast(context, 43, startUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent skipUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
+        // Intent skipUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
+        Intent skipUpdateIntent = new Intent(context, UpdateTFModelReceiver.class);
         skipUpdateIntent.putExtra("SKIP", modelName);
         PendingIntent skipUpdatePendingIntent = PendingIntent.getBroadcast(context, 44, skipUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
