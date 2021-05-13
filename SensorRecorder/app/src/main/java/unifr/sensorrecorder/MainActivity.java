@@ -81,7 +81,7 @@ public class MainActivity extends FragmentActivity
     private Button uploadButton;
 
     private ScrollView mainScrollView;
-    private CustomSpinner handWashSpinner;
+    //private CustomSpinner handWashSpinner;
 
     // ML stuff
     public HandWashDetection handWashDetection;
@@ -165,6 +165,7 @@ public class MainActivity extends FragmentActivity
             }
         });
 
+        /*
         handWashSpinner = (CustomSpinner) findViewById(R.id.handwash_spinner);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.handwash_spinner_values, android.R.layout.simple_spinner_item);
@@ -202,6 +203,7 @@ public class MainActivity extends FragmentActivity
                 // sometimes you need nothing here
             }
         });
+        */
 
         uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
