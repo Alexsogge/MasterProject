@@ -7,13 +7,15 @@
     android:background="@color/dark_grey"
     android:padding="@dimen/box_inset_layout_padding"
     tools:context=".Evaluation.OverallEvaluation"
-    tools:deviceIds="wear">
+    tools:deviceIds="wear"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginHorizontal="10dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        >
 
         <RatingBar
             android:id="@+id/ovEvRatingBar"
@@ -34,6 +36,7 @@
             android:id="@+id/textView4"
             android:layout_width="match_parent"
             android:layout_height="88dp"
+            android:layout_marginHorizontal="10dp"
             android:gravity="bottom"
             android:text="@string/str_oar_question"
             android:textAlignment="center"
@@ -73,6 +76,7 @@
             style="@style/Widget.AppCompat.Button.Small"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="15dp"
             android:text="@string/btn_rate" />
     </LinearLayout>
 

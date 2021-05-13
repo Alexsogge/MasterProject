@@ -132,8 +132,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // if a call wasn't the initial one it came from a notification button
         // therefore we have to determine which action should be triggered
 
-
-        if (intent.getStringExtra("trigger") != null){
+        if (intent != null && intent.getStringExtra("trigger") != null){
             // new hand wash event
             if (intent.getStringExtra("trigger").equals("handWash")) {
                 if(isRunning)

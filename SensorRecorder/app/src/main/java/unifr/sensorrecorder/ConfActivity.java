@@ -179,7 +179,7 @@ public class ConfActivity extends WearableActivity {
     private void adjustInset() {
         if (getResources().getConfiguration().isScreenRound()) {
             int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
-            View layout = (View) findViewById(R.id.mainview);
+            View layout = (View) findViewById(R.id.confMainview);
             layout.setPadding(inset, inset, inset, inset);
         }
     }
