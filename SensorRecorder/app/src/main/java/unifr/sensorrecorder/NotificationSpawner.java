@@ -33,10 +33,6 @@ public class NotificationSpawner {
     private static int notificationCounter = 2;
 
     public static Notification createRecordingNotification(Context context, Intent recordingServiceIntent){
-        Intent notificationIntent = new Intent(context, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                0, notificationIntent, 0);
-
         Intent handwashIntent = new Intent(recordingServiceIntent);
         handwashIntent.putExtra("trigger", "handWash");
         PendingIntent pintHandWash = PendingIntent.getService(context, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);

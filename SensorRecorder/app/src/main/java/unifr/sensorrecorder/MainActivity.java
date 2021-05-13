@@ -37,6 +37,8 @@ import androidx.wear.ambient.AmbientModeSupport;
 import androidx.work.WorkManager;
 
 import java.io.IOException;
+
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
 import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
@@ -53,15 +55,13 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 public class MainActivity extends FragmentActivity
         implements AmbientModeSupport.AmbientCallbackProvider{
     private static double FACTOR = 0.2; // c = a * sqrt(2)
-
-    public static MainActivity mainActivity;
     private boolean isActive = false;
 
     private TextView mTextView;
     private Intent intent;
-    public SensorRecordingManager sensorService;
+    private SensorRecordingManager sensorService;
     // public EvaluationService evaluationService;
-    public NetworkManager networkManager;
+    private NetworkManager networkManager;
 
     private boolean mBound = false;
     private boolean waitForConfigs = false;
@@ -83,8 +83,6 @@ public class MainActivity extends FragmentActivity
     private ScrollView mainScrollView;
     //private CustomSpinner handWashSpinner;
 
-    // ML stuff
-    public HandWashDetection handWashDetection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,23 +93,16 @@ public class MainActivity extends FragmentActivity
             isActive = true;
             turnOffDozeMode(this);
 
-            WorkManager.getInstance(mainActivity).cancelAllWork();
-            WorkManager.getInstance(mainActivity).pruneWork();
+            WorkManager.getInstance(this).cancelAllWork();
+            WorkManager.getInstance(this).pruneWork();
 
             // NotificationSpawner.deleteAllChannels(this.getApplicationContext());
             NotificationSpawner.createChannels(this.getApplicationContext());
-
-            mainActivity = this;
             setOverallEvaluationReminder();
 
             // set scroll view to correct size
             adjustInset();
 
-            try {
-                handWashDetection = new HandWashDetection(this);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
             // initialize user interface elements
             initUI();
@@ -228,7 +219,7 @@ public class MainActivity extends FragmentActivity
     public void toggleStartRecording(){
         if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
             networkManager.checkForFModelUpdate();
-        handWashDetection.initModel();
+        // handWashDetection.initModel();
         sensorService.startRecording();
     }
 
@@ -253,10 +244,11 @@ public class MainActivity extends FragmentActivity
     }
 
     private void initServices(){
-        networkManager = new NetworkManager(this, null, configs);
+        networkManager = StaticDataProvider.getNetworkManager();
+        networkManager.initialize(this, sensorService, configs, infoText);
         batteryEventHandler = new BatteryEventHandler();
         chargeEventHandler = new ChargeEventHandler();
-        updateTFModelReceiver = new UpdateTFModelReceiver(networkManager);
+        updateTFModelReceiver = new UpdateTFModelReceiver();
 
 //        Intent intentEvalServ = new Intent(this, EvaluationService.class);
 //        bindService(intentEvalServ, evaluationConnection, Context.BIND_AUTO_CREATE);
@@ -347,11 +339,9 @@ public class MainActivity extends FragmentActivity
             // get SensorService instance when ready
             SensorRecordingManager.LocalBinder binder = (SensorRecordingManager.LocalBinder) service;
             sensorService = binder.getService();
-            sensorService.mainActivity = mainActivity;
             mBound = true;
             // initialize services components
-            sensorService.infoText = (TextView) findViewById(R.id.infoText);
-            sensorService.startStopButton = startStopButton;
+            sensorService.initUIElements(startStopButton);
             networkManager.sensorService = sensorService;
             batteryEventHandler.sensorRecordingManager = sensorService;
             if(sensorService.isRunning)
@@ -382,7 +372,7 @@ public class MainActivity extends FragmentActivity
                             new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                             1);
                     // permission denied
-                    Toast.makeText(MainActivity.this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
                 }
                 return;
             }

@@ -3,7 +3,6 @@ package unifr.sensorrecorder;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -17,6 +16,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.Networking.NetworkManager;
 
 //import static android.Manifest.permission.RECORD_AUDIO;
@@ -25,7 +25,6 @@ import unifr.sensorrecorder.Networking.NetworkManager;
 public class ConfActivity extends WearableActivity {
 
     private static double FACTOR = 0.2; // c = a * sqrt(2)
-    private Activity confActivity;
     private SharedPreferences configs;
     private EditText serverNameInput;
     private EditText userIdentifierInput;
@@ -43,14 +42,13 @@ public class ConfActivity extends WearableActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conf);
-        confActivity = this;
 
         adjustInset();
 
         configs = this.getSharedPreferences(
                 getString(R.string.configs), Context.MODE_PRIVATE);
 
-        networkManager = new NetworkManager(this, null, configs);
+        networkManager = StaticDataProvider.getNetworkManager();
 
         serverNameInput = (EditText)findViewById(R.id.editTextServerName);
         userIdentifierInput = (EditText)findViewById(R.id.editTextUserIdentifier);

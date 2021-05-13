@@ -1,6 +1,5 @@
 package unifr.sensorrecorder;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
@@ -15,6 +14,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
@@ -54,7 +54,7 @@ import de.uni_freiburg.ffmpeg.FFMpegProcess;
 import unifr.sensorrecorder.Complication.ComplicationProvider;
 import unifr.sensorrecorder.DataContainer.DataContainer;
 import unifr.sensorrecorder.DataContainer.DataProcessor;
-import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 
 
@@ -77,10 +77,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
 
     // handle main ui
-    public Activity mainActivity;
-    public Button startStopButton;
+    private Button startStopButton;
     public static boolean isRunning = true;
-    public TextView infoText;
 
     // service stuff
     private Intent intent;
@@ -116,7 +114,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
 
     // ML stuff
-    public HandWashDetection handWashDetection;
+    private HandWashDetection handWashDetection;
 
 
     /**
@@ -133,6 +131,12 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // therefore we have to determine which action should be triggered
 
         if (intent != null && intent.getStringExtra("trigger") != null){
+            // start recording
+            if (intent.getStringExtra("trigger").equals("startRecording")) {
+                if(!isRunning && initialized)
+                    startRecording();
+            }
+
             // new hand wash event
             if (intent.getStringExtra("trigger").equals("handWash")) {
                 if(isRunning)
@@ -170,14 +174,19 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                         "SensorRecorder::WakelockTag");
 
-                dataProcessor = DataProcessorProvider.getProcessor();
+                dataProcessor = StaticDataProvider.getProcessor();
                 sensorManager = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
                 initSensors();
                 loadDataContainers();
 
                 configs = this.getSharedPreferences(getString(R.string.configs), Context.MODE_PRIVATE);
 
-                handWashDetection = MainActivity.mainActivity.handWashDetection;
+                // handWashDetection = MainActivity.mainActivity.handWashDetection;
+                try {
+                    handWashDetection = new HandWashDetection(this.getApplicationContext());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
                 // start recording at app startup
                 /*
@@ -198,6 +207,10 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             }
         }
         return START_STICKY;
+    }
+
+    public void initUIElements(Button startStopButton){
+        this.startStopButton = startStopButton;
     }
 
 
@@ -416,6 +429,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         useMic &= ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_GRANTED;
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
 
+        handWashDetection.initModel();
+
         // reset all containers before we activate the new ones
         dataProcessor.deactivateAllContainer();
         try {
@@ -465,7 +480,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             return;
         }
 
-        startStopButton.setText(getResources().getString(R.string.btn_stopping));
+        if(startStopButton != null)
+            startStopButton.setText(getResources().getString(R.string.btn_stopping));
         Log.d("mgr", "Stop recording");
         // stop sensor manager
         stopSensors();
@@ -756,12 +772,21 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      * @param text
      */
     private void makeToast(final String text){
-        mainActivity.runOnUiThread(new Runnable() {
+        /*
+        context.runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, text, Toast.LENGTH_LONG).show();
+            }
+        });
+         */
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
             }
         });
     }
+
 
     /**
      * Get the required sensor value for a given sensor to trigger a prediction.

@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.support.wearable.complications.ProviderUpdateRequester;
 import android.util.Log;
 
-import unifr.sensorrecorder.MainActivity;
 
 public class ComplicationReceiver extends BroadcastReceiver {
 

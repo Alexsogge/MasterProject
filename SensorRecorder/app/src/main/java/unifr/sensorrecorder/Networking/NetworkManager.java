@@ -1,13 +1,16 @@
 package unifr.sensorrecorder.Networking;
 
-import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.core.app.NotificationCompat;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.NetworkType;
@@ -18,7 +21,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import unifr.sensorrecorder.HandWashDetection;
-import unifr.sensorrecorder.MainActivity;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
@@ -26,7 +28,6 @@ import unifr.sensorrecorder.SensorRecordingManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -34,27 +35,29 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import kotlin.Pair;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 public class NetworkManager {
     public SensorRecordingManager sensorService;
-    private Activity mainActivity;
+    private Context context;
     private final Executor executor = Executors.newSingleThreadExecutor();
+    private boolean initialized = false;
 
     private TextView infoText;
     private SharedPreferences configs;
-
     private CountDownLatch sensorStopLatch;
 
-
-    public NetworkManager(final Activity mainActivity, SensorRecordingManager sensorService, SharedPreferences configs){
-        this.mainActivity = mainActivity;
-        this.sensorService = sensorService;
-        infoText = (TextView)mainActivity.findViewById(R.id.infoText);
-        this.configs = configs;
+    public void initialize(Context context, SensorRecordingManager sensorService, SharedPreferences configs, TextView infoText){
+        if(!initialized) {
+            this.context = context;
+            this.sensorService = sensorService;
+            //this.infoText = (TextView) context.findViewById(R.id.infoText);
+            this.infoText = infoText;
+            this.configs = configs;
+            initialized = true;
+        }
     }
 
     public void DoFileUpload(){
@@ -64,12 +67,14 @@ public class NetworkManager {
 
 
         // update info text
-        infoText.setText(mainActivity.getString(R.string.btn_stopping));
-        infoText.invalidate();
+        if(infoText != null) {
+            infoText.setText(context.getString(R.string.btn_stopping));
+            infoText.invalidate();
+        }
 
         // check if server was specified
-        if(configs.getString(mainActivity.getString(R.string.conf_serverName), "").equals("")){
-            Toast.makeText(mainActivity.getBaseContext(), mainActivity.getString(R.string.toast_no_server_name), Toast.LENGTH_LONG).show();
+        if(configs.getString(context.getString(R.string.conf_serverName), "").equals("")){
+            Toast.makeText(context, context.getString(R.string.toast_no_server_name), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -79,9 +84,17 @@ public class NetworkManager {
 
 
     private void makeToast(final String text){
-        mainActivity.runOnUiThread(new Runnable() {
+        /*
+        context.runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(mainActivity, text, Toast.LENGTH_LONG).show();
+                Toast.makeText(context, text, Toast.LENGTH_LONG).show();
+            }
+        });
+         */
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(context, text, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -98,22 +111,24 @@ public class NetworkManager {
                 e.printStackTrace();
             }
             // update info text
-            infoText.setText(mainActivity.getString(R.string.it_start_upload));
-            infoText.invalidate();
+            if(infoText != null) {
+                infoText.setText(context.getString(R.string.it_start_upload));
+                infoText.invalidate();
+            }
 
 
             OneTimeWorkRequest uploadWorkRequest = buildUploadWorkRequest();
-            WorkManager.getInstance(mainActivity).cancelAllWork();
-            WorkManager.getInstance(mainActivity).pruneWork();
-            if(configs.getString(mainActivity.getString(R.string.conf_serverToken), "").equals("")) {
+            WorkManager.getInstance(context).cancelAllWork();
+            WorkManager.getInstance(context).pruneWork();
+            if(configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
                 OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
                 Log.d("net", "enque upload worker");
-                WorkManager.getInstance(mainActivity)
+                WorkManager.getInstance(context)
                         .beginWith(serverTokenWorkRequest)
                         .then(uploadWorkRequest)
                         .enqueue();
             } else {
-                WorkManager.getInstance(mainActivity).enqueue(uploadWorkRequest);
+                WorkManager.getInstance(context).enqueue(uploadWorkRequest);
             }
         }
     }
@@ -133,7 +148,19 @@ public class NetworkManager {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            ((MainActivity)mainActivity).toggleStartRecording();
+            // ((MainActivity) context).toggleStartRecording();
+            sendStartRecordingIntent();
+        }
+    }
+
+    private void sendStartRecordingIntent(){
+        Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
+        handwashIntent.putExtra("trigger", "startRecording");
+        PendingIntent pintHandWash = PendingIntent.getService(context, 565, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pintHandWash.send();
+        } catch (PendingIntent.CanceledException e) {
+            e.printStackTrace();
         }
     }
 
@@ -180,7 +207,7 @@ public class NetworkManager {
 
     public void requestServerToken(){
         OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
-        WorkManager.getInstance(mainActivity).enqueue(serverTokenWorkRequest);
+        WorkManager.getInstance(context).enqueue(serverTokenWorkRequest);
     }
 
     protected final class HTTPGetTFModel extends AsyncTask<String, String, String> {
@@ -189,13 +216,13 @@ public class NetworkManager {
 
         @Override
         protected String doInBackground(String... strings) {
-            String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
+            String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
             try {
                 String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
                 downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
-                makeToast(mainActivity.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName);
+                makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName);
                 SharedPreferences.Editor configEditor = configs.edit();
-                configEditor.putString(mainActivity.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
+                configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
                 configEditor.apply();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -210,7 +237,7 @@ public class NetworkManager {
             Response response = null;
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
-                makeToast(mainActivity.getString(R.string.toast_failed_to_dl_file) + response);
+                makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
             } else {
                 File path = HandWashDetection.modelFilePath;
                 if (!path.exists())
@@ -239,17 +266,17 @@ public class NetworkManager {
 
         @Override
         protected String doInBackground(String... strings) {
-            String serverName = configs.getString(mainActivity.getString(R.string.conf_serverName), "");
+            String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
             try {
                 String tfFileName = getActiveTFFile(serverName + "/tfmodel/check/latest/");
                 if(tfFileName.length() > 0){
-                    String currentModel = configs.getString(mainActivity.getString(R.string.val_current_tf_model), "");
-                    String doSkip = configs.getString(mainActivity.getString(R.string.val_do_skip_tf_model), "");
+                    String currentModel = configs.getString(context.getString(R.string.val_current_tf_model), "");
+                    String doSkip = configs.getString(context.getString(R.string.val_do_skip_tf_model), "");
                     if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
-                        NotificationSpawner.showUpdateTFModelNotification(mainActivity.getApplicationContext(), tfFileName);
+                        NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
                     }
                     SharedPreferences.Editor configEditor = configs.edit();
-                    configEditor.putString(mainActivity.getApplicationContext().getString(R.string.val_last_checked_tf_model),tfFileName);
+                    configEditor.putString(context.getApplicationContext().getString(R.string.val_last_checked_tf_model),tfFileName);
                     configEditor.apply();
                 }
 
@@ -264,7 +291,7 @@ public class NetworkManager {
             Response response = null;
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
-                makeToast(mainActivity.getString(R.string.toast_failed_to_dl_file) + response);
+                makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
             } else {
                 String jsonData = response.body().string();
                 JSONObject jObject = new JSONObject(jsonData);

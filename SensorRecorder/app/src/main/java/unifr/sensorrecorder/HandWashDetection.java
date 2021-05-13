@@ -1,6 +1,6 @@
 package unifr.sensorrecorder;
 
-import android.app.Activity;
+import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.hardware.Sensor;
@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 import unifr.sensorrecorder.DataContainer.DataProcessor;
-import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 
 import static android.content.Context.VIBRATOR_SERVICE;
 
@@ -62,7 +62,7 @@ public class HandWashDetection {
 
     private Interpreter tfInterpreter;
     private List<String> labelList;
-    private Activity mainActivity;
+    private Context context;
     private Vibrator vibrator;
     private DataProcessor dataProcessor;
     private ReentrantLock queueBufferLock = new ReentrantLock();
@@ -91,10 +91,10 @@ public class HandWashDetection {
     private boolean discardDoubleFalsePredicted = false;
 
 
-    protected HandWashDetection(Activity activity) throws IOException {
+    protected HandWashDetection(Context context) throws IOException {
         // tfInterpreter = new Interpreter(loadModelFile(activity));
-        mainActivity = activity;
-        vibrator = (Vibrator) mainActivity.getSystemService(VIBRATOR_SERVICE);
+        this.context = context;
+        vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
         initModel();
 
         Log.d("Tensorflow", "Created a Tensorflow Lite");
@@ -102,10 +102,10 @@ public class HandWashDetection {
 
     public void initModel()  {
         try {
-            tfliteModel = loadModelFile(mainActivity);
+            tfliteModel = loadModelFile(context);
         } catch (IOException e){
             e.printStackTrace();
-            makeToast(mainActivity.getString(R.string.toast_couldnt_load_tf));
+            makeToast(context.getString(R.string.toast_couldnt_load_tf));
         }
         if(tfliteModel != null)
             tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
@@ -118,20 +118,20 @@ public class HandWashDetection {
 
 
     /** Memory-map the model file in Assets. */
-    private MappedByteBuffer loadModelFile(Activity activity) throws IOException {
+    private MappedByteBuffer loadModelFile(Context context) throws IOException {
 
         File modelFile = new File(modelFilePath, modelName);
         try {
             if (modelFile.exists()) {
                 FileInputStream inputStream = new FileInputStream(modelFile);
                 FileChannel fileChannel = inputStream.getChannel();
-                makeToast(mainActivity.getString(R.string.toast_use_dl_tf));
+                makeToast(this.context.getString(R.string.toast_use_dl_tf));
                 return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
             }
         } catch (FileNotFoundException e){
             e.printStackTrace();
         }
-        AssetManager assetManager = activity.getAssets();
+        AssetManager assetManager = context.getAssets();
         String[] assets = assetManager.list("");
         String assetModel = "";
         for(String asset: assets){
@@ -275,11 +275,11 @@ public class HandWashDetection {
 
 
     private void showHandWashNotification(){
-        if(lastPositivePrediction > DataProcessorProvider.getProcessor().lastEvaluationTS + notificationCoolDown) {
+        if(lastPositivePrediction > StaticDataProvider.getProcessor().lastEvaluationTS + notificationCoolDown) {
             lastNotificationTS = lastPositivePrediction;
-            makeToast(mainActivity.getString(R.string.toast_pred_hw));
+            makeToast(context.getString(R.string.toast_pred_hw));
             vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
-            NotificationSpawner.spawnHandWashPredictionNotification(mainActivity.getApplicationContext(), lastPositivePrediction);
+            NotificationSpawner.spawnHandWashPredictionNotification(context.getApplicationContext(), lastPositivePrediction);
             Log.d("pred", "spawn notification");
         } else {
             Log.d("pred", "ignore notification");
@@ -297,9 +297,17 @@ public class HandWashDetection {
 
 
     private void makeToast(final String text){
-        mainActivity.runOnUiThread(new Runnable() {
+        /*
+        context.runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(mainActivity, text, Toast.LENGTH_LONG).show();
+                Toast.makeText(context, text, Toast.LENGTH_LONG).show();
+            }
+        });
+         */
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(context, text, Toast.LENGTH_LONG).show();
             }
         });
     }

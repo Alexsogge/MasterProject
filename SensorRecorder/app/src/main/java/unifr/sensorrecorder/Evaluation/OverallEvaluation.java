@@ -25,10 +25,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
-import unifr.sensorrecorder.SensorRecordingManager;
 
 public class OverallEvaluation extends WearableActivity {
 
@@ -103,7 +102,7 @@ public class OverallEvaluation extends WearableActivity {
                 line.append("\n");
 
                 try {
-                    DataProcessorProvider.getProcessor().writeOverallEvaluation(line.toString());
+                    StaticDataProvider.getProcessor().writeOverallEvaluation(line.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

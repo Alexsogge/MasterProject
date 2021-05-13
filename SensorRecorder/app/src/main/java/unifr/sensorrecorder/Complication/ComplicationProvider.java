@@ -9,8 +9,7 @@ import android.support.wearable.complications.ComplicationProviderService;
 import android.support.wearable.complications.ComplicationText;
 import android.util.Log;
 
-import unifr.sensorrecorder.DataContainer.DataProcessor;
-import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.R;
 
 import java.util.Locale;
@@ -54,7 +53,7 @@ public class ComplicationProvider  extends ComplicationProviderService{
                         this, thisProvider, complicationId);
 
 
-        int predictions = DataProcessorProvider.getProcessor().handWashes;
+        int predictions = StaticDataProvider.getProcessor().handWashes;
         String predictionsText = String.format(Locale.getDefault(), "%d", predictions);
 
         ComplicationData complicationData = null;

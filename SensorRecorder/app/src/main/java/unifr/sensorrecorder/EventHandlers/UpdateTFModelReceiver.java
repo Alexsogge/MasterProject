@@ -5,15 +5,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.Networking.NetworkManager;
 import unifr.sensorrecorder.R;
 
 public class UpdateTFModelReceiver extends BroadcastReceiver {
     public static final String BROADCAST_ACTION = "UPDATE_TF_MODEL";
-    private NetworkManager networkManager;
 
-    public UpdateTFModelReceiver(NetworkManager networkManager){
-        this.networkManager = networkManager;
+    public UpdateTFModelReceiver(){
     }
 
     @Override
@@ -25,8 +24,8 @@ public class UpdateTFModelReceiver extends BroadcastReceiver {
             configEditor.putString(context.getString(R.string.val_do_skip_tf_model), intent.getStringExtra("SKIP"));
             configEditor.apply();
         } else {
-            networkManager.downloadTFModel();
-            networkManager.restartRecording();
+            StaticDataProvider.getNetworkManager().downloadTFModel();
+            StaticDataProvider.getNetworkManager().restartRecording();
             SharedPreferences configs = context.getSharedPreferences(
                     context.getString(R.string.configs), Context.MODE_PRIVATE);
             SharedPreferences.Editor configEditor = configs.edit();

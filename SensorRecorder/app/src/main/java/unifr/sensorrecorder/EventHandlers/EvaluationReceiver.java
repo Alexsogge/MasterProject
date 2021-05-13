@@ -5,12 +5,10 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 import java.io.IOException;
 
-import unifr.sensorrecorder.DataContainer.DataProcessor;
-import unifr.sensorrecorder.DataContainer.DataProcessorProvider;
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.Evaluation.HandwashEvaluation;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.SensorRecordingManager;
@@ -28,7 +26,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
                 if (SensorRecordingManager.isRunning) {
                     long timestamp = intent.getLongExtra("timestamp", -1);
                     if (timestamp > -1) {
-                        DataProcessorProvider.getProcessor().lastEvaluationTS = timestamp;
+                        StaticDataProvider.getProcessor().lastEvaluationTS = timestamp;
                         Intent startEvalIntent = new Intent(context, HandwashEvaluation.class);
                         startEvalIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startEvalIntent.putExtra("timestamp", timestamp);
@@ -49,7 +47,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
                     if (timestamp > -1) {
                         try {
                             String line = timestamp + "\t" + 0 + "\n";
-                            DataProcessorProvider.getProcessor().writeEvaluation(line, false, 0);
+                            StaticDataProvider.getProcessor().writeEvaluation(line, false, 0);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -64,7 +62,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
                 if (timestamp > -1) {
                     try {
                         String line = timestamp + "\t" + -1 + "\n";
-                        DataProcessorProvider.getProcessor().writeEvaluation(line, true, timestamp);
+                        StaticDataProvider.getProcessor().writeEvaluation(line, true, timestamp);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
