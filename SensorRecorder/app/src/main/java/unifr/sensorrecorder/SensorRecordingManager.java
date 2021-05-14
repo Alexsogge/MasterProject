@@ -1,5 +1,6 @@
 package unifr.sensorrecorder;
 
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
@@ -173,6 +174,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             if (!initialized) {
                 initialized = true;
                 this.intent = intent;
+                startForeground(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(this.getApplicationContext(), this.intent));
 
                 PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
 
@@ -439,7 +441,9 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     public void startRecording(){
         wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
         // show the foreground notification
-        startForeground(1, NotificationSpawner.createRecordingNotification(this.getApplicationContext(), this.intent));
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingNotification(getApplicationContext(), this.intent));
 
         // load config
         useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true) && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED;
@@ -498,6 +502,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             stopLatch.countDown();
             return;
         }
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(getApplicationContext(), this.intent));
 
         if(startStopButton != null)
             startStopButton.setText(getResources().getString(R.string.btn_stopping));
@@ -507,7 +513,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
         Log.d("mgr", "unregistered sensors");
         executor.execute(new StopSessionTask(stopLatch));
-        stopForeground(true);
         if(wakeLock.isHeld())
             wakeLock.release();
     }

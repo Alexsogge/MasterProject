@@ -27,10 +27,8 @@ public class NotificationSpawner {
     public static final int DAILY_REMINDER_REQUEST_CODE = 13;
     public static final int EVALUATION_REQUEST_CODE = 12;
     public static final int UPDATETFMODEL_REQUEST_CODE = 14;
-
-    private static Intent recordingServiceIntent;
-
-    private static int notificationCounter = 2;
+    public static final int FG_NOTIFICATION_ID = 1;
+    public static final int FG_PAUSED_NOTIFICATION_ID = 2;
 
     public static Notification createRecordingNotification(Context context, Intent recordingServiceIntent){
         Intent handwashIntent = new Intent(recordingServiceIntent);
@@ -44,7 +42,25 @@ public class NotificationSpawner {
                 //        .bigText("Sensor recorder is active"))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.ic_hand_wash)
-                .addAction(R.drawable.action_item_background, context.getResources().getString(R.string.not_btn_hw), pintHandWash)
+                .addAction(R.drawable.ic_hand_wash, context.getResources().getString(R.string.not_btn_hw), pintHandWash)
+                ;
+
+        return notificationBuilder.build();
+    }
+
+    public static Notification createRecordingPausedNotification(Context context, Intent recordingServiceIntent){
+        Intent handwashIntent = new Intent(recordingServiceIntent);
+        handwashIntent.putExtra("trigger", "startRecording");
+        PendingIntent pintHandWash = PendingIntent.getService(context, 580, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, RECORDING_CHANNEL_ID)
+                .setContentTitle(context.getResources().getString(R.string.not_paused))
+                .setContentText(context.getResources().getString(R.string.not_sen_rec_not_active))
+                //.setStyle(new NotificationCompat.BigTextStyle()
+                //        .bigText("Sensor recorder is active"))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_hand_wash)
+                .addAction(R.drawable.ic_hand_wash, context.getResources().getString(R.string.btn_start), pintHandWash)
                 ;
 
         return notificationBuilder.build();

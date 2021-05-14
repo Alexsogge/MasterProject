@@ -49,6 +49,8 @@
     <string name="not_btn_yes">Yes</string>
     <string name="not_btn_no">No</string>
     <string name="not_just_washed_hands">Just washed your hands?</string>
+    <string name="not_paused">Paused</string>
+    <string name="not_sen_rec_not_active">Sensor recorder is not active</string>
 
     <string name="str_eval_question_1">Was this washing compulsive? </string>
     <string name="str_eval_question_2">How tense are you at the moment?</string>

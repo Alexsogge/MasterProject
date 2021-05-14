@@ -110,8 +110,8 @@ public class MainActivity extends FragmentActivity
             if (!waitForConfigs)
                 initServices();
 
-            NotificationSpawner.showOverallEvaluationNotification(this.getApplicationContext());
-            NotificationSpawner.spawnHandWashPredictionNotification(this.getApplicationContext(), 1000);
+            // NotificationSpawner.showOverallEvaluationNotification(this.getApplicationContext());
+            // NotificationSpawner.spawnHandWashPredictionNotification(this.getApplicationContext(), 1000);
 
         }
 

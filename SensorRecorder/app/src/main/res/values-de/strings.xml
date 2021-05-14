@@ -47,6 +47,8 @@
     <string name="not_btn_yes">Ja</string>
     <string name="not_btn_no">Nein</string>
     <string name="not_just_washed_hands">Eben Hände gewaschen?</string>
+    <string name="not_paused">Pausiert</string>
+    <string name="not_sen_rec_not_active">Sensor recorder nicht aktiv</string>
 
     <string name="str_eval_question_1">War dieses Waschen zwanghaft?</string>
     <string name="str_eval_question_2">Wie beunruhigt /angespannt sind Sie gerade?</string>
