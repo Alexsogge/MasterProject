@@ -30,6 +30,7 @@
         <activity
             android:name=".Evaluation.OverallEvaluation"
             android:label="@string/title_activity_overall_evaluation"
+            android:theme="@style/RatingTheme"
             android:launchMode="singleTask"
             android:taskAffinity=""
             android:excludeFromRecents="true">
@@ -37,6 +38,7 @@
 
         <activity
             android:name=".Evaluation.HandwashEvaluation"
+            android:theme="@style/RatingTheme"
             android:label="@string/title_activity_handwash_evaluation"
             android:showOnLockScreen="true"
             android:launchMode="singleTask"

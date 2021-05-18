@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
@@ -17,6 +19,8 @@ import androidx.core.app.NotificationCompat;
 import unifr.sensorrecorder.Evaluation.OverallEvaluation;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
+
+import static android.content.Context.VIBRATOR_SERVICE;
 
 public class NotificationSpawner {
 
@@ -159,6 +163,10 @@ public class NotificationSpawner {
                 .setContentIntent(resultPendingIntent);
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(DAILY_REMINDER_REQUEST_CODE, notificationBuilder.build());
+
+        // manual vibration cause vibration defined in notification doesn't always work
+        Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
+        vibrator.vibrate(VibrationEffect.createWaveform(new long[]{1, 1000, 500, 1000}, -1));
     }
 
     public static void showUpdateTFModelNotification(Context context, String modelName){

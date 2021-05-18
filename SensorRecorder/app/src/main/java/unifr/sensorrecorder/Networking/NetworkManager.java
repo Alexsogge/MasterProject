@@ -238,6 +238,7 @@ public class NetworkManager {
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
                 makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
+                throw new IOException(response.toString());
             } else {
                 File path = HandWashDetection.modelFilePath;
                 if (!path.exists())

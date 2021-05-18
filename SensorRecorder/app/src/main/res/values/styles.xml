@@ -5,4 +5,8 @@
         <item name="colorControlNormal">@color/primary_text_light</item>
         <item name="colorControlActivated">@color/primary_text_dark</item>
     </style>
+
+    <style name="RatingTheme" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowSwipeToDismiss">false</item>
+    </style>
 </resources>

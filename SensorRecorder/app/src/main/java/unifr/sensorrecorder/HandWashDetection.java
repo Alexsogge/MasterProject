@@ -88,7 +88,7 @@ public class HandWashDetection {
     private MappedByteBuffer tfliteModel;
 
     private boolean debugAutoTrue = false;
-    private boolean discardDoubleFalsePredicted = false;
+    private boolean discardDoubleFalsePredicted = true;
 
 
     protected HandWashDetection(Context context) throws IOException {

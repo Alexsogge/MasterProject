@@ -10,6 +10,7 @@
     tools:deviceIds="wear"
     android:fitsSystemWindows="true">
 
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/linearLayout2"
         android:layout_width="match_parent"
