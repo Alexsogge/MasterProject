@@ -29,6 +29,8 @@ public class DataProcessor {
     public OutputStreamContainer containerEvaluation;
     public OutputStreamContainer containerOverallEvaluation;
 
+    public OutputStreamContainer containerBluetoothBeacons;
+
     public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
 
@@ -75,6 +77,9 @@ public class DataProcessor {
         containerOverallEvaluation = new OutputStreamContainer("overallEvaluation", "csv");
         allDataContainers.add(containerOverallEvaluation);
 
+        containerBluetoothBeacons = new OutputStreamContainer("bluetoothBeacons", "csv");
+        streamContainers.add(containerBluetoothBeacons);
+
         // add stream containers to all
         allDataContainers.addAll(streamContainers);
     }
@@ -117,6 +122,7 @@ public class DataProcessor {
         containerBattery.setActive();
         containerPrediction.setActive();
         containerEvaluation.setActive();
+        containerBluetoothBeacons.setActive();
         lastEvaluationTS = 0;
         lastPredictionTS = 0;
         predictions = 0;
@@ -200,6 +206,10 @@ public class DataProcessor {
         containerOverallEvaluation.writeData(line);
         containerOverallEvaluation.flush();
         containerOverallEvaluation.close();
+    }
+
+    public void writeBluetoothBeaconTimestamp(String line) throws IOException {
+        containerBluetoothBeacons.writeData(line);
     }
 
     public void packMicFilesIntoZip() throws IOException {
