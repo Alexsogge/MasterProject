@@ -28,6 +28,8 @@
     <string name="toast_downloaded_tf">TF modell runtergeldaen</string>
     <string name="toast_failed_to_dl_file">Fehler beim laden der Datei: &#160;</string>
 
+    <string name="toast_record_not_active">Aufnahme gerade nicht aktiv</string>
+
     <string name="it_check_conn">Prüfe Verbindung...</string>
     <string name="it_start_upload">Starte Upload...</string>
     <string name="it_uploading">Lade hoch...</string>

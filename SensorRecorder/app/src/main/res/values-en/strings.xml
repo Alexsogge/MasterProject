@@ -30,6 +30,8 @@
     <string name="toast_downloaded_tf">Downloaded TF model</string>
     <string name="toast_failed_to_dl_file">Failed to download file: &#160;</string>
 
+    <string name="toast_record_not_active">Recording is not active</string>
+
     <string name="it_check_conn">Check connection...</string>
     <string name="it_start_upload">Start upload...</string>
     <string name="it_uploading">Uploading...</string>

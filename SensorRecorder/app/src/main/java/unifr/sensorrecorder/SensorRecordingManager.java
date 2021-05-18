@@ -147,6 +147,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             if (intent.getStringExtra("trigger").equals("handWash")) {
                 if(isRunning)
                     addHandWashEventNow();
+                else
+                    makeToast(getString(R.string.toast_record_not_active));
             }
 
             // new hand wash event with timestamp
@@ -162,6 +164,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                         }
                     }
                 }
+                else
+                    makeToast(getString(R.string.toast_record_not_active));
             }
 
             // open app
