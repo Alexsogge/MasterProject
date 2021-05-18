@@ -117,6 +117,10 @@ public class DataProcessor {
         containerBattery.setActive();
         containerPrediction.setActive();
         containerEvaluation.setActive();
+        lastEvaluationTS = 0;
+        lastPredictionTS = 0;
+        predictions = 0;
+        handWashes = 0;
     }
 
     public void deactivateAllContainer(){
