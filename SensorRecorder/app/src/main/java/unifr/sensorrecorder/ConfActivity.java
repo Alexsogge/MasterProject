@@ -24,7 +24,7 @@ import unifr.sensorrecorder.Networking.NetworkManager;
 
 public class ConfActivity extends WearableActivity {
 
-    private static double FACTOR = 0.2; // c = a * sqrt(2)
+    private static double FACTOR = 0.146467f; // c = a * sqrt(2)
     private SharedPreferences configs;
     private EditText serverNameInput;
     private EditText userIdentifierInput;
@@ -172,12 +172,16 @@ public class ConfActivity extends WearableActivity {
             }
         });
 
+        adjustInset();
+
     }
 
     private void adjustInset() {
         if (getResources().getConfiguration().isScreenRound()) {
-            int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
+            int inset = (int)(FACTOR * getResources().getDisplayMetrics().widthPixels);
             View layout = (View) findViewById(R.id.confMainview);
+            Log.d("conf", "set inset to " + inset);
+            // inset*=2;
             layout.setPadding(inset, inset, inset, inset);
         }
     }

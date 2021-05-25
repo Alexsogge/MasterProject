@@ -293,7 +293,8 @@ public class NetworkManager {
             Response response = null;
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
-                makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
+                // makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
+                Log.e("NETWORKMANAGER", response.toString());
             } else {
                 String jsonData = response.body().string();
                 JSONObject jObject = new JSONObject(jsonData);

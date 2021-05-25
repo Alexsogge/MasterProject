@@ -54,7 +54,7 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 public class MainActivity extends FragmentActivity
         implements AmbientModeSupport.AmbientCallbackProvider{
-    private static double FACTOR = 0.2; // c = a * sqrt(2)
+    private static double FACTOR = 0.146467f; // c = a * sqrt(2)
     private boolean isActive = false;
 
     private TextView mTextView;
@@ -115,6 +115,7 @@ public class MainActivity extends FragmentActivity
 
         }
 
+        adjustInset();
         // Enables Always-on
         //setAmbientEnabled();
     }
@@ -136,7 +137,7 @@ public class MainActivity extends FragmentActivity
     }
 
     private void initUI(){
-        mainScrollView = (ScrollView)findViewById(R.id.mainview);
+        //mainScrollView = (Line)findViewById(R.id.mainview);
 
         infoText = (TextView) findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
@@ -289,12 +290,13 @@ public class MainActivity extends FragmentActivity
         if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
             networkManager.checkForFModelUpdate();
         intent = new Intent(this, SensorRecordingManager.class );
-        bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);
         } else {
             startService(intent);
         }
+        if(!mBound)
+            bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void setOverallEvaluationReminder(){
@@ -384,7 +386,7 @@ public class MainActivity extends FragmentActivity
 
     private void adjustInset() {
         if (getResources().getConfiguration().isScreenRound()) {
-            int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
+            int inset = (int)(FACTOR * getResources().getDisplayMetrics().widthPixels);
             View layout = (View) findViewById(R.id.mainview);
             layout.setPadding(inset, inset, inset, inset);
         }
@@ -414,7 +416,9 @@ public class MainActivity extends FragmentActivity
     public void onDestroy () {
         super.onDestroy();
         Log.d("activity", "on destroy main");
-
+        if (mBound) {
+            unbindService(sensorConnection);
+        }
         //unregisterReceiver(updateTFModelReceiver);
         //updateTFModelReceiver = null;
     }

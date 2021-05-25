@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dark_grey"
-    android:padding="@dimen/box_inset_layout_padding"
     tools:context=".Evaluation.HandwashEvaluation"
     tools:deviceIds="wear"
     android:fitsSystemWindows="true">
@@ -16,9 +15,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginHorizontal="10sp"
-        android:layout_marginVertical="10sp"
+        android:layout_marginVertical="15sp"
         android:gravity="center"
         android:orientation="vertical"
+        app:layout_box="all"
+        android:fitsSystemWindows="true"
         >
 
 
@@ -67,14 +68,13 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
+            android:fitsSystemWindows="true"
             android:gravity="center_horizontal"
             android:measureWithLargestChild="false"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textQuestionText"
-            android:fitsSystemWindows="true"
-            >
+            app:layout_constraintTop_toBottomOf="@id/textQuestionText">
 
 
             <Button
@@ -138,15 +138,15 @@
             android:id="@+id/answerRating2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"
+            android:fitsSystemWindows="true"
             android:gravity="center_horizontal"
             android:measureWithLargestChild="false"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textQuestionText"
-            android:fitsSystemWindows="true"
-            >
+            app:layout_constraintTop_toBottomOf="@id/textQuestionText">
 
 
             <Button
@@ -154,6 +154,7 @@
                 style="@style/Widget.AppCompat.Button.Small"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 android:minHeight="28dip"
                 android:paddingHorizontal="30dp"
                 android:paddingVertical="10dp"
@@ -207,5 +208,4 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </androidx.wear.widget.BoxInsetLayout>
