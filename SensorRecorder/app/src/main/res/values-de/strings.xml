@@ -29,6 +29,7 @@
     <string name="toast_failed_to_dl_file">Fehler beim laden der Datei: &#160;</string>
 
     <string name="toast_record_not_active">Aufnahme gerade nicht aktiv</string>
+    <string name="toast_eval_finished">Evaluation gespeichert</string>
 
     <string name="it_check_conn">Prüfe Verbindung...</string>
     <string name="it_start_upload">Starte Upload...</string>
@@ -63,5 +64,12 @@
 
     <string name="not_update_tf_title">Neues erkennungs modell verfügbar</string>
     <string name="not_update_tf_text">Aktualisieren zu &#160;</string>
+
+    <string name="not_upload_title">Lade Hoch</string>
+    <string name="not_upload_start">Hochladen gestartet</string>
+    <string name="not_upload_end">Hochladen erfolgreich abgeschlossen</string>
+    <string name="not_upload_error">Fehler. Es wird in wenigen Minuten erneut versucht.</string>
+    <string name="not_upload_connection">Warte auf Verbindung</string>
+    <string name="not_upload_authentication">Warte auf Athentitifizierung</string>
 
 </resources>

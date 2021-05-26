@@ -18,6 +18,7 @@ import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -110,6 +111,7 @@ public class OverallEvaluation extends WearableActivity {
                 NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                 mNotificationManager.cancel(NotificationSpawner.DAILY_REMINDER_REQUEST_CODE);
 
+                Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
                 moveTaskToBack(true);
                 finish();
             }

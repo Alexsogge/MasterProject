@@ -7,6 +7,7 @@ import androidx.work.Data;
 import androidx.work.WorkerParameters;
 
 import unifr.sensorrecorder.DataContainer.DataProcessor;
+import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.DataContainer.DataContainer;
 
@@ -61,6 +62,8 @@ public class UploadWorker extends NetworkWorker {
             return Result.failure();
         }
 
+        NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_start));
+
         // we need an upload token from the server to signalise which files belong together
         directoryUploadTokens.clear();
         toUploadDirectories.clear();
@@ -68,6 +71,7 @@ public class UploadWorker extends NetworkWorker {
             toUploadDirectories.add(directory.getPath());
             if(loadUploadToken(directory.getPath()) == STATUS_ERROR){
                 sendStatus(STATUS_ERROR);
+                NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_error));
                 return Result.retry();
             }
         }
@@ -79,18 +83,21 @@ public class UploadWorker extends NetworkWorker {
                 try {
                     if(uploadMultipartFile(dataFile, keyValue.getValue()) == STATUS_ERROR) {
                         sendStatus(STATUS_ERROR);
+                        NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_error));
                         return Result.retry();
                     }
                     uploadedFiles++;
                     sendUploadProgress((int)(((float)uploadedFiles/dataFiles.size())*100));
-                    makeToast(context.getString(R.string.str_success_upload) + ": " + dataFile.getName());
+                    // makeToast(context.getString(R.string.str_success_upload) + ": " + dataFile.getName());
                 } catch (Exception e) {
                     e.printStackTrace();
                     sendStatus(STATUS_ERROR);
+                    NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_error));
                     return Result.retry();
                 }
             }
         }
+        NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_end));
         // sendStatus(STATUS_FINISHED);
         // Indicate whether the work finished successfully with the Result
         return Result.success(new Data.Builder().putInt(STATUS, STATUS_FINISHED).build());
@@ -199,7 +206,7 @@ public class UploadWorker extends NetworkWorker {
             BufferedReader br = new BufferedReader(new FileReader(tokenFile));
             token = br.readLine();
             br.close();
-            makeToast(context.getString(R.string.toast_got_token));
+            // makeToast(context.getString(R.string.toast_got_token));
         }
         return token;
     }

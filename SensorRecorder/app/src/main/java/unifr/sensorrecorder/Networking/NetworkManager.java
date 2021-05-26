@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -67,10 +68,8 @@ public class NetworkManager {
 
 
         // update info text
-        if(infoText != null) {
-            infoText.setText(context.getString(R.string.btn_stopping));
-            infoText.invalidate();
-        }
+        setInfoText(context.getString(R.string.btn_stopping));
+
 
         // check if server was specified
         if(configs.getString(context.getString(R.string.conf_serverName), "").equals("")){
@@ -99,6 +98,13 @@ public class NetworkManager {
         });
     }
 
+    private void setInfoText(String text){
+        if(infoText != null) {
+            infoText.setVisibility(View.VISIBLE);
+            infoText.setText(text);
+            infoText.invalidate();
+        }
+    }
 
     private class UploadTaskStarter implements Runnable{
 
@@ -111,18 +117,16 @@ public class NetworkManager {
                 e.printStackTrace();
             }
             // update info text
-            if(infoText != null) {
-                infoText.setText(context.getString(R.string.it_start_upload));
-                infoText.invalidate();
-            }
+
+            setInfoText(context.getString(R.string.it_start_upload));
 
 
             OneTimeWorkRequest uploadWorkRequest = buildUploadWorkRequest();
             WorkManager.getInstance(context).cancelAllWork();
             WorkManager.getInstance(context).pruneWork();
+            NotificationSpawner.showUploadNotification(context, context.getString(R.string.not_upload_connection));
             if(configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
                 OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
-                Log.d("net", "enque upload worker");
                 WorkManager.getInstance(context)
                         .beginWith(serverTokenWorkRequest)
                         .then(uploadWorkRequest)

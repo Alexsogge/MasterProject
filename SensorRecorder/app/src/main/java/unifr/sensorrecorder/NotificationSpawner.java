@@ -28,9 +28,11 @@ public class NotificationSpawner {
     private static final String PREDICTION_CHANNEL_ID = "PredictionChannel";
     private static final String OverallEvaluation_CHANNEL_ID = "OverallEvaluationChannel";
     private static final String UPDATETFMODEL_CHANNEL_ID = "UpdateTFModelChannel";
+    private static final String UPLOAD_CHANNEL_ID = "UPLOADChannel";
     public static final int DAILY_REMINDER_REQUEST_CODE = 13;
     public static final int EVALUATION_REQUEST_CODE = 12;
     public static final int UPDATETFMODEL_REQUEST_CODE = 14;
+    public static final int UPLOAD_REQUEST_CODE = 15;
     public static final int FG_NOTIFICATION_ID = 1;
     public static final int FG_PAUSED_NOTIFICATION_ID = 2;
 
@@ -199,6 +201,24 @@ public class NotificationSpawner {
         nm.notify(UPDATETFMODEL_REQUEST_CODE, notificationBuilder.build());
     }
 
+    public static void showUploadNotification(Context context, String notText){
+        // Log.d("not", "show update tf model notification");
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+                .setContentTitle(context.getResources().getString(R.string.not_upload_title))
+                .setContentText(notText)
+                //.setStyle(new NotificationCompat.BigTextStyle()
+                //        .bigText("Sensor recorder is active"))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_hand_wash)
+                // .setVibrate(new long[]{1000, 500, 1000, 500})
+                // .setSound(alarmSound)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                ;
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        nm.notify(UPLOAD_REQUEST_CODE, notificationBuilder.build());
+    }
+
     private static void closeOldPredictionNotification(NotificationManager notificationManager) throws PendingIntent.CanceledException {
         StatusBarNotification[] activeNotifications = notificationManager.getActiveNotifications();
         for (StatusBarNotification notification: activeNotifications){
@@ -233,6 +253,7 @@ public class NotificationSpawner {
         createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", null);
         createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", vibrationPattern);
         createNotificationChannel(context, UPDATETFMODEL_CHANNEL_ID, "Update TF model Channel", vibrationPattern);
+        createNotificationChannel(context, UPLOAD_CHANNEL_ID, "Upload Channel", null);
     }
 
     public static void deleteAllChannels(Context context){

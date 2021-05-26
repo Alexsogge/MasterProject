@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.RatingBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.NotificationSpawner;
@@ -16,6 +17,8 @@ import unifr.sensorrecorder.R;
 
 import java.io.IOException;
 import java.util.HashMap;
+
+import javax.xml.datatype.Duration;
 
 public class HandwashEvaluation extends WearableActivity {
 
@@ -154,7 +157,7 @@ public class HandwashEvaluation extends WearableActivity {
             e.printStackTrace();
         }
 
-
+        Toast.makeText(this.getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);

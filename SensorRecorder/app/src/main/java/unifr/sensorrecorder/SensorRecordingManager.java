@@ -175,7 +175,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             }
         // if there isn't a trigger we just start the service
         } else {
-            if (!initialized) {
+            if (!initialized && intent != null) {
                 initialized = true;
                 this.intent = intent;
                 startForeground(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(this.getApplicationContext(), this.intent));
@@ -815,6 +815,16 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         });
     }
 
+    private void setButtonText(final String newText){
+        if (startStopButton != null) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    startStopButton.setText(newText);
+                }
+            });
+        }
+    }
+
 
     /**
      * Get the required sensor value for a given sensor to trigger a prediction.
@@ -945,7 +955,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
             isRunning = false;
             if (startStopButton != null)
-                startStopButton.setText("Start");
+                setButtonText("Start");
 
             Log.d("mgr", "finished stop");
             stopLatch.countDown();

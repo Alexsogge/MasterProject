@@ -30,24 +30,32 @@ public class ServerTokenObserver implements Observer<List<WorkInfo>> {
                 Data progress = workInfo.getProgress();
                 int status = progress.getInt(UploadWorker.STATUS, -2);
                 if(status == UploadWorker.STATUS_ERROR){
-                    infoText.setText(context.getResources().getString(R.string.it_error));
+                    setInfoText(context.getResources().getString(R.string.it_error));
                 }
                 if(status == UploadWorker.STATUS_PENDING){
-                    infoText.setText(context.getResources().getString(R.string.it_token_pending));
+                    setInfoText(context.getResources().getString(R.string.it_token_pending));
                 }
                 if(status == UploadWorker.STATUS_SUCCESS){
-                    infoText.setText(context.getResources().getString(R.string.toast_auth_granted));
+                    setInfoText(context.getResources().getString(R.string.toast_auth_granted));
                 }
                 if(workInfo.getState().isFinished()){
                     int state = workInfo.getOutputData().getInt(UploadWorker.STATUS, -2);
                     if(state == UploadWorker.STATUS_FINISHED) {
-                        infoText.setText(context.getResources().getString(R.string.toast_auth_granted));
+                        setInfoText(context.getResources().getString(R.string.toast_auth_granted));
                     }
                     if(state == UploadWorker.STATUS_ERROR) {
-                        infoText.setText(context.getResources().getString(R.string.toast_no_server_name));
+                        setInfoText(context.getResources().getString(R.string.toast_no_server_name));
                     }
                 }
             }
+        }
+    }
+
+    private void setInfoText(String text){
+        if(infoText != null) {
+            infoText.setVisibility(View.VISIBLE);
+            infoText.setText(text);
+            infoText.invalidate();
         }
     }
 }

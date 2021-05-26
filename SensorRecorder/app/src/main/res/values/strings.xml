@@ -30,6 +30,8 @@
 
     <string name="toast_record_not_active">Recording is not active</string>
 
+    <string name="toast_eval_finished">Saved evaluation</string>
+
     <string name="it_check_conn">Check connection...</string>
     <string name="it_start_upload">Start upload...</string>
     <string name="it_uploading">Uploading...</string>
@@ -64,6 +66,14 @@
 
     <string name="not_update_tf_title">New prediction model available</string>
     <string name="not_update_tf_text">Update to &#160;</string>
+
+    <string name="not_upload_title">Uploading</string>
+    <string name="not_upload_start">Started upload</string>
+    <string name="not_upload_end">Ended upload</string>
+    <string name="not_upload_error">Error. Retry in some minutes</string>
+    <string name="not_upload_connection">Waiting for connection</string>
+    <string name="not_upload_authentication">Waiting for authentication</string>
+
 
     <!--
     Stuff for settings and static strings

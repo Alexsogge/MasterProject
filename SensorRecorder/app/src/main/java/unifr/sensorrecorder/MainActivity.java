@@ -137,7 +137,7 @@ public class MainActivity extends FragmentActivity
     }
 
     private void initUI(){
-        //mainScrollView = (Line)findViewById(R.id.mainview);
+        mainScrollView = (ScrollView) findViewById(R.id.mainScrollView);
 
         infoText = (TextView) findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
