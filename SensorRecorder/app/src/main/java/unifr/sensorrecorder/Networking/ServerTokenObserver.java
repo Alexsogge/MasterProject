@@ -1,6 +1,8 @@
 package unifr.sensorrecorder.Networking;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -51,11 +53,15 @@ public class ServerTokenObserver implements Observer<List<WorkInfo>> {
         }
     }
 
-    private void setInfoText(String text){
+    private void setInfoText(final String text){
         if(infoText != null) {
-            infoText.setVisibility(View.VISIBLE);
-            infoText.setText(text);
-            infoText.invalidate();
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    infoText.setVisibility(View.VISIBLE);
+                    infoText.setText(text);
+                    infoText.invalidate();
+                }
+            });
         }
     }
 }

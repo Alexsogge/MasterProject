@@ -98,11 +98,15 @@ public class NetworkManager {
         });
     }
 
-    private void setInfoText(String text){
+    private void setInfoText(final String text){
         if(infoText != null) {
-            infoText.setVisibility(View.VISIBLE);
-            infoText.setText(text);
-            infoText.invalidate();
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    infoText.setVisibility(View.VISIBLE);
+                    infoText.setText(text);
+                    infoText.invalidate();
+                }
+            });
         }
     }
 

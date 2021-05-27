@@ -1,6 +1,7 @@
 package unifr.sensorrecorder.Networking;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.work.Data;
@@ -156,6 +157,7 @@ public class UploadWorker extends NetworkWorker {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()){
+                Log.e("upload", "error during upload of " + file.getName());
                 throw new IOException(context.getString(R.string.str_unexpected_code) + response);
             } else {
                 File directory = file.getParentFile();
