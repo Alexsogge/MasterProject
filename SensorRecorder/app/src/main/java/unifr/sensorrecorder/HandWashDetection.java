@@ -12,6 +12,8 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.common.collect.EvictingQueue;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,6 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import unifr.sensorrecorder.DataContainer.DataProcessor;
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
+import unifr.sensorrecorder.MathLib.Operations;
 
 import static android.content.Context.VIBRATOR_SERVICE;
 
@@ -52,10 +55,18 @@ public class HandWashDetection {
     private final int initialRequiredPositivePredictions = 3;
     private final long initialNotificationCoolDown = (long) 40e9; // 40 seconds
 
+    // running mean
+    private final float initialMeanThreshold = 0.65f;
+    private final int initialMeanKernelWidth = 10;
+
+
     private int[] requiredSensors;
     private int frameSize;
     private long positivePredictedTimeFrame;
     private int requiredPositivePredictions;
+    private float meanThreshold;
+    private int meanKernelWidth;
+
     private int inputShape;
     private long notificationCoolDown;
     private long lastNotificationTS;
@@ -70,6 +81,7 @@ public class HandWashDetection {
     private long lastPositivePrediction;
     private int positivePredictedCounter;
     private boolean lastPrediction;
+    private EvictingQueue<Float> predictionKernel;
 
     private int[] activeSensorTypes;
     private int[] sensorDimensions;
@@ -168,13 +180,15 @@ public class HandWashDetection {
         frameSize = initialFrameSize;
         positivePredictedTimeFrame = initialPositivePredictedTimeFrame;
         requiredPositivePredictions = initialRequiredPositivePredictions;
+
+        meanThreshold = initialMeanThreshold;
+        meanKernelWidth = initialMeanKernelWidth;
+
         inputShape = 0;
 
         try {
             loadSettingsFromFile();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (JSONException | IOException e) {
             e.printStackTrace();
         }
 
@@ -187,6 +201,11 @@ public class HandWashDetection {
         sensorBuffers = new float[sensorDimensions.length][][];
         sensorTimeStamps = new long[sensorDimensions.length][bufferSize];
         waitForSensor = new boolean[sensorDimensions.length];
+        predictionKernel = EvictingQueue.create(meanKernelWidth);
+        for(int i = 0; i < meanKernelWidth; i++){
+            predictionKernel.add(0f);
+        }
+
         overallSensorDimensions = 0;
         for(int i = 0; i < sensorDimensions.length; i++){
             sensorBuffers[i] = new float[sensorDimensions[i]][bufferSize];
@@ -231,6 +250,11 @@ public class HandWashDetection {
             requiredPositivePredictions = jsonObject.getInt("positive_prediction_counter");
         if(jsonObject.has("notification_cool_down"))
             notificationCoolDown = (long)jsonObject.getInt("notification_cool_down") * (long) 1e9;
+
+        if(jsonObject.has("mean_threshold"))
+            meanThreshold = jsonObject.getInt("mean_threshold");
+        if(jsonObject.has("mean_kernel_size"))
+            meanKernelWidth = jsonObject.getInt("mean_kernel_size");
     }
 
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
@@ -330,7 +354,7 @@ public class HandWashDetection {
         long ts = -1;
         long lastTruePrediction = -1;
         boolean foundHandWash = false;
-        for(int i = frameSize + 1; i < sensorTimeStamps[0].length; i+=25){
+        for(int i = frameSize + 1; i < sensorTimeStamps[0].length; i+=frameSize/2){
             for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++){
                 ts = possibleHandWash(sensorIndex, i);
                 if (ts > -1) {
@@ -341,8 +365,14 @@ public class HandWashDetection {
             if(fadeOutCounter > 0) {
                 // Log.d("pred", "add pred at: " + ts);
                 long timestamp = sensorTimeStamps[0][i];
-                boolean prediction = doHandWashPrediction(i, timestamp);
-                // Log.d("pred", "p: " + prediction);
+                float prediction = doHandWashPrediction(i, timestamp);
+                predictionKernel.add(prediction);
+                float runningMean = Operations.mean(predictionKernel);
+                if (runningMean > meanThreshold){
+                    foundHandWash = true;
+                }
+                // Log.d("pred", "p: " + prediction + "  rm: " + runningMean);
+                /*
                 if (prediction) {
                     if (timestamp < lastPositivePrediction + positivePredictedTimeFrame) {
                         positivePredictedCounter++;
@@ -360,6 +390,10 @@ public class HandWashDetection {
                 }
                 lastPrediction = prediction;
                 i += (frameSize / 1.5) - 25;
+                */
+
+            } else {
+                predictionKernel.add(0f);
             }
             if (fadeOutCounter > 0)
                 fadeOutCounter--;
@@ -367,7 +401,7 @@ public class HandWashDetection {
         return foundHandWash;
     }
 
-    private boolean doHandWashPrediction(int sensorPointer, long timestamp){
+    private float doHandWashPrediction(int sensorPointer, long timestamp){
         boolean foundHandWash = false;
         // create tmp array of right dimension for TF model
         // float[][] window = new float[frameSize][overallSensorDimensions];
@@ -416,6 +450,7 @@ public class HandWashDetection {
 
         // use tflite model to determine hand wash
         float[][] labelProbArray = RunInference(frameBuffer);
+        // Log.d("pred", "("+labelProbArray.length+", "+labelProbArray[0].length+")");
 
         // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
@@ -436,9 +471,9 @@ public class HandWashDetection {
         }
         if(debugAutoTrue) {
             lastPositivePrediction = timestamp;
-            foundHandWash = true;
+            return 1;
         }
-        return foundHandWash;
+        return labelProbArray[0][1];
     }
 
     private int getActiveSensorIndexOfType(int sensorType){
@@ -462,7 +497,7 @@ public class HandWashDetection {
         // check if one of the acceleration or gyroscope axes has been a certain impact
 
         long timeStamp = sensorTimeStamps[sensorIndex][pointer];
-        int offset = Math.max(0, pointer - 25);
+        int offset = Math.max(0, pointer - (frameSize/2));
         for (int axes = 0; axes < sensorDimensions[sensorIndex]; axes++) {
             float min = Float.MAX_VALUE;
             float max = Float.MIN_VALUE;

@@ -12,6 +12,7 @@ import unifr.sensorrecorder.Networking.NetworkManager;
 public class StaticDataProvider extends Application {
     private static DataProcessor dataProcessor;
     private static NetworkManager networkManager;
+    private static int counterComplicationId;
 
     @Override
     public void onCreate() {
@@ -25,6 +26,13 @@ public class StaticDataProvider extends Application {
     }
     public static NetworkManager getNetworkManager(){
         return networkManager;
+    }
+    public static int getCounterComplicationId(){
+        return counterComplicationId;
+    }
+
+    public static void setCounterComplicationId(int counterComplicationId){
+        StaticDataProvider.counterComplicationId = counterComplicationId;
     }
 
 }

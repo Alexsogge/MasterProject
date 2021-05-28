@@ -50,18 +50,18 @@
             android:paddingHorizontal="16dp">
 
             <Button
-                android:id="@+id/buttonEvalYes"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/not_btn_yes" />
-
-            <Button
                 android:id="@+id/buttonEvalNo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/not_btn_no" />
+
+            <Button
+                android:id="@+id/buttonEvalYes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/not_btn_yes" />
         </LinearLayout>
 
 

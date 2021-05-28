@@ -700,11 +700,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
         // Update all complications
         ComponentName provider = new ComponentName(this, ComplicationProvider.class);
-        for (int i = 0; i<=4 ; i++) {
-            int complicationId = 4;
-            ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
-            requester.requestUpdate(complicationId);
-        }
+
+        int complicationId = StaticDataProvider.getCounterComplicationId();
+        ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
+        requester.requestUpdate(complicationId);
+
 
         // open Evaluation
         Intent confirmHandWashIntent = new Intent(this, EvaluationReceiver.class);

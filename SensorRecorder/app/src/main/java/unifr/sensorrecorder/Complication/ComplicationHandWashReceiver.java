@@ -10,6 +10,7 @@ import android.os.SystemClock;
 import android.support.wearable.complications.ProviderUpdateRequester;
 import android.util.Log;
 
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.SensorRecordingManager;
@@ -59,6 +60,7 @@ public class ComplicationHandWashReceiver extends BroadcastReceiver {
         Log.d("comp", "compID:" + complicationId);
         intent.putExtra(EXTRA_PROVIDER_COMPONENT, provider);
         intent.putExtra(EXTRA_COMPLICATION_ID, complicationId);
+        StaticDataProvider.setCounterComplicationId(complicationId);
 
         Log.d("CompRec", "get toggle hand wash intent");
         // Pass complicationId as the requestCode to ensure that different complications get
