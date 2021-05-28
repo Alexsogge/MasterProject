@@ -78,8 +78,8 @@ public class HandwashEvaluation extends WearableActivity {
         questions.put(3, R.string.str_eval_question_3);
         answerViews.put(0, answerYN);
         answerViews.put(1, answerYN);
-        answerViews.put(2, answerRating);
-        answerViews.put(3, answerRating2);
+        answerViews.put(2, answerRating2);   // use 5 star rating
+        answerViews.put(3, answerRating2);   // use 5 star rating
 
         answers = new HashMap<>();
         answers.put(0, 1);

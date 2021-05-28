@@ -50,6 +50,26 @@ public class OverallEvaluation extends WearableActivity {
         answer = (Button) findViewById(R.id.ovEvRateButton);
         rlMarker = (RelativeLayout) findViewById(R.id.rlMarker);
 
+        // initSeekBar();
+        initRatingBar();
+
+        // Enables Always-on
+        setAmbientEnabled();
+    }
+
+    private void initRatingBar(){
+        ratingBar.setVisibility(View.VISIBLE);
+        answer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int rating = Math.round(ratingBar.getProgress());
+                saveRating(rating);
+            }
+        });
+    }
+
+    private void initSeekBar(){
+        seekBar.setVisibility(View.VISIBLE);
         fadeOut = new AlphaAnimation(1, 0);
         fadeOut.setInterpolator(new AccelerateInterpolator()); //and this
         fadeOut.setStartOffset(1000);
@@ -89,36 +109,38 @@ public class OverallEvaluation extends WearableActivity {
             }
         });
 
+
         answer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int rating = Math.round(seekBar.getProgress());
-                TimeZone tz = TimeZone.getTimeZone("UTC");
-                DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-                df.setTimeZone(tz);
-                String timeStamp = df.format(new Date());
-                StringBuilder line = new StringBuilder(timeStamp);
-                line.append("\t").append((new Date()).getTime());
-                line.append("\t").append(rating);
-                line.append("\n");
-
-                try {
-                    StaticDataProvider.getProcessor().writeOverallEvaluation(line.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                mNotificationManager.cancel(NotificationSpawner.DAILY_REMINDER_REQUEST_CODE);
-
-                Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
-                moveTaskToBack(true);
-                finish();
+                saveRating(rating);
             }
         });
+    }
 
-        // Enables Always-on
-        setAmbientEnabled();
+    private void saveRating(int rating){
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+        df.setTimeZone(tz);
+        String timeStamp = df.format(new Date());
+        StringBuilder line = new StringBuilder(timeStamp);
+        line.append("\t").append((new Date()).getTime());
+        line.append("\t").append(rating);
+        line.append("\n");
+
+        try {
+            StaticDataProvider.getProcessor().writeOverallEvaluation(line.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(NotificationSpawner.DAILY_REMINDER_REQUEST_CODE);
+
+        Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
+        moveTaskToBack(true);
+        finish();
     }
 
     private void updateMarker(final SeekBar sb,
