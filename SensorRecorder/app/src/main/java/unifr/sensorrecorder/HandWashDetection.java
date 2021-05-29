@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import unifr.sensorrecorder.DataContainer.DataProcessor;
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
-import unifr.sensorrecorder.MathLib.Operations;
+import unifr.sensorrecorder.MathLib.MathOperations;
 
 import static android.content.Context.VIBRATOR_SERVICE;
 
@@ -336,13 +336,13 @@ public class HandWashDetection {
         });
     }
 
-    private void addPrediction(String gesture, float[] predValues, long timestamp) throws IOException {
+    private void addPrediction(String gesture, float[] predValues, long timestamp, float runningMean) throws IOException {
         // long timestamp = SystemClock.elapsedRealtimeNanos();
         String line = timestamp + "\t";
         for(int i = 0; i < predValues.length; i++){
             line += Math.round(predValues[i] * 100000.0)/100000.0 + "\t";
         }
-        line += gesture + "\n";
+        line += runningMean + "\t" + gesture + "\n";
         dataProcessor.writePrediction(line);
     }
 
@@ -365,11 +365,19 @@ public class HandWashDetection {
             if(fadeOutCounter > 0) {
                 // Log.d("pred", "add pred at: " + ts);
                 long timestamp = sensorTimeStamps[0][i];
-                float prediction = doHandWashPrediction(i, timestamp);
-                predictionKernel.add(prediction);
-                float runningMean = Operations.mean(predictionKernel);
+                float[] prediction = doHandWashPrediction(i, timestamp);
+                predictionKernel.add(prediction[1]);
+                float runningMean = MathOperations.mean(predictionKernel);
+                String gesture = "Noise";
                 if (runningMean > meanThreshold){
                     foundHandWash = true;
+                    gesture = "Handwash";
+                    lastPositivePrediction = timestamp;
+                }
+                try {
+                    addPrediction(gesture, prediction, timestamp, runningMean);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
                 // Log.d("pred", "p: " + prediction + "  rm: " + runningMean);
                 /*
@@ -401,7 +409,7 @@ public class HandWashDetection {
         return foundHandWash;
     }
 
-    private float doHandWashPrediction(int sensorPointer, long timestamp){
+    private float[] doHandWashPrediction(int sensorPointer, long timestamp){
         boolean foundHandWash = false;
         // create tmp array of right dimension for TF model
         // float[][] window = new float[frameSize][overallSensorDimensions];
@@ -454,26 +462,11 @@ public class HandWashDetection {
 
         // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
-        // observe prediction and write to disk
-        float max_pred = labelProbArray[0][0];
-        String gesture = "Noise";
-        if (labelProbArray[0][1] > max_pred && labelProbArray[0][1] > 0.95){
-            gesture = "Handwash";
-            max_pred = labelProbArray[0][1];
-            // test if there are multiple positive predictions within given time frameBuffer
-            foundHandWash = true;
-        }
-        // Log.d("Pred", "Results in " + gesture + " to " + max_pred * 100 + "%");
-        try {
-            addPrediction(gesture, labelProbArray[0], timestamp);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         if(debugAutoTrue) {
             lastPositivePrediction = timestamp;
-            return 1;
+            return new float[]{0, 1};
         }
-        return labelProbArray[0][1];
+        return labelProbArray[0];
     }
 
     private int getActiveSensorIndexOfType(int sensorType){
