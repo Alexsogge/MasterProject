@@ -252,9 +252,10 @@ public class HandWashDetection {
             notificationCoolDown = (long)jsonObject.getInt("notification_cool_down") * (long) 1e9;
 
         if(jsonObject.has("mean_threshold"))
-            meanThreshold = jsonObject.getInt("mean_threshold");
+            meanThreshold = (float)jsonObject.getDouble("mean_threshold");
         if(jsonObject.has("mean_kernel_size"))
             meanKernelWidth = jsonObject.getInt("mean_kernel_size");
+
     }
 
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {
