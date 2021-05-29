@@ -30,15 +30,15 @@
             </div>
 
             <div class="form-group">
-                <label for="positivePredictionTimeInput">Positive prediction time</label>
-                <input type="number" class="form-control" id="positivePredictionTimeInput" name="positivePredictionTimeInput" aria-describedby="positivePredictionTimeHelp" placeholder="Enter seconds" value="{{ old_settings.positive_prediction_time }}">
-                <small id="positivePredictionTimeHelp" class="form-text text-muted">The time in seconds which can be between two positive predictions to increase the counter</small>
+                <label for="meanThresholdInput">Mean threshold</label>
+                <input type="number" step="0.01" class="form-control" id="meanThresholdInput" name="meanThresholdInput" aria-describedby="meanThresholdHelp" placeholder="Enter value between 0-1" value="{{ old_settings.mean_threshold }}">
+                <small id="meanThresholdHelp" class="form-text text-muted">The minimum running mean value required to trigger a hand wash event</small>
             </div>
 
             <div class="form-group">
-                <label for="positivePredictionCounterInput">Positive prediction counter</label>
-                <input type="number" class="form-control" id="positivePredictionCounterInput" name="positivePredictionCounterInput" aria-describedby="positivePredictionCounterHelp" placeholder="Enter count" value="{{ old_settings.positive_prediction_counter }}">
-                <small id="positivePredictionCounterHelp" class="form-text text-muted">The needed amount of positive predictions in a run to trigger a hand wash event</small>
+                <label for="meanKernelWidthInput">Mean kernel width</label>
+                <input type="number" class="form-control" id="meanKernelWidthInput" name="meanKernelWidthInput" aria-describedby="meanKernelWidthHelp" placeholder="Enter count" value="{{ old_settings.mean_kernel_size }}">
+                <small id="meanKernelWidthHelp" class="form-text text-muted">The number of past values that are taken into account when calculating the mean</small>
             </div>
 
             <div class="form-group">
