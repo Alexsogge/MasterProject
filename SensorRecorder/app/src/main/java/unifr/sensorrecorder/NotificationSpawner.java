@@ -16,6 +16,8 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import java.util.Collection;
+
 import unifr.sensorrecorder.Evaluation.OverallEvaluation;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
@@ -33,6 +35,7 @@ public class NotificationSpawner {
     public static final int EVALUATION_REQUEST_CODE = 12;
     public static final int UPDATETFMODEL_REQUEST_CODE = 14;
     public static final int UPLOAD_REQUEST_CODE = 15;
+    public static final int DAILY_REMINDER_STARTER_REQUEST_CODE = 16;
     public static final int FG_NOTIFICATION_ID = 1;
     public static final int FG_PAUSED_NOTIFICATION_ID = 2;
 
@@ -169,6 +172,11 @@ public class NotificationSpawner {
         // manual vibration cause vibration defined in notification doesn't always work
         Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
         vibrator.vibrate(VibrationEffect.createWaveform(new long[]{1, 1000, 500, 1000}, -1));
+    }
+
+    public static void closeOverallEvaluationNotification(Context context){
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        nm.cancel(DAILY_REMINDER_REQUEST_CODE);
     }
 
     public static void showUpdateTFModelNotification(Context context, String modelName){

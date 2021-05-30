@@ -32,6 +32,7 @@ import androidx.work.WorkManager;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
 import unifr.sensorrecorder.Networking.NetworkManager;
 import unifr.sensorrecorder.Networking.ServerTokenObserver;
@@ -301,8 +302,8 @@ public class MainActivity extends FragmentActivity
         //if(targetDate.before(calendar))
         //    targetDate.add(Calendar.DATE, 1);
 
-        Intent reminderReceiver = new Intent(this, OverallEvaluationReminder.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent reminderReceiver = new Intent(this, OverallEvaluationReminderStarter.class);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.setInexactRepeating(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), AlarmManager.INTERVAL_DAY, reminderPint);
     }
