@@ -18,6 +18,6 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 5 * 60 * 1000, reminderPint);
+        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 10 * 60 * 1000, reminderPint);
     }
 }
