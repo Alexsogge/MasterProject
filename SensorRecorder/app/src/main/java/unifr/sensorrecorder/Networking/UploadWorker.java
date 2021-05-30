@@ -237,7 +237,7 @@ public class UploadWorker extends NetworkWorker {
             String status = Jobject.getString("status");
             if (status.equals("success")){
                 //directoryUploadTokens.put(directory, Jobject.getString("uuid"));
-                makeToast(context.getString(R.string.toast_got_token));
+                // makeToast(context.getString(R.string.toast_got_token));
                 return Jobject.getString("uuid");
             } else{
                 makeToast(context.getString(R.string.toast_error_during_request));

@@ -2,12 +2,10 @@ package unifr.sensorrecorder;
 
 import android.Manifest;
 import android.app.AlarmManager;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -15,18 +13,14 @@ import android.icu.util.Calendar;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,11 +30,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.wear.ambient.AmbientModeSupport;
 import androidx.work.WorkManager;
 
-import java.io.IOException;
-
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
-import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
-import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
 import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
 import unifr.sensorrecorder.Networking.NetworkManager;
@@ -215,8 +205,8 @@ public class MainActivity extends FragmentActivity
     }
 
     public void toggleStartRecording(){
-        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
-            networkManager.checkForFModelUpdate();
+        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf), false))
+            networkManager.checkForTFModelUpdate();
         // handWashDetection.initModel();
         sensorService.startRecording();
     }
@@ -287,8 +277,8 @@ public class MainActivity extends FragmentActivity
     }
 
     private void startRecording(){
-        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
-            networkManager.checkForFModelUpdate();
+        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
+            networkManager.checkForTFModelUpdate();
         intent = new Intent(this, SensorRecordingManager.class );
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);

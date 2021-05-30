@@ -99,11 +99,19 @@
             -->
 
             <CheckBox
+                android:id="@+id/autoUpdateTFCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:text="Auto update TF"
+                android:textAlignment="center" />
+
+            <CheckBox
                 android:id="@+id/updateTFCheckbox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="Check for tf updates"
+                android:text="Show TF updates"
                 android:textAlignment="center" />
 
             <Button

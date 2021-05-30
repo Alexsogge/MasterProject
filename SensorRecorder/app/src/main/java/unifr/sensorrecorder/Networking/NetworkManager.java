@@ -21,6 +21,7 @@ import androidx.work.WorkManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.HandWashDetection;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
@@ -149,7 +150,7 @@ public class NetworkManager {
         @Override
         public void run() {
             sensorStopLatch = new CountDownLatch(1);
-            sensorService.waitForStopRecording(sensorStopLatch);
+            sensorService.waitForStopRecording(sensorStopLatch, false);
             // wait for finished sensors
             try {
                 sensorStopLatch.await();
@@ -209,7 +210,7 @@ public class NetworkManager {
         new NetworkManager.HTTPGetTFModel().execute();
     }
 
-    public void checkForFModelUpdate(){
+    public void checkForTFModelUpdate(){
         new NetworkManager.HTTPCheckForNewTFModel().execute();
     }
 
@@ -283,7 +284,10 @@ public class NetworkManager {
                     String doSkip = configs.getString(context.getString(R.string.val_do_skip_tf_model), "");
                     // Log.d("net", "active: " + tfFileName + " using " + currentModel + " skip " + doSkip);
                     if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
-                        NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
+                        if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_auto_update_tf), false))
+                            downloadTFModel();
+                        else if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_check_for_tf_update), true))
+                            NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
                     }
                     SharedPreferences.Editor configEditor = configs.edit();
                     configEditor.putString(context.getApplicationContext().getString(R.string.val_last_checked_tf_model),tfFileName);

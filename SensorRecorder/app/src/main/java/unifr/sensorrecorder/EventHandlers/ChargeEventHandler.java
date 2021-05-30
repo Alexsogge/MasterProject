@@ -20,8 +20,6 @@ public class ChargeEventHandler extends BroadcastReceiver {
         if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
             // Do something when power connected
             StaticDataProvider.getNetworkManager().DoFileUpload();
-
-
         }
         else if(action.equals(Intent.ACTION_POWER_DISCONNECTED)) {
             // Do something when power disconnected
