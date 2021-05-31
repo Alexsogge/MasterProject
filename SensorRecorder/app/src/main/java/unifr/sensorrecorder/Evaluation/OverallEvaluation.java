@@ -146,10 +146,7 @@ public class OverallEvaluation extends WearableActivity {
         Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
 
         // cancel repetitive alarm
-        Intent reminderReceiver = new Intent(this, OverallEvaluationReminder.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
-        AlarmManager am = (AlarmManager) this.getApplicationContext().getSystemService(ALARM_SERVICE);
-        am.cancel(reminderPint);
+       NotificationSpawner.stopRepeatingOverallEvaluationReminder(this);
 
         NotificationSpawner.closeOverallEvaluationNotification(this);
 

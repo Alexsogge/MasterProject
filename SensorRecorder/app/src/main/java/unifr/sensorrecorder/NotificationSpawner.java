@@ -1,5 +1,6 @@
 package unifr.sensorrecorder;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -20,6 +21,7 @@ import java.util.Collection;
 
 import unifr.sensorrecorder.Evaluation.OverallEvaluation;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
 import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
 
 import static android.content.Context.VIBRATOR_SERVICE;
@@ -178,6 +180,15 @@ public class NotificationSpawner {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         nm.cancel(DAILY_REMINDER_REQUEST_CODE);
     }
+
+    public static void stopRepeatingOverallEvaluationReminder(Context context){
+        Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager am = (AlarmManager) context.getApplicationContext().getSystemService(context.ALARM_SERVICE);
+        am.cancel(reminderPint);
+        Log.d("rem", "Stop repeating eval");
+    }
+
 
     public static void showUpdateTFModelNotification(Context context, String modelName){
         // Log.d("not", "show update tf model notification");

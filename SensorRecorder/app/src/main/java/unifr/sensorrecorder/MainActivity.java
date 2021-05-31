@@ -291,26 +291,21 @@ public class MainActivity extends FragmentActivity
     }
 
     private void setOverallEvaluationReminder(){
-        cancelOverallEvaluationReminder();
-
-        Calendar calendar = Calendar.getInstance();
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
         targetDate.set(Calendar.HOUR_OF_DAY, 18);
         targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
-        //if(targetDate.before(calendar))
+        // Calendar calendar = Calendar.getInstance();
+        // if(targetDate.before(calendar))
         //    targetDate.add(Calendar.DATE, 1);
 
         Intent reminderReceiver = new Intent(this, OverallEvaluationReminderStarter.class);
         PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), AlarmManager.INTERVAL_DAY, reminderPint);
+        am.setRepeating(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), AlarmManager.INTERVAL_DAY, reminderPint);
     }
 
-    private void cancelOverallEvaluationReminder(){
-
-    }
 
 
     private ServiceConnection sensorConnection = new ServiceConnection() {
