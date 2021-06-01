@@ -494,7 +494,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             startStopButton.setText(getResources().getString(R.string.btn_stop));
 
         // Start Bluetooth beacon scaning
-        BluetoothBeaconScanner.getInstance().start();
+        BluetoothBeaconScanner.start();
     }
 
     /**
@@ -525,7 +525,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             wakeLock.release();
 
         // Stop Bluetooth beacon scanning
-        BluetoothBeaconScanner.getInstance().stop();
+        BluetoothBeaconScanner.stop();
     }
 
     /**

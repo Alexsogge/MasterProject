@@ -1,7 +1,6 @@
 package unifr.sensorrecorder.BluetoothBeacons;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
@@ -25,25 +24,27 @@ Resources:
 */
 
 public class BluetoothBeaconScanner {
-    private static final BluetoothBeaconScanner mInstance = new BluetoothBeaconScanner();
+    /*
+    BEACON_TX_POWER:
+    The Ruuvi beacon data protocol states that tx power level is passed in broadcast data.
+    However together with the distance formula these values gave unreasonable distances.
+    The value below was measured using the app nRF Connect together with 6 Ruuvi beacons. The rssi
+    graphs were observed over some time. The value range was roughly from -70 to -50.
+    */
+    private static final double BEACON_TX_POWER = -60;
+    /*
+    BEACON_ENVIRONMENTAL:
+    Environmental factor for rssi-based beacon distance calculation. Range 2 - 4.
+    */
+    private static final double BEACON_ENVIRONMENTAL = 2.0;
+    private static final double BEACON_MAX_DIST = 1.2;
 
-    private BluetoothLeScanner mLeScanner;
-    private boolean mIsScanning;
-
-    private BluetoothBeaconScanner() {
-        mLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
-        mIsScanning = false;
-    }
-
-    public static BluetoothBeaconScanner getInstance() {
-        return mInstance;
-    }
-
-    public void start() {
+    public static void start() {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         byte[] data = new byte[24];
         byte[] mask = new byte[24];
 
-        if (mIsScanning) {
+        if (bluetoothAdapter.isDiscovering()) {
             return;
         }
         Log.d("beacons", "Start scanning");
@@ -68,34 +69,36 @@ public class BluetoothBeaconScanner {
                 .setReportDelay(0L)
                 .build();
 
-        mLeScanner.startScan(filters, scanSettings, scanCallback);
-        mIsScanning = true;
+        bluetoothAdapter.getBluetoothLeScanner().startScan(filters, scanSettings, scanCallback);
     }
 
-    public void stop() {
-        if (!mIsScanning) {
+    public static void stop() {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if (!bluetoothAdapter.isDiscovering()) {
             return;
         }
         Log.d("beacons", "Stop scanning");
-        mLeScanner.stopScan(scanCallback);
-        mIsScanning = false;
+
+        bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
     }
 
-    private double distanceFromRssi(int rssi) {
-        double measuredPower = -69.0;
-        double n = 2.0;
-        return Math.pow(10.0, ((measuredPower - rssi) / (10.0 * n)));
+    private static double getBeaconDistance(double rssi) {
+        return Math.pow(10.0, ((BEACON_TX_POWER - rssi) / (10.0 * BEACON_ENVIRONMENTAL)));
     }
 
-    private final ScanCallback scanCallback = new ScanCallback() {
+    private static final ScanCallback scanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-            double distance = distanceFromRssi(result.getRssi());
+            double distance = getBeaconDistance(result.getRssi());
             long timestamp = SystemClock.elapsedRealtimeNanos();
-            String record = timestamp + "\t" + result.getDevice().getAddress() + "\n";
+            String record = timestamp + "\t" + result.getRssi() + "\t" + result.getDevice().getAddress() + "\n";
             String log = "Found " + result.getDevice().getAddress()
                     + " (RSSI: " + result.getRssi()
                     + " -> Distance: " + distance + ")";
+            if (distance > BEACON_MAX_DIST) {
+                return;
+            }
             Log.d("beacons", log);
             try {
                 StaticDataProvider.getProcessor().writeBluetoothBeaconTimestamp(record);
