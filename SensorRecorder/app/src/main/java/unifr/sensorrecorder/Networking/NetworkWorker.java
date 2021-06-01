@@ -63,4 +63,5 @@ public class NetworkWorker extends Worker {
     protected void sendStatus(int statusCode){
         setProgressAsync(new Data.Builder().putInt(STATUS, statusCode).build());
     }
+
 }

@@ -94,16 +94,16 @@ class DataProcessor:
         if add_time_stamps:
             self.plot_hand_wash_events((-5, 110), ax)
 
-
         ax.scatter(x, data[:, 1] * 100, c='blue', alpha=0.3, label='noise')
         ax.scatter(x, data[:, 2] * 100, c='red', alpha=0.8, label='handwash')
+        ax.plot(x, data[:, 3] * 100, c='orange', label='mean')
 
         data = self.data_dict['evaluations']
         data[:, 0] *= nano_sec
         pos_data = data[data[:, 1] == 1]
         neg_data = data[data[:, 1] == 0]
         neutral_data = data[data[:, 1] == -1]
-        ax.scatter(neutral_data[:, 0], np.full(neutral_data.shape[0], 50), c='grey', alpha=0.8, label='neutral')
+        ax.scatter(neutral_data[:, 0], np.full(neutral_data.shape[0], 50), c='grey', s=100, marker='>', alpha=0.8, label='neutral')
         ax.scatter(neg_data[:, 0], np.full(neg_data.shape[0], -5), c='purple', s=200, marker='^', alpha=1, label='no')
         ax.scatter(pos_data[:, 0], np.full(pos_data.shape[0], 105), c='green', s=200, marker='v', alpha=1, label='yes')
 

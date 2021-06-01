@@ -73,6 +73,7 @@
         -->
         <receiver android:name=".Complication.ComplicationHandWashReceiver" />
         <receiver android:name=".EventHandlers.OverallEvaluationReminder" />
+        <receiver android:name=".EventHandlers.OverallEvaluationReminderStarter" />
         <receiver android:name=".EventHandlers.EvaluationReceiver" />
         <receiver android:name=".EventHandlers.UpdateTFModelReceiver" />
 

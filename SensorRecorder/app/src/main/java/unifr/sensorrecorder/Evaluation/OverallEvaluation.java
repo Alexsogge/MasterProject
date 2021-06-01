@@ -1,7 +1,10 @@
 package unifr.sensorrecorder.Evaluation;
 
+import android.app.AlarmManager;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -18,6 +21,7 @@ import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -26,6 +30,8 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 
@@ -49,6 +55,26 @@ public class OverallEvaluation extends WearableActivity {
         answer = (Button) findViewById(R.id.ovEvRateButton);
         rlMarker = (RelativeLayout) findViewById(R.id.rlMarker);
 
+        // initSeekBar();
+        initRatingBar();
+
+        // Enables Always-on
+        setAmbientEnabled();
+    }
+
+    private void initRatingBar(){
+        ratingBar.setVisibility(View.VISIBLE);
+        answer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int rating = Math.round(ratingBar.getProgress());
+                saveRating(rating);
+            }
+        });
+    }
+
+    private void initSeekBar(){
+        seekBar.setVisibility(View.VISIBLE);
         fadeOut = new AlphaAnimation(1, 0);
         fadeOut.setInterpolator(new AccelerateInterpolator()); //and this
         fadeOut.setStartOffset(1000);
@@ -88,35 +114,44 @@ public class OverallEvaluation extends WearableActivity {
             }
         });
 
+
         answer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int rating = Math.round(seekBar.getProgress());
-                TimeZone tz = TimeZone.getTimeZone("UTC");
-                DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-                df.setTimeZone(tz);
-                String timeStamp = df.format(new Date());
-                StringBuilder line = new StringBuilder(timeStamp);
-                line.append("\t").append((new Date()).getTime());
-                line.append("\t").append(rating);
-                line.append("\n");
-
-                try {
-                    StaticDataProvider.getProcessor().writeOverallEvaluation(line.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                mNotificationManager.cancel(NotificationSpawner.DAILY_REMINDER_REQUEST_CODE);
-
-                moveTaskToBack(true);
-                finish();
+                saveRating(rating);
             }
         });
+    }
 
-        // Enables Always-on
-        setAmbientEnabled();
+    private void saveRating(int rating){
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+        df.setTimeZone(tz);
+        String timeStamp = df.format(new Date());
+        StringBuilder line = new StringBuilder(timeStamp);
+        line.append("\t").append((new Date()).getTime());
+        line.append("\t").append(rating);
+        line.append("\n");
+
+        try {
+            StaticDataProvider.getProcessor().writeOverallEvaluation(line.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(NotificationSpawner.DAILY_REMINDER_REQUEST_CODE);
+
+        Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
+
+        // cancel repetitive alarm
+       NotificationSpawner.stopRepeatingOverallEvaluationReminder(this);
+
+        NotificationSpawner.closeOverallEvaluationNotification(this);
+
+        moveTaskToBack(true);
+        finish();
     }
 
     private void updateMarker(final SeekBar sb,

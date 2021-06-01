@@ -140,8 +140,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         if (intent != null && intent.getStringExtra("trigger") != null){
             // start recording
             if (intent.getStringExtra("trigger").equals("startRecording")) {
-                if(!isRunning && initialized)
+                if(!isRunning && initialized) {
+                    if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
+                        StaticDataProvider.getNetworkManager().checkForTFModelUpdate();
                     startRecording();
+                }
             }
 
             // new hand wash event
@@ -176,7 +179,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             }
         // if there isn't a trigger we just start the service
         } else {
-            if (!initialized) {
+            if (!initialized && intent != null) {
                 initialized = true;
                 this.intent = intent;
                 startForeground(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(this.getApplicationContext(), this.intent));
@@ -491,7 +494,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // update ui stuff
         isRunning = true;
         if (startStopButton != null)
-            startStopButton.setText(getResources().getString(R.string.btn_stop));
+            setButtonText(getResources().getString(R.string.btn_stop));
 
         // Start Bluetooth beacon scaning
         BluetoothBeaconScanner.start();
@@ -503,8 +506,9 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      * we start a new task which waits for the complete close and then proceed to save all data.
      * The stopLatch is used so signalise when stop and save is completed
      * @param stopLatch
+     * @param doSave
      */
-    private void stopRecording(CountDownLatch stopLatch){
+    private void stopRecording(CountDownLatch stopLatch, boolean doSave){
         // if we*re not recording we can simply  ignore this call
         if(!isRunning) {
             stopLatch.countDown();
@@ -512,15 +516,17 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(getApplicationContext(), this.intent));
+        NotificationSpawner.stopRepeatingOverallEvaluationReminder(this.getApplicationContext());
+        NotificationSpawner.closeOverallEvaluationNotification(this.getApplicationContext());
 
         if(startStopButton != null)
-            startStopButton.setText(getResources().getString(R.string.btn_stopping));
+            setButtonText(getResources().getString(R.string.btn_stopping));
         Log.d("mgr", "Stop recording");
         // stop sensor manager
         stopSensors();
 
         Log.d("mgr", "unregistered sensors");
-        executor.execute(new StopSessionTask(stopLatch));
+        executor.execute(new StopSessionTask(stopLatch, doSave));
         if(wakeLock.isHeld())
             wakeLock.release();
 
@@ -528,12 +534,13 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         BluetoothBeaconScanner.stop();
     }
 
+
     /**
      * Call stopRecoding and ignore save task signal
      */
     public void directlyStopRecording(){
         CountDownLatch stopLatch = new CountDownLatch(1);
-        stopRecording(stopLatch);
+        stopRecording(stopLatch, true);
     }
 
     /**
@@ -541,7 +548,15 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      * @param stopLatch
      */
     public void waitForStopRecording(CountDownLatch stopLatch){
-        stopRecording(stopLatch);
+        stopRecording(stopLatch, true);
+    }
+
+    /**
+     * Call stopRecording and get signal when all data is saved
+     * @param stopLatch
+     */
+    public void waitForStopRecording(CountDownLatch stopLatch, boolean doSave){
+        stopRecording(stopLatch, doSave);
     }
 
 
@@ -707,11 +722,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
         // Update all complications
         ComponentName provider = new ComponentName(this, ComplicationProvider.class);
-        for (int i = 0; i<=4 ; i++) {
-            int complicationId = 4;
-            ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
-            requester.requestUpdate(complicationId);
-        }
+
+        int complicationId = StaticDataProvider.getCounterComplicationId();
+        ProviderUpdateRequester requester = new ProviderUpdateRequester(this, provider);
+        requester.requestUpdate(complicationId);
+
 
         // open Evaluation
         Intent confirmHandWashIntent = new Intent(this, EvaluationReceiver.class);
@@ -822,6 +837,16 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         });
     }
 
+    private void setButtonText(final String newText){
+        if (startStopButton != null) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    startStopButton.setText(newText);
+                }
+            });
+        }
+    }
+
 
     /**
      * Get the required sensor value for a given sensor to trigger a prediction.
@@ -889,9 +914,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      */
     private class StopSessionTask implements Runnable{
         private CountDownLatch stopLatch;
+        private boolean doSave;
 
-        public StopSessionTask(CountDownLatch stopLatch){
+        public StopSessionTask(CountDownLatch stopLatch, boolean doSave){
             this.stopLatch = stopLatch;
+            this.doSave = doSave;
         }
 
         @Override
@@ -947,12 +974,14 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             dataProcessor.flushAllContainer();
 
             Log.d("mgr", "flushed data");
-            dataProcessor.backup_recording_files();
-            Log.d("mgr", "saved data");
+            if(doSave) {
+                dataProcessor.backup_recording_files();
+                Log.d("mgr", "saved data");
+            }
 
             isRunning = false;
             if (startStopButton != null)
-                startStopButton.setText("Start");
+                setButtonText("Start");
 
             Log.d("mgr", "finished stop");
             stopLatch.countDown();

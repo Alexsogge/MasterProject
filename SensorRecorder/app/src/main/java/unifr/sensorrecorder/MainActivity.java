@@ -2,12 +2,10 @@ package unifr.sensorrecorder;
 
 import android.Manifest;
 import android.app.AlarmManager;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -15,18 +13,14 @@ import android.icu.util.Calendar;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,12 +30,9 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.wear.ambient.AmbientModeSupport;
 import androidx.work.WorkManager;
 
-import java.io.IOException;
-
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
-import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
-import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 import unifr.sensorrecorder.EventHandlers.UpdateTFModelReceiver;
 import unifr.sensorrecorder.Networking.NetworkManager;
 import unifr.sensorrecorder.Networking.ServerTokenObserver;
@@ -54,7 +45,7 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 public class MainActivity extends FragmentActivity
         implements AmbientModeSupport.AmbientCallbackProvider{
-    private static double FACTOR = 0.2; // c = a * sqrt(2)
+    private static double FACTOR = 0.146467f; // c = a * sqrt(2)
     private boolean isActive = false;
 
     private TextView mTextView;
@@ -115,6 +106,7 @@ public class MainActivity extends FragmentActivity
 
         }
 
+        adjustInset();
         // Enables Always-on
         //setAmbientEnabled();
     }
@@ -136,7 +128,7 @@ public class MainActivity extends FragmentActivity
     }
 
     private void initUI(){
-        mainScrollView = (ScrollView)findViewById(R.id.mainview);
+        mainScrollView = (ScrollView) findViewById(R.id.mainScrollView);
 
         infoText = (TextView) findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
@@ -214,8 +206,8 @@ public class MainActivity extends FragmentActivity
     }
 
     public void toggleStartRecording(){
-        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
-            networkManager.checkForFModelUpdate();
+        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf), false))
+            networkManager.checkForTFModelUpdate();
         // handWashDetection.initModel();
         sensorService.startRecording();
     }
@@ -286,38 +278,34 @@ public class MainActivity extends FragmentActivity
     }
 
     private void startRecording(){
-        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false))
-            networkManager.checkForFModelUpdate();
+        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
+            networkManager.checkForTFModelUpdate();
         intent = new Intent(this, SensorRecordingManager.class );
-        bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);
         } else {
             startService(intent);
         }
+        if(!mBound)
+            bindService(intent, sensorConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void setOverallEvaluationReminder(){
-        cancelOverallEvaluationReminder();
-
-        Calendar calendar = Calendar.getInstance();
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
         targetDate.set(Calendar.HOUR_OF_DAY, 18);
         targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
-        //if(targetDate.before(calendar))
+        // Calendar calendar = Calendar.getInstance();
+        // if(targetDate.before(calendar))
         //    targetDate.add(Calendar.DATE, 1);
 
-        Intent reminderReceiver = new Intent(this, OverallEvaluationReminder.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent reminderReceiver = new Intent(this, OverallEvaluationReminderStarter.class);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), AlarmManager.INTERVAL_DAY, reminderPint);
+        am.setRepeating(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), AlarmManager.INTERVAL_DAY, reminderPint);
     }
 
-    private void cancelOverallEvaluationReminder(){
-
-    }
 
 
     private ServiceConnection sensorConnection = new ServiceConnection() {
@@ -388,7 +376,7 @@ public class MainActivity extends FragmentActivity
 
     private void adjustInset() {
         if (getResources().getConfiguration().isScreenRound()) {
-            int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
+            int inset = (int)(FACTOR * getResources().getDisplayMetrics().widthPixels);
             View layout = (View) findViewById(R.id.mainview);
             layout.setPadding(inset, inset, inset, inset);
         }
@@ -418,7 +406,9 @@ public class MainActivity extends FragmentActivity
     public void onDestroy () {
         super.onDestroy();
         Log.d("activity", "on destroy main");
-
+        if (mBound) {
+            unbindService(sensorConnection);
+        }
         //unregisterReceiver(updateTFModelReceiver);
         //updateTFModelReceiver = null;
     }

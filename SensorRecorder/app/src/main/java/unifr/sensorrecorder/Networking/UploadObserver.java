@@ -1,6 +1,8 @@
 package unifr.sensorrecorder.Networking;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -33,16 +35,16 @@ public class UploadObserver implements Observer<List<WorkInfo>> {
                 Data progress = workInfo.getProgress();
                 int status = progress.getInt(UploadWorker.STATUS, -2);
                 if(status == UploadWorker.STATUS_ERROR){
-                    infoText.setText(context.getResources().getString(R.string.it_error));
+                    setInfoText(context.getResources().getString(R.string.it_error));
                     // Log.d("worker", "error");
                 }
                 if(status == UploadWorker.STATUS_PENDING){
-                    infoText.setText(context.getResources().getString(R.string.it_uploading));
+                    setInfoText(context.getResources().getString(R.string.it_uploading));
                     uploadProgressBar.setVisibility(View.VISIBLE);
                     // Log.d("worker", "pending ");
                 }
                 if(status == UploadWorker.STATUS_PROGRESS){
-                    infoText.setText(context.getResources().getString(R.string.it_uploading));
+                    setInfoText(context.getResources().getString(R.string.it_uploading));
                     int value = progress.getInt(UploadWorker.PROGRESS, 0);
                     // Log.d("worker", "progress: "+ value);
                     uploadProgressBar.setProgress(value);
@@ -50,16 +52,28 @@ public class UploadObserver implements Observer<List<WorkInfo>> {
                 if(workInfo.getState().isFinished()){
                     int state = workInfo.getOutputData().getInt(UploadWorker.STATUS, -2);
                     if(state == UploadWorker.STATUS_FINISHED) {
-                        infoText.setText(context.getResources().getString(R.string.it_upload_fin));
+                        setInfoText(context.getResources().getString(R.string.it_upload_fin));
                         uploadProgressBar.setVisibility(View.INVISIBLE);
                         // Log.d("worker", "finish ");
                     }
                 }
                 else if(workInfo.getState().equals(WorkInfo.State.ENQUEUED)){
-                    infoText.setText(context.getResources().getString(R.string.it_start_upload));
+                    setInfoText(context.getResources().getString(R.string.it_start_upload));
                     // Log.d("worker", "enqued ");
                 }
             }
+        }
+    }
+
+    private void setInfoText(final String text){
+        if(infoText != null) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    infoText.setVisibility(View.VISIBLE);
+                    infoText.setText(text);
+                    infoText.invalidate();
+                }
+            });
         }
     }
 }

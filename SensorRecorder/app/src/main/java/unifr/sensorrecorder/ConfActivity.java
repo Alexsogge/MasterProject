@@ -24,13 +24,14 @@ import unifr.sensorrecorder.Networking.NetworkManager;
 
 public class ConfActivity extends WearableActivity {
 
-    private static double FACTOR = 0.2; // c = a * sqrt(2)
+    private static double FACTOR = 0.146467f; // c = a * sqrt(2)
     private SharedPreferences configs;
     private EditText serverNameInput;
     private EditText userIdentifierInput;
     private CheckBox useZipsCheckbox;
     private CheckBox useMKVCheckbox;
     private CheckBox useMicCheckbox;
+    private CheckBox autoUpdateTFCheckbox;
     private CheckBox updateTFCheckbox;
     private Switch multipleMicSwitch;
     private Button downloadTFModelButton;
@@ -57,6 +58,7 @@ public class ConfActivity extends WearableActivity {
         useZipsCheckbox = (CheckBox) findViewById(R.id.useZipCheckbox);
         useMKVCheckbox = (CheckBox) findViewById(R.id.useMKVCheckbox);
         //useMicCheckbox = (CheckBox) findViewById(R.id.useMicCheckbox);
+        autoUpdateTFCheckbox = (CheckBox) findViewById(R.id.autoUpdateTFCheckbox);
         updateTFCheckbox = (CheckBox) findViewById(R.id.updateTFCheckbox);
         //multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
 
@@ -79,6 +81,11 @@ public class ConfActivity extends WearableActivity {
             useZipsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useZip), true));
         if(configs.contains(getString(R.string.conf_useMKV)))
             useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
+        if(configs.contains(getString(R.string.conf_auto_update_tf))) {
+            autoUpdateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_auto_update_tf), false));
+            if(configs.getBoolean(getString(R.string.conf_auto_update_tf), false))
+                updateTFCheckbox.setEnabled(false);
+        }
         if(configs.contains(getString(R.string.conf_check_for_tf_update)))
             updateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_check_for_tf_update), true));
 
@@ -119,6 +126,17 @@ public class ConfActivity extends WearableActivity {
         });
         */
 
+        autoUpdateTFCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
+                if(isChecked){
+                    updateTFCheckbox.setEnabled(false);
+                } else {
+                    updateTFCheckbox.setEnabled(true);
+                }
+            }
+        });
+
         Button applyButton = (Button)findViewById(R.id.buttonApply);
         applyButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -142,6 +160,7 @@ public class ConfActivity extends WearableActivity {
                 configEditor.putBoolean(getString(R.string.conf_useMKV), useMKVCheckbox.isChecked());
                 //configEditor.putBoolean(getString(R.string.conf_useMic), useMicCheckbox.isChecked());
                 //configEditor.putBoolean(getString(R.string.conf_multipleMic), multipleMicSwitch.isChecked());
+                configEditor.putBoolean(getString(R.string.conf_auto_update_tf), autoUpdateTFCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_check_for_tf_update), updateTFCheckbox.isChecked());
 
                 configEditor.apply();
@@ -172,12 +191,16 @@ public class ConfActivity extends WearableActivity {
             }
         });
 
+        adjustInset();
+
     }
 
     private void adjustInset() {
         if (getResources().getConfiguration().isScreenRound()) {
-            int inset = (int)(FACTOR * getResources().getConfiguration().screenWidthDp);
+            int inset = (int)(FACTOR * getResources().getDisplayMetrics().widthPixels);
             View layout = (View) findViewById(R.id.confMainview);
+            Log.d("conf", "set inset to " + inset);
+            // inset*=2;
             layout.setPadding(inset, inset, inset, inset);
         }
     }

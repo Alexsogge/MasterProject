@@ -1,29 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainScrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dark_grey"
-    android:padding="@dimen/box_inset_layout_padding"
     tools:context=".MainActivity"
     tools:deviceIds="wear"
-    android:fitsSystemWindows="true">
-
-    <ScrollView
-        android:id="@+id/mainview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+    android:fitsSystemWindows="true"
+    >
 
         <LinearLayout
+            android:id="@+id/mainview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
             >
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="5dp"
                 android:gravity="center_horizontal"
@@ -33,7 +30,7 @@
 
             <Button
                 android:id="@+id/startStopButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="25dip"
                 android:text="@string/btn_stop" />
@@ -50,7 +47,7 @@
 
             <Button
                 android:id="@+id/uploadaButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="25dip"
                 android:text="@string/btn_upload"
@@ -59,9 +56,10 @@
 
             <TextView
                 android:id="@+id/infoText"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal" />
+                android:gravity="center_horizontal"
+                android:visibility="gone" />
 
             <ProgressBar
                 android:id="@+id/uploaadProgressBar"
@@ -70,13 +68,14 @@
                 android:layout_height="wrap_content"
                 android:max="100"
                 android:progress="0"
-                android:visibility="invisible" />
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/buttonConfig"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/btn_config" />
         </LinearLayout>
-    </ScrollView>
-</androidx.wear.widget.BoxInsetLayout>
+
+
+</ScrollView>

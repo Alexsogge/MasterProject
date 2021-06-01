@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.RatingBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.NotificationSpawner;
@@ -16,6 +17,8 @@ import unifr.sensorrecorder.R;
 
 import java.io.IOException;
 import java.util.HashMap;
+
+import javax.xml.datatype.Duration;
 
 public class HandwashEvaluation extends WearableActivity {
 
@@ -75,8 +78,8 @@ public class HandwashEvaluation extends WearableActivity {
         questions.put(3, R.string.str_eval_question_3);
         answerViews.put(0, answerYN);
         answerViews.put(1, answerYN);
-        answerViews.put(2, answerRating);
-        answerViews.put(3, answerRating2);
+        answerViews.put(2, answerRating2);   // use 5 star rating
+        answerViews.put(3, answerRating2);   // use 5 star rating
 
         answers = new HashMap<>();
         answers.put(0, 1);
@@ -154,7 +157,7 @@ public class HandwashEvaluation extends WearableActivity {
             e.printStackTrace();
         }
 
-
+        Toast.makeText(this.getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);

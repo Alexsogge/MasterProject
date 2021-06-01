@@ -13,24 +13,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginHorizontal="10dp"
+        android:layout_marginHorizontal="16dp"
+        android:gravity="center"
         android:orientation="vertical"
         >
-
-        <RatingBar
-            android:id="@+id/ovEvRatingBar"
-            style="@style/Widget.AppCompat.RatingBar.Indicator"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginVertical="8sp"
-            android:isIndicator="false"
-            android:max="5"
-            android:numStars="5"
-            android:rating="3"
-            android:stepSize="1"
-            android:textAlignment="center"
-            android:visibility="gone" />
 
         <TextView
             android:id="@+id/textView4"
@@ -48,11 +34,28 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:max="10"
-            android:progress="5" />
+            android:progress="5"
+            android:visibility="gone" />
+
+        <RatingBar
+            android:id="@+id/ovEvRatingBar"
+            style="@style/Widget.AppCompat.RatingBar.Indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginVertical="8sp"
+            android:isIndicator="false"
+            android:max="5"
+            android:numStars="5"
+            android:rating="3"
+            android:stepSize="1"
+            android:textAlignment="center"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
             android:orientation="horizontal">
 
             <TextView
@@ -60,23 +63,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="0" />
+                android:text="1" />
 
             <TextView
                 android:id="@+id/textView6"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="10"
+                android:text="5"
                 android:textAlignment="textEnd" />
         </LinearLayout>
 
         <Button
             android:id="@+id/ovEvRateButton"
             style="@style/Widget.AppCompat.Button.Small"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="15dp"
             android:text="@string/btn_rate" />
     </LinearLayout>
 

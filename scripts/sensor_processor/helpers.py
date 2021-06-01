@@ -50,6 +50,11 @@ def data_list_to_2d_array(data: List[List], expected_size=None) -> np.ndarray:
     for i, line in enumerate(data):
         # if len(line) == data_arr.shape[1]:
         #     data_arr[i] = line
+        for j, entry in enumerate(line):
+            try:
+                line[j] = float(entry)
+            except ValueError:
+                line[j] = 0
         data_arr[i, :len(line)] = line
     return data_arr
 
