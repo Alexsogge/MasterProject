@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +21,7 @@ import androidx.work.WorkManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.HandWashDetection;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
@@ -67,10 +69,8 @@ public class NetworkManager {
 
 
         // update info text
-        if(infoText != null) {
-            infoText.setText(context.getString(R.string.btn_stopping));
-            infoText.invalidate();
-        }
+        setInfoText(context.getString(R.string.btn_stopping));
+
 
         // check if server was specified
         if(configs.getString(context.getString(R.string.conf_serverName), "").equals("")){
@@ -99,6 +99,17 @@ public class NetworkManager {
         });
     }
 
+    private void setInfoText(final String text){
+        if(infoText != null) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    infoText.setVisibility(View.VISIBLE);
+                    infoText.setText(text);
+                    infoText.invalidate();
+                }
+            });
+        }
+    }
 
     private class UploadTaskStarter implements Runnable{
 
@@ -111,18 +122,16 @@ public class NetworkManager {
                 e.printStackTrace();
             }
             // update info text
-            if(infoText != null) {
-                infoText.setText(context.getString(R.string.it_start_upload));
-                infoText.invalidate();
-            }
+
+            setInfoText(context.getString(R.string.it_start_upload));
 
 
             OneTimeWorkRequest uploadWorkRequest = buildUploadWorkRequest();
             WorkManager.getInstance(context).cancelAllWork();
             WorkManager.getInstance(context).pruneWork();
+            NotificationSpawner.showUploadNotification(context, context.getString(R.string.not_upload_connection));
             if(configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
                 OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
-                Log.d("net", "enque upload worker");
                 WorkManager.getInstance(context)
                         .beginWith(serverTokenWorkRequest)
                         .then(uploadWorkRequest)
@@ -141,7 +150,7 @@ public class NetworkManager {
         @Override
         public void run() {
             sensorStopLatch = new CountDownLatch(1);
-            sensorService.waitForStopRecording(sensorStopLatch);
+            sensorService.waitForStopRecording(sensorStopLatch, false);
             // wait for finished sensors
             try {
                 sensorStopLatch.await();
@@ -201,7 +210,7 @@ public class NetworkManager {
         new NetworkManager.HTTPGetTFModel().execute();
     }
 
-    public void checkForFModelUpdate(){
+    public void checkForTFModelUpdate(){
         new NetworkManager.HTTPCheckForNewTFModel().execute();
     }
 
@@ -275,7 +284,10 @@ public class NetworkManager {
                     String doSkip = configs.getString(context.getString(R.string.val_do_skip_tf_model), "");
                     // Log.d("net", "active: " + tfFileName + " using " + currentModel + " skip " + doSkip);
                     if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
-                        NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
+                        if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_auto_update_tf), false))
+                            downloadTFModel();
+                        else if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_check_for_tf_update), true))
+                            NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
                     }
                     SharedPreferences.Editor configEditor = configs.edit();
                     configEditor.putString(context.getApplicationContext().getString(R.string.val_last_checked_tf_model),tfFileName);
@@ -293,7 +305,8 @@ public class NetworkManager {
             Response response = null;
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
-                makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
+                // makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
+                Log.e("NETWORKMANAGER", response.toString());
             } else {
                 String jsonData = response.body().string();
                 JSONObject jObject = new JSONObject(jsonData);

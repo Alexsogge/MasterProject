@@ -95,7 +95,6 @@ def tfmodel():
 
     if request.method == 'POST':
         print('Save new tf model', request.form)
-        print('window size', request.form.get('frameSizeInput'))
         if 'file' not in request.files:
             upload_error_text = 'Info: no new file was selected'
         else:
@@ -114,8 +113,8 @@ def tfmodel():
 
         settings_dict = dict()
         settings_dict['frame_size'] = int(request.form.get('frameSizeInput'))
-        settings_dict['positive_prediction_time'] = int(request.form.get('positivePredictionTimeInput'))
-        settings_dict['positive_prediction_counter'] = int(request.form.get('positivePredictionCounterInput'))
+        settings_dict['mean_threshold'] = float(request.form.get('meanThresholdInput'))
+        settings_dict['mean_kernel_size'] = int(request.form.get('meanKernelWidthInput'))
         settings_dict['notification_cool_down'] = int(request.form.get('notificationCoolDownInput'))
         required_sensors = request.form.getlist('requiredSensorsSelect')
         for i in range(len(required_sensors)):

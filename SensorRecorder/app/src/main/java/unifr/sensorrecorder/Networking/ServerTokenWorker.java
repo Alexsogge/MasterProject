@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.work.Data;
 import androidx.work.WorkerParameters;
 
+import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 
 import org.json.JSONException;
@@ -35,6 +36,7 @@ public class ServerTokenWorker extends NetworkWorker{
         if(!configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
             return Result.success(new Data.Builder().putInt(STATUS, STATUS_FINISHED).build());
         }
+        NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_authentication));
         int requestStatus = getServerToken();
         if(requestStatus != STATUS_SUCCESS){
             sendStatus(requestStatus);
