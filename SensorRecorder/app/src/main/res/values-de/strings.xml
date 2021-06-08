@@ -14,7 +14,7 @@
     <string name="btn_stopping">Stoppe...</string>
     <string name="toast_addedhandwash">Händewaschen hinzugefügt</string>
     <string name="toast_couldnt_load_tf">Konnte TF modell nicht laden</string>
-    <string name="toast_use_dl_tf">Nutze runtergeladenes TF modell</string>
+    <string name="toast_use_dl_tf">Nutze heruntergeladenes TF modell</string>
     <string name="toast_pred_hw">Händwaschen erkannt</string>
 
     <string name="toast_no_inet_conn">Keine Internetverbindungt</string>
@@ -25,7 +25,7 @@
     <string name="toast_got_token">Neuer Token erhalten</string>
     <string name="toast_loaded_token">Gespeicherten Token geladen</string>
     <string name="toast_error_during_request">Fehler bei der Anfrage</string>
-    <string name="toast_downloaded_tf">TF modell runtergeldaen</string>
+    <string name="toast_downloaded_tf">TF modell heruntergeladen</string>
     <string name="toast_failed_to_dl_file">Fehler beim laden der Datei: &#160;</string>
 
     <string name="toast_record_not_active">Aufnahme gerade nicht aktiv</string>
@@ -55,7 +55,7 @@
 
     <string name="str_eval_question_1">War dieses Waschen zwanghaft?</string>
     <string name="str_eval_question_2">Wie beunruhigt /angespannt sind Sie gerade?</string>
-    <string name="str_eval_question_3">Wie stark ist ihr Drang, zu waschen?</string>
+    <string name="str_eval_question_3">Wie stark ist ihr Drang zu waschen?</string>
     <string name="btn_rate">Bewerten</string>
 
     <string name="not_oar_title">Tägliche Bewertung</string>
