@@ -3,6 +3,7 @@ package unifr.sensorrecorder;
 import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -242,7 +243,15 @@ public class MainActivity extends FragmentActivity
         boolean coarseLocation = (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED);
         boolean writeExternalStorage = (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
 
-        if (!(bluetooth && bluetoothAdmin && coarseLocation && writeExternalStorage)) {
+        // Request enable Bluetooth if not yet enabled
+        if (bluetooth && bluetoothAdmin) {
+            if ((BluetoothAdapter.getDefaultAdapter() == null) || !BluetoothAdapter.getDefaultAdapter().isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, 2);
+            }
+        }
+
+        if (!bluetooth || !bluetoothAdmin || !coarseLocation || !writeExternalStorage) {
             ActivityCompat.requestPermissions(MainActivity.this,
                     new String[]{
                             Manifest.permission.BLUETOOTH,

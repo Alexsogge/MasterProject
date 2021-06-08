@@ -37,17 +37,16 @@ public class BluetoothBeaconScanner {
     Environmental factor for rssi-based beacon distance calculation. Range 2 - 4.
     */
     private static final double BEACON_ENVIRONMENTAL = 2.0;
-    private static final double BEACON_MAX_DIST = 1.2;
+    private static final double BEACON_MAX_DIST = 1.0;
 
     public static void start() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         byte[] data = new byte[24];
         byte[] mask = new byte[24];
 
-        if (bluetoothAdapter.isDiscovering()) {
+        if ((bluetoothAdapter == null) || !bluetoothAdapter.isEnabled()) {
             return;
         }
-        Log.d("beacons", "Start scanning");
 
         // Scan filter to only get callback calls for Ruuvi beacons
         Arrays.fill(data, (byte)0);
@@ -62,24 +61,25 @@ public class BluetoothBeaconScanner {
 
         // Scan settings
         ScanSettings scanSettings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                 .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                 .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
                 .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
                 .setReportDelay(0L)
                 .build();
 
+        Log.d("beacons", "Start scanning");
         bluetoothAdapter.getBluetoothLeScanner().startScan(filters, scanSettings, scanCallback);
     }
 
     public static void stop() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        if (!bluetoothAdapter.isDiscovering()) {
+        if ((bluetoothAdapter == null) || !bluetoothAdapter.isEnabled()) {
             return;
         }
-        Log.d("beacons", "Stop scanning");
 
+        Log.d("beacons", "Stop scanning");
         bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
     }
 
