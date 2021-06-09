@@ -55,7 +55,7 @@
 
     <string name="str_eval_question_1">War dieses Waschen zwanghaft?</string>
     <string name="str_eval_question_2">Wie beunruhigt /angespannt sind Sie gerade?</string>
-    <string name="str_eval_question_3">Wie stark ist ihr Drang, zu waschen?</string>
+    <string name="str_eval_question_3">Wie stark ist ihr Drang, Hände zu waschen?</string>
     <string name="btn_rate">Bewerten</string>
 
     <string name="not_oar_title">Tägliche Bewertung</string>
