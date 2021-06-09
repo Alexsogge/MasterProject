@@ -62,7 +62,14 @@
 
     <string name="not_oar_title">Daily rating</string>
     <string name="not_oar_text">Please rate your day</string>
-    <string name="str_oar_question">Today was the urge to wash my hands:</string>
+    <string name="str_oar_question_1">How intense was your hand washing overall today? </string>
+    <string name="str_oar_question_2">How often was your hand washing overall today? </string>
+    <string name="str_oar_question_3">How often have you logged your hands washing? </string>
+
+    <string name="str_one">1</string>
+    <string name="str_five">5</string>
+    <string name="str_never">never</string>
+    <string name="str_always">always</string>
 
     <string name="not_update_tf_title">New prediction model available</string>
     <string name="not_update_tf_text">Update to &#160;</string>
