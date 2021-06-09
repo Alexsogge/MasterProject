@@ -188,8 +188,9 @@ def list_recordings():
             if tmp_c_time < changed_time_stamp:
                 changed_time_stamp = tmp_c_time
 
+        session_size = convert_size(get_session_size(os.path.join(RECORDINGS_FOLDER, directory)))
         change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
-        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description]
+        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description, session_size]
 
     recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
@@ -197,6 +198,11 @@ def list_recordings():
 
     return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort)
 
+def get_session_size(path):
+    total_size = 0
+    for file in os.listdir(path):
+        total_size += os.path.getsize(os.path.join(path, file))
+    return total_size
 
 @view.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
