@@ -25,6 +25,7 @@
                         <button class="btn btn-primary" id="plot_button" onclick="loadPlot()">Data plot</button>
                         <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording_name+'/.'+recording_name+'.zip')}}">Download data set</a>
                     </div>
+                    <div class="col"><a class="btn btn-danger" href="{{url_for('views.clean_recording', recording=recording_name)}}">Clean plot data</a></div>
                 </div>
 
                 {% if not sensor_data_file %}
