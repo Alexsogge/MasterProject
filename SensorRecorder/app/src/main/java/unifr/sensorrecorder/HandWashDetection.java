@@ -1,6 +1,7 @@
 package unifr.sensorrecorder;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.hardware.Sensor;
@@ -137,7 +138,10 @@ public class HandWashDetection {
             if (modelFile.exists()) {
                 FileInputStream inputStream = new FileInputStream(modelFile);
                 FileChannel fileChannel = inputStream.getChannel();
-                makeToast(this.context.getString(R.string.toast_use_dl_tf));
+                SharedPreferences configs = context.getSharedPreferences(
+                        context.getString(R.string.configs), Context.MODE_PRIVATE);
+                String tfName = configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "base_model.tf");
+                makeToast(this.context.getString(R.string.toast_use_dl_tf) + tfName);
                 return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
             }
         } catch (FileNotFoundException e){

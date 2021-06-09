@@ -173,7 +173,7 @@ public class NotificationSpawner {
 
         // manual vibration cause vibration defined in notification doesn't always work
         Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-        vibrator.vibrate(VibrationEffect.createWaveform(new long[]{1, 1000, 500, 1000}, -1));
+        vibrator.vibrate(VibrationEffect.createWaveform(new long[]{0, 1000, 500, 1000}, -1));
     }
 
     public static void closeOverallEvaluationNotification(Context context){
@@ -270,7 +270,7 @@ public class NotificationSpawner {
         long[] vibrationPattern = new long[]{0, 1000, 500, 1000};
         createNotificationChannel(context, RECORDING_CHANNEL_ID, "Recording Channel", vibrationPattern);
         createNotificationChannel(context, PREDICTION_CHANNEL_ID, "Prediction Channel", null);
-        createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", vibrationPattern);
+        createNotificationChannel(context, OverallEvaluation_CHANNEL_ID, "OverallEvaluation Channel", null);
         createNotificationChannel(context, UPDATETFMODEL_CHANNEL_ID, "Update TF model Channel", vibrationPattern);
         createNotificationChannel(context, UPLOAD_CHANNEL_ID, "Upload Channel", null);
     }
