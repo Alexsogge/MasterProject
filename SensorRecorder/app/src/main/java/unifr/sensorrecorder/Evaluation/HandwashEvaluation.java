@@ -117,12 +117,14 @@ public class HandwashEvaluation extends WearableActivity {
             @Override
             public void onClick(View v) {
                 setAnswer(Math.round(ratingBar.getRating()));
+                ratingBar.setRating(0);
             }
         });
         rateButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 setAnswer(Math.round(ratingBar2.getRating()));
+                ratingBar2.setRating(0);
             }
         });
         ratingBarDescL.setOnClickListener(new View.OnClickListener() {
@@ -137,6 +139,8 @@ public class HandwashEvaluation extends WearableActivity {
                 ratingBar.setRating(10);
             }
         });
+        ratingBar.setRating(0);
+        ratingBar2.setRating(0);
     }
 
     private void setAnswer(int value){

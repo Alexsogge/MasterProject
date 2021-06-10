@@ -85,11 +85,13 @@ public class OverallEvaluation extends WearableActivity {
 
     private void initRatingBar(){
         ratingBar.setVisibility(View.VISIBLE);
+        ratingBar.setRating(0);
         answer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int rating = Math.round(ratingBar.getProgress());
                 setAnswer(rating);
+                ratingBar.setRating(0);
             }
         });
     }
