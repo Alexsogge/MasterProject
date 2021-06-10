@@ -102,7 +102,7 @@
                 android:id="@+id/autoUpdateTFCheckbox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:checked="false"
+                android:checked="true"
                 android:text="Auto update TF"
                 android:textAlignment="center" />
 
@@ -111,6 +111,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
+                android:enabled="false"
                 android:text="Show TF updates"
                 android:textAlignment="center" />
 

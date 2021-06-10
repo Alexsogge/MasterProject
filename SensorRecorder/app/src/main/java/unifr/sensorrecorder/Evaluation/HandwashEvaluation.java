@@ -4,7 +4,11 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.support.wearable.activity.WearableActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RatingBar;
@@ -21,6 +25,7 @@ import java.util.HashMap;
 import javax.xml.datatype.Duration;
 
 public class HandwashEvaluation extends WearableActivity {
+    private static final long autoCancelAfterMillis = 1000 * 60 * 2;
 
     private TextView questionText;
     private Button evalButtonYes;
@@ -41,6 +46,7 @@ public class HandwashEvaluation extends WearableActivity {
     private HashMap<Integer, Integer> answers;
     private HashMap<Integer, View> answerViews;
     private int currentQuestion;
+    private long spawnTimePoint;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +95,7 @@ public class HandwashEvaluation extends WearableActivity {
 
         // Enables Always-on
         setAmbientEnabled();
+        setAutoCancel();
     }
 
     private void initUi(){
@@ -110,12 +117,14 @@ public class HandwashEvaluation extends WearableActivity {
             @Override
             public void onClick(View v) {
                 setAnswer(Math.round(ratingBar.getRating()));
+                ratingBar.setRating(0);
             }
         });
         rateButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 setAnswer(Math.round(ratingBar2.getRating()));
+                ratingBar2.setRating(0);
             }
         });
         ratingBarDescL.setOnClickListener(new View.OnClickListener() {
@@ -130,6 +139,8 @@ public class HandwashEvaluation extends WearableActivity {
                 ratingBar.setRating(10);
             }
         });
+        ratingBar.setRating(0);
+        ratingBar2.setRating(0);
     }
 
     private void setAnswer(int value){
@@ -143,6 +154,17 @@ public class HandwashEvaluation extends WearableActivity {
             answerViews.get(currentQuestion).setVisibility(View.VISIBLE);
         }
 
+    }
+
+    private void setAutoCancel(){
+        final Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                finish();
+            }
+        }, autoCancelAfterMillis);
+        spawnTimePoint = SystemClock.elapsedRealtime();
     }
 
     private void saveEvaluation(){
@@ -163,5 +185,12 @@ public class HandwashEvaluation extends WearableActivity {
         mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);
         moveTaskToBack(true);
         finish();
+    }
+
+    protected void onResume () {
+        super.onResume();
+        Log.d("sensorrecorderevent", "Resume evaluation");
+        if(SystemClock.elapsedRealtime() > spawnTimePoint + autoCancelAfterMillis)
+            finish();
     }
 }

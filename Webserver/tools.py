@@ -10,6 +10,8 @@ from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, config
 
 prepared_plot_data: Dict[str, PlotData] = dict()
 
+to_clean_files = ['.npy', '.png', '.svg']
+
 
 def is_allowed_file(filename):
     return '.' in filename and \
@@ -92,3 +94,26 @@ def convert_size(size_bytes):
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return "%s %s" % (s, size_name[i])
+
+
+def get_session_size(path):
+    total_size = 0
+    for file in os.listdir(path):
+        if is_allowed_file(file):
+            total_size += os.path.getsize(os.path.join(path, file))
+    return total_size
+
+
+def get_size_color(size):
+    if size < 100000:
+        return 'red'
+    if size < 1000000:
+        return 'orange'
+    return 'black'
+
+
+def clean_session_directory(path):
+    for file in os.listdir(path):
+        if os.path.splitext(file)[1] in to_clean_files:
+            os.remove(os.path.join(path, file))
+

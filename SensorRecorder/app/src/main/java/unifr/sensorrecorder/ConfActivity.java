@@ -82,7 +82,7 @@ public class ConfActivity extends WearableActivity {
         if(configs.contains(getString(R.string.conf_useMKV)))
             useMKVCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_useMKV), false));
         if(configs.contains(getString(R.string.conf_auto_update_tf))) {
-            autoUpdateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_auto_update_tf), false));
+            autoUpdateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_auto_update_tf), true));
             if(configs.getBoolean(getString(R.string.conf_auto_update_tf), false))
                 updateTFCheckbox.setEnabled(false);
         }
@@ -168,6 +168,10 @@ public class ConfActivity extends WearableActivity {
                 if (configs.getString(getString(R.string.conf_serverToken), "").equals("") &&
                         !configs.getString(getString(R.string.conf_serverName), "").equals("")){
                     networkManager.requestServerToken();
+                }
+
+                if (autoUpdateTFCheckbox.isChecked()){
+                    networkManager.downloadTFModel();
                 }
 
                 finish();

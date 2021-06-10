@@ -68,6 +68,7 @@ class DataProcessor:
             self.data_dict['evaluations'] = align_array(self.data_dict['evaluations'],
                                                         self.sensor_decoder.min_time_stamp)
 
+
         # self.clean_data()
 
     def plot_hand_wash_events(self, dims, ax=None, scaling: float=1.0):
@@ -86,7 +87,6 @@ class DataProcessor:
         # print(self.data_dict['mic_time_stamps'].shape)
         # print(self.data_dict['mic_time_stamps'][:, 0])
         ax.vlines(self.data_dict['mic_time_stamps'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='pink')
-
 
     def sub_predictions(self, data, ax, add_time_stamps=True):
         x = data[:, 0]*nano_sec
@@ -186,6 +186,12 @@ class DataProcessor:
     def calc_total_time(self):
         return (np.max(self.data_dict['Acceleration'][:, 0]) - np.min(self.data_dict['Acceleration'][:, 0])) * nano_sec
 
+
+    def calc_prediction_ratio(self):
+        pos_pred = self.data_dict['predictions'][:, 2] >= 0.8
+        neg_pred = self.data_dict['predictions'][:, 2] < 0.8
+        print(pos_pred, neg_pred, np.sum(pos_pred), np.sum(neg_pred), np.sum(pos_pred)/len(pos_pred))
+
     def get_acceleration_data(self, as_json=False):
         if not as_json:
             return self.data_dict['Acceleration']
@@ -217,9 +223,10 @@ if __name__ == "__main__":
         if sys.argv[2] == 'mkv':
             use_mkv = True
     data_processor = DataProcessor(sys.argv[1], use_mkv)
-    data_processor.plot_data()
+    # data_processor.plot_data()
     # data_processor.plot_timings()
     # data_processor.export_numpy_array()
+    data_processor.calc_prediction_ratio()
     print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
           data_processor.calc_total_time()/60, " min \t -> ",
           (data_processor.calc_idle_time() / data_processor.calc_total_time())*100, "% lost")
