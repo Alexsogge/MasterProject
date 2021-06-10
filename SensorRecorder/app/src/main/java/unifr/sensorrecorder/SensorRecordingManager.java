@@ -509,7 +509,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      * @param doSave
      */
     private void stopRecording(CountDownLatch stopLatch, boolean doSave){
-        // if we*re not recording we can simply  ignore this call
+        // if we're not recording we can simply  ignore this call
         if(!isRunning) {
             stopLatch.countDown();
             return;

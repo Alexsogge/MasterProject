@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="sensor-processor-henkela", # Replace with your own username
+    name="sensor-processor-henkela",
     version="0.2.0",
     author="Alexander Henkel",
     author_email="a.henkel@mgga.de",

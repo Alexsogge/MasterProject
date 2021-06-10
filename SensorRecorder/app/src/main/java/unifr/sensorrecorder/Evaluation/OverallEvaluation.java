@@ -1,10 +1,7 @@
 package unifr.sensorrecorder.Evaluation;
 
-import android.app.AlarmManager;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -27,33 +24,57 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.TimeZone;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
-import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminder;
-import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 
 public class OverallEvaluation extends WearableActivity {
 
-    private TextView mTextView;
-    private  RatingBar ratingBar;
+    private TextView textViewQuestion;
+    private RatingBar ratingBar;
     private SeekBar seekBar;
     private RelativeLayout rlMarker;
     private Button answer;
     private Animation fadeOut;
+    private TextView textViewMarkerL;
+    private TextView textViewMarkerR;
+
+    private HashMap<Integer, Integer> questions;
+    private HashMap<Integer, Integer> answers;
+    private HashMap<Integer, Integer[]> markerTexts;
+    private int currentQuestion = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_overall_evaluation);
 
-        mTextView = (TextView) findViewById(R.id.text);
+        textViewQuestion = (TextView) findViewById(R.id.textViewOeQuestion);
+        textViewMarkerL = (TextView) findViewById(R.id.textViewOeMarkerL);
+        textViewMarkerR = (TextView) findViewById(R.id.textViewOeMarkerR);
 
         ratingBar = (RatingBar) findViewById(R.id.ovEvRatingBar);
         seekBar = (SeekBar) findViewById(R.id.ovEvSeekBar);
         answer = (Button) findViewById(R.id.ovEvRateButton);
         rlMarker = (RelativeLayout) findViewById(R.id.rlMarker);
+
+        questions = new HashMap<>();
+        questions.put(0, R.string.str_oar_question_1);
+        questions.put(1, R.string.str_oar_question_2);
+        questions.put(2, R.string.str_oar_question_3);
+
+        markerTexts = new HashMap<>();
+        markerTexts.put(0, new Integer[]{R.string.str_one, R.string.str_five});
+        markerTexts.put(1, new Integer[]{R.string.str_one, R.string.str_five});
+        markerTexts.put(2, new Integer[]{R.string.str_never, R.string.str_always});
+
+        answers = new HashMap<>();
+        textViewQuestion.setText(questions.get(0));
+        textViewMarkerL.setText(markerTexts.get(0)[0]);
+        textViewMarkerR.setText(markerTexts.get(0)[1]);
 
         // initSeekBar();
         initRatingBar();
@@ -64,13 +85,27 @@ public class OverallEvaluation extends WearableActivity {
 
     private void initRatingBar(){
         ratingBar.setVisibility(View.VISIBLE);
+        ratingBar.setRating(0);
         answer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int rating = Math.round(ratingBar.getProgress());
-                saveRating(rating);
+                setAnswer(rating);
+                ratingBar.setRating(0);
             }
         });
+    }
+
+    private void setAnswer(int value){
+        answers.put(currentQuestion, value);
+        currentQuestion++;
+        if(currentQuestion >= questions.size()) {
+            saveRating();
+        } else {
+            textViewQuestion.setText(questions.get(currentQuestion));
+            textViewMarkerL.setText(markerTexts.get(currentQuestion)[0]);
+            textViewMarkerR.setText(markerTexts.get(currentQuestion)[1]);
+        }
     }
 
     private void initSeekBar(){
@@ -119,19 +154,21 @@ public class OverallEvaluation extends WearableActivity {
             @Override
             public void onClick(View v) {
                 int rating = Math.round(seekBar.getProgress());
-                saveRating(rating);
+                setAnswer(rating);
             }
         });
     }
 
-    private void saveRating(int rating){
+    private void saveRating(){
         TimeZone tz = TimeZone.getTimeZone("UTC");
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
         df.setTimeZone(tz);
         String timeStamp = df.format(new Date());
         StringBuilder line = new StringBuilder(timeStamp);
         line.append("\t").append((new Date()).getTime());
-        line.append("\t").append(rating);
+        for(int i = 0; i < answers.size(); i++){
+            line.append("\t").append(answers.get(i));
+        }
         line.append("\n");
 
         try {
@@ -146,7 +183,7 @@ public class OverallEvaluation extends WearableActivity {
         Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
 
         // cancel repetitive alarm
-       NotificationSpawner.stopRepeatingOverallEvaluationReminder(this);
+        NotificationSpawner.stopRepeatingOverallEvaluationReminder(this);
 
         NotificationSpawner.closeOverallEvaluationNotification(this);
 

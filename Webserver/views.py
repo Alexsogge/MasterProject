@@ -188,15 +188,16 @@ def list_recordings():
             if tmp_c_time < changed_time_stamp:
                 changed_time_stamp = tmp_c_time
 
+        session_size = get_session_size(os.path.join(RECORDINGS_FOLDER, directory))
         change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
-        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description]
+        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description,
+                                      convert_size(session_size), get_size_color(session_size)]
 
     recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
     # recording_directories = [x[0] for x in os.walk(RECORDINGS_FOLDER)]
 
     return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort)
-
 
 @view.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
@@ -244,11 +245,22 @@ def plot_recording(recording):
 
     if os.path.exists(plot_file):
         if recording not in prepared_plot_data.copy():
-            get_plot_data(recording)
+            try:
+                get_plot_data(recording)
+            except Exception as e:
+                return render_template('error_show_recording_plot.html', recording_name=recording, error=e)
         plot_file = os.path.join(recording, 'data_plot.png')
         return render_template('show_recording_plot.html', recording_name=recording, plot=plot_file)
 
     return render_template('error_show_recording_plot.html', recording_name=recording)
+
+
+@view.route('/recording/clean/<string:recording>/')
+@basic_auth.login_required
+def clean_recording(recording):
+    recording_path = os.path.join(RECORDINGS_FOLDER, recording)
+    clean_session_directory(recording_path)
+    return redirect(url_for('views.get_recording', recording=recording))
 
 
 @view.route('/recording/new/', methods=['GET', 'POST'])
