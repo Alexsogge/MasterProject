@@ -90,8 +90,12 @@ public class OverallEvaluation extends WearableActivity {
             @Override
             public void onClick(View v) {
                 int rating = Math.round(ratingBar.getProgress());
-                setAnswer(rating);
-                ratingBar.setRating(0);
+                if (rating > 0) {
+                    setAnswer(rating);
+                    ratingBar.setRating(0);
+                } else {
+                    Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

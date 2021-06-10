@@ -161,7 +161,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                     if (timestamp > -1) {
                         try {
                             addHandWashEvent(timestamp);
-                            makeToast("Added hand wash");
+                            // makeToast("Added hand wash");
                         } catch (IOException e) {
                             e.printStackTrace();
                         }

@@ -116,15 +116,23 @@ public class HandwashEvaluation extends WearableActivity {
         rateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setAnswer(Math.round(ratingBar.getRating()));
-                ratingBar.setRating(0);
+                if (Math.round(ratingBar.getRating()) > 0) {
+                    setAnswer(Math.round(ratingBar.getRating()));
+                    ratingBar.setRating(0);
+                } else {
+                    Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
+                }
             }
         });
         rateButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setAnswer(Math.round(ratingBar2.getRating()));
-                ratingBar2.setRating(0);
+                if(Math.round(ratingBar2.getRating()) > 0) {
+                    setAnswer(Math.round(ratingBar2.getRating()));
+                    ratingBar2.setRating(0);
+                } else {
+                    Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
+                }
             }
         });
         ratingBarDescL.setOnClickListener(new View.OnClickListener() {

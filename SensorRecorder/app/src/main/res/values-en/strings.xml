@@ -32,6 +32,7 @@
 
     <string name="toast_record_not_active">Recording is not active</string>
     <string name="toast_eval_finished">Saved evaluation</string>
+    <string name="toast_give_rating">Please set rating</string>
 
     <string name="it_check_conn">Check connection...</string>
     <string name="it_start_upload">Start upload...</string>
