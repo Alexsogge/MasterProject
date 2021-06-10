@@ -115,6 +115,15 @@
                 android:text="Show TF updates"
                 android:textAlignment="center" />
 
+            <CheckBox
+                android:id="@+id/scanBluetoothBeacons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:enabled="true"
+                android:text="Scan bluetooth beacons"
+                android:textAlignment="center" />
+
             <Button
                 android:id="@+id/buttonApply"
                 android:layout_width="match_parent"

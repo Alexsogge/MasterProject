@@ -235,7 +235,7 @@ public class MainActivity extends FragmentActivity
 
     private void initServices(){
         networkManager = StaticDataProvider.getNetworkManager();
-        networkManager.initialize(this, sensorService, configs, infoText);
+        networkManager.initialize(this, sensorService, infoText);
         updateTFModelReceiver = new UpdateTFModelReceiver();
 
         boolean bluetooth = (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED);
@@ -243,23 +243,18 @@ public class MainActivity extends FragmentActivity
         boolean coarseLocation = (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED);
         boolean writeExternalStorage = (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
 
+        boolean useBluetooth = configs.getBoolean(getString(R.string.conf_scan_bluetooth_beacons), false);
+
         // Request enable Bluetooth if not yet enabled
-        if (bluetooth && bluetoothAdmin) {
+        if (useBluetooth && bluetooth && bluetoothAdmin) {
             if ((BluetoothAdapter.getDefaultAdapter() == null) || !BluetoothAdapter.getDefaultAdapter().isEnabled()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(enableBtIntent, 2);
             }
         }
 
-        if (!bluetooth || !bluetoothAdmin || !coarseLocation || !writeExternalStorage) {
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{
-                            Manifest.permission.BLUETOOTH,
-                            Manifest.permission.BLUETOOTH_ADMIN,
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    },
-                    1);
+        if (useBluetooth && (!bluetooth || !bluetoothAdmin || !coarseLocation) || !writeExternalStorage) {
+            askForPermission();
         } else {
             startServices();
         }
@@ -271,6 +266,19 @@ public class MainActivity extends FragmentActivity
         WorkManager.getInstance(this)
                 .getWorkInfosByTagLiveData("serverTokenWorker")
                 .observe(this, new ServerTokenObserver(infoText, this));
+    }
+
+    private void askForPermission(){
+        boolean useBluetooth = configs.getBoolean(getString(R.string.conf_scan_bluetooth_beacons), false);
+        String[] permissions = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        if(useBluetooth)
+            permissions = new String[]{
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_ADMIN,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+            };
+        ActivityCompat.requestPermissions(MainActivity.this, permissions, 1);
     }
 
     private void startServices(){
@@ -344,7 +352,7 @@ public class MainActivity extends FragmentActivity
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
         if (requestCode == 1) {
-            if (grantResults.length > 0) {
+            if (grantResults.length > 1) {
                 boolean bluetooth = grantResults[0] == PackageManager.PERMISSION_GRANTED;
                 boolean bluetoothAdmin = grantResults[1] == PackageManager.PERMISSION_GRANTED;
                 boolean fineLocation = grantResults[2] == PackageManager.PERMISSION_GRANTED;
@@ -353,15 +361,15 @@ public class MainActivity extends FragmentActivity
                 if(bluetooth && bluetoothAdmin && fineLocation && writeExternalStorage) {
                     startServices();
                 } else {
-                    ActivityCompat.requestPermissions(MainActivity.this,
-                            new String[]{
-                                    Manifest.permission.BLUETOOTH,
-                                    Manifest.permission.BLUETOOTH_ADMIN,
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            },
-                            1);
-                    // permission denied
+                    askForPermission();
+                    Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
+                }
+            } else if(grantResults.length == 1){
+                boolean writeExternalStorage = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                if(writeExternalStorage){
+                    startServices();
+                } else {
+                    askForPermission();
                     Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
                 }
             }

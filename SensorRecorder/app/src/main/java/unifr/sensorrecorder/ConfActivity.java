@@ -3,10 +3,13 @@ package unifr.sensorrecorder;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
@@ -15,6 +18,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.Toast;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.Networking.NetworkManager;
@@ -25,6 +29,7 @@ import unifr.sensorrecorder.Networking.NetworkManager;
 public class ConfActivity extends WearableActivity {
 
     private static double FACTOR = 0.146467f; // c = a * sqrt(2)
+    private ConfActivity confActivity;
     private SharedPreferences configs;
     private EditText serverNameInput;
     private EditText userIdentifierInput;
@@ -33,6 +38,7 @@ public class ConfActivity extends WearableActivity {
     private CheckBox useMicCheckbox;
     private CheckBox autoUpdateTFCheckbox;
     private CheckBox updateTFCheckbox;
+    private CheckBox scanBluetoothBeaconsCheckbox;
     private Switch multipleMicSwitch;
     private Button downloadTFModelButton;
     private Button deleteTokenButton;
@@ -43,6 +49,7 @@ public class ConfActivity extends WearableActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conf);
+        confActivity = this;
 
         adjustInset();
 
@@ -61,6 +68,7 @@ public class ConfActivity extends WearableActivity {
         autoUpdateTFCheckbox = (CheckBox) findViewById(R.id.autoUpdateTFCheckbox);
         updateTFCheckbox = (CheckBox) findViewById(R.id.updateTFCheckbox);
         //multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
+        scanBluetoothBeaconsCheckbox = (CheckBox) findViewById(R.id.scanBluetoothBeacons);
 
         downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
@@ -88,6 +96,8 @@ public class ConfActivity extends WearableActivity {
         }
         if(configs.contains(getString(R.string.conf_check_for_tf_update)))
             updateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_check_for_tf_update), true));
+        if(configs.contains(getString(R.string.conf_scan_bluetooth_beacons)))
+            scanBluetoothBeaconsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_scan_bluetooth_beacons), false));
 
         /*
         if(ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){
@@ -137,6 +147,21 @@ public class ConfActivity extends WearableActivity {
             }
         });
 
+        scanBluetoothBeaconsCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    ActivityCompat.requestPermissions(confActivity,
+                            new String[]{
+                                    Manifest.permission.BLUETOOTH,
+                                    Manifest.permission.BLUETOOTH_ADMIN,
+                                    Manifest.permission.ACCESS_FINE_LOCATION
+                            },
+                            1);
+                }
+            }
+        });
+
         Button applyButton = (Button)findViewById(R.id.buttonApply);
         applyButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -162,7 +187,8 @@ public class ConfActivity extends WearableActivity {
                 //configEditor.putBoolean(getString(R.string.conf_multipleMic), multipleMicSwitch.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_auto_update_tf), autoUpdateTFCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_check_for_tf_update), updateTFCheckbox.isChecked());
-
+                configEditor.putBoolean(getString(R.string.conf_scan_bluetooth_beacons), scanBluetoothBeaconsCheckbox.isChecked());
+                Log.d("conf", "save settings");
                 configEditor.apply();
 
                 if (configs.getString(getString(R.string.conf_serverToken), "").equals("") &&
@@ -171,7 +197,13 @@ public class ConfActivity extends WearableActivity {
                 }
 
                 if (autoUpdateTFCheckbox.isChecked()){
-                    networkManager.downloadTFModel();
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            networkManager.downloadTFModel();
+                        }
+                    }, 1000*5);
                 }
 
                 finish();
@@ -209,21 +241,24 @@ public class ConfActivity extends WearableActivity {
         }
     }
 
-    // @Override
-    // public void onRequestPermissionsResult(int requestCode,
-    //                                        String permissions[], int[] grantResults) {
-    //     Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
-    //     switch (requestCode) {
-    //         case 1: {
-    //             // If request is cancelled, the result arrays are empty.
-    //             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-    //                 Log.d("Sensorrecorder", "permission: " + permissions[0]);
-    //                 useMicCheckbox.setChecked(true);
-    //             } else {
-    //                 useMicCheckbox.setChecked(false);
-    //             }
-    //             return;
-    //         }
-    //     }
-    // }
+     @Override
+     public void onRequestPermissionsResult(int requestCode,
+                                            String permissions[], int[] grantResults) {
+         Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
+         if (requestCode == 1) {
+             if (grantResults.length > 0) {
+                 boolean bluetooth = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                 boolean bluetoothAdmin = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                 boolean fineLocation = grantResults[2] == PackageManager.PERMISSION_GRANTED;
+
+                 if(bluetooth && bluetoothAdmin && fineLocation) {
+                     scanBluetoothBeaconsCheckbox.setChecked(true);
+                 } else {
+                     scanBluetoothBeaconsCheckbox.setChecked(false);
+                     // permission denied
+                     Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
+                 }
+             }
+         }
+     }
 }

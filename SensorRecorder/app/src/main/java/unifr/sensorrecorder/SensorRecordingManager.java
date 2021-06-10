@@ -118,6 +118,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private boolean useZIPStream = true;
     private boolean useMic = true;
     private boolean useMultipleMic = true;
+    private boolean useBluetooth = false;
 
 
     // ML stuff
@@ -459,6 +460,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         useMic = configs.getBoolean(getString(R.string.conf_useMic), true);
         useMic &= ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_GRANTED;
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
+        useBluetooth = configs.getBoolean(getString(R.string.conf_scan_bluetooth_beacons), false);
 
         handWashDetection.initModel();
 
@@ -497,7 +499,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             setButtonText(getResources().getString(R.string.btn_stop));
 
         // Start Bluetooth beacon scaning
-        BluetoothBeaconScanner.start();
+        if (useBluetooth)
+            BluetoothBeaconScanner.start();
     }
 
     /**
@@ -531,7 +534,8 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             wakeLock.release();
 
         // Stop Bluetooth beacon scanning
-        BluetoothBeaconScanner.stop();
+        if(useBluetooth)
+            BluetoothBeaconScanner.stop();
     }
 
 

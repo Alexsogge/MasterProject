@@ -97,6 +97,7 @@
     <string name="conf_multipleMic" translatable="false">multipleMic</string>
     <string name="conf_auto_update_tf" translatable="false">autoUpdateTf</string>
     <string name="conf_check_for_tf_update" translatable="false">checkForTfUpdate</string>
+    <string name="conf_scan_bluetooth_beacons" translatable="false">scanBluetoothBeacons</string>
     <string name="val_current_run" translatable="false">valCurrentRun</string>
     <string name="val_current_tf_model" translatable="false">valCurrentTFModel</string>
     <string name="val_last_checked_tf_model" translatable="false">valLastCheckedTFModel</string>

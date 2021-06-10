@@ -51,14 +51,14 @@ public class NetworkManager {
     private SharedPreferences configs;
     private CountDownLatch sensorStopLatch;
 
-    public void initialize(Context context, SensorRecordingManager sensorService, SharedPreferences configs, TextView infoText){
+    public void initialize(Context context, SensorRecordingManager sensorService, TextView infoText){
         if(!initialized) {
             this.context = context;
             this.sensorService = sensorService;
             //this.infoText = (TextView) context.findViewById(R.id.infoText);
             this.infoText = infoText;
-            this.configs = configs;
             initialized = true;
+            configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
         }
     }
 
