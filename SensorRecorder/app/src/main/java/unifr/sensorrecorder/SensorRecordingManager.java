@@ -53,6 +53,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 import de.uni_freiburg.ffmpeg.FFMpegProcess;
+import unifr.sensorrecorder.BluetoothBeacons.BluetoothBeaconScanner;
 import unifr.sensorrecorder.Complication.ComplicationProvider;
 import unifr.sensorrecorder.DataContainer.DataContainer;
 import unifr.sensorrecorder.DataContainer.DataProcessor;
@@ -494,6 +495,9 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         isRunning = true;
         if (startStopButton != null)
             setButtonText(getResources().getString(R.string.btn_stop));
+
+        // Start Bluetooth beacon scaning
+        BluetoothBeaconScanner.start();
     }
 
     /**
@@ -525,6 +529,9 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         executor.execute(new StopSessionTask(stopLatch, doSave));
         if(wakeLock.isHeld())
             wakeLock.release();
+
+        // Stop Bluetooth beacon scanning
+        BluetoothBeaconScanner.stop();
     }
 
 
