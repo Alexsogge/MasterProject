@@ -488,6 +488,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // initialize all fileoutputstreams
         DataContainer.generateFileNameSuffix(this);
         dataProcessor.openFileStream();
+        dataProcessor.writeMetaInfo(getApplicationContext());
 
         // setup sensor manager
         sensorStartTime = SystemClock.elapsedRealtimeNanos();

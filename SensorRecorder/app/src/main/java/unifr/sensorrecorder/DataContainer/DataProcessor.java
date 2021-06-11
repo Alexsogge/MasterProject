@@ -1,9 +1,20 @@
 package unifr.sensorrecorder.DataContainer;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.provider.Settings;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import unifr.sensorrecorder.DataContainer.DataContainer;
 import unifr.sensorrecorder.DataContainer.MultyEntryZipContainer;
 import unifr.sensorrecorder.DataContainer.OutputStreamContainer;
 import unifr.sensorrecorder.DataContainer.ZipContainer;
+import unifr.sensorrecorder.R;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +41,8 @@ public class DataProcessor {
     public OutputStreamContainer containerOverallEvaluation;
 
     public OutputStreamContainer containerBluetoothBeacons;
+
+    public OutputStreamContainer containerMetaInfo;
 
     public ArrayList<DataContainer> allDataContainers;
     public ArrayList<OutputStreamContainer> streamContainers;
@@ -80,6 +93,9 @@ public class DataProcessor {
         containerBluetoothBeacons = new OutputStreamContainer("bluetoothBeacons", "csv");
         streamContainers.add(containerBluetoothBeacons);
 
+        containerMetaInfo = new OutputStreamContainer("metaInfo", "json");
+        streamContainers.add(containerMetaInfo);
+
         // add stream containers to all
         allDataContainers.addAll(streamContainers);
     }
@@ -123,6 +139,8 @@ public class DataProcessor {
         containerPrediction.setActive();
         containerEvaluation.setActive();
         containerBluetoothBeacons.setActive();
+        containerMetaInfo.setActive();
+
         lastEvaluationTS = 0;
         lastPredictionTS = 0;
         predictions = 0;
@@ -210,6 +228,31 @@ public class DataProcessor {
 
     public void writeBluetoothBeaconTimestamp(String line) throws IOException {
         containerBluetoothBeacons.writeData(line);
+    }
+
+
+    public void writeMetaInfo(Context context){
+        SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
+        JSONObject metaInfo = new JSONObject();
+        try {
+            metaInfo.put("tf_model", configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "default.tflite"));
+
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            String version = pInfo.versionName;
+            int verCode = pInfo.versionCode;
+            metaInfo.put("app_version", version);
+            metaInfo.put("version_code", verCode);
+
+            metaInfo.put("build_board", Build.BOARD);
+            metaInfo.put("build_device", Build.DEVICE);
+            metaInfo.put("build_sdk", Build.VERSION.SDK_INT);
+            metaInfo.put("android_id", Settings.Secure.getString( context.getContentResolver(), Settings.Secure.ANDROID_ID));
+
+            containerMetaInfo.writeData(metaInfo.toString(4));
+
+        } catch (JSONException | PackageManager.NameNotFoundException | IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void packMicFilesIntoZip() throws IOException {
