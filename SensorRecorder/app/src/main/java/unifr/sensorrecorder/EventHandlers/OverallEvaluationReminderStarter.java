@@ -20,12 +20,11 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        StaticDataProvider.setOverallReminderCalls(0);
-
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
+        reminderReceiver.putExtra("numCalls", 0);
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 10 * 60 * 1000, reminderPint);
+        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, reminderPint);
         setOverallEvaluationReminder(context);
     }
 
@@ -41,5 +40,12 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), reminderPint);
+    }
+
+    public static void stopReminderAlarm(Context context){
+        Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        am.cancel(reminderPint);
     }
 }

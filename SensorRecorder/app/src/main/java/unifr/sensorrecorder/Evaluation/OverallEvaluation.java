@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.TimeZone;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
 
@@ -187,7 +188,7 @@ public class OverallEvaluation extends WearableActivity {
         Toast.makeText(getApplicationContext(), getString(R.string.toast_eval_finished), Toast.LENGTH_LONG).show();
 
         // cancel repetitive alarm
-        NotificationSpawner.stopRepeatingOverallEvaluationReminder(this);
+        OverallEvaluationReminderStarter.stopReminderAlarm(this);
 
         NotificationSpawner.closeOverallEvaluationNotification(this);
 

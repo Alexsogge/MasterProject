@@ -181,15 +181,6 @@ public class NotificationSpawner {
         nm.cancel(DAILY_REMINDER_REQUEST_CODE);
     }
 
-    public static void stopRepeatingOverallEvaluationReminder(Context context){
-        Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
-        AlarmManager am = (AlarmManager) context.getApplicationContext().getSystemService(context.ALARM_SERVICE);
-        am.cancel(reminderPint);
-        Log.d("rem", "Stop repeating eval");
-    }
-
-
     public static void showUpdateTFModelNotification(Context context, String modelName){
         // Log.d("not", "show update tf model notification");
         //Intent startUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);

@@ -61,6 +61,7 @@ import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
 import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 
 
 import static android.Manifest.permission.RECORD_AUDIO;
@@ -519,7 +520,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         }
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(getApplicationContext(), this.intent));
-        NotificationSpawner.stopRepeatingOverallEvaluationReminder(this.getApplicationContext());
+        OverallEvaluationReminderStarter.stopReminderAlarm(this.getApplicationContext());
         NotificationSpawner.closeOverallEvaluationNotification(this.getApplicationContext());
 
         if(startStopButton != null)

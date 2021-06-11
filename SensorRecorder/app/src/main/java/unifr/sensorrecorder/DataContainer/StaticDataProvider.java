@@ -13,14 +13,12 @@ public class StaticDataProvider extends Application {
     private static DataProcessor dataProcessor;
     private static NetworkManager networkManager;
     private static int counterComplicationId;
-    private static int overallReminderCalls;
 
     @Override
     public void onCreate() {
         super.onCreate();
         dataProcessor = new DataProcessor();
         networkManager = new NetworkManager();
-        overallReminderCalls = 0;
     }
 
     public static DataProcessor getProcessor(){
@@ -34,13 +32,6 @@ public class StaticDataProvider extends Application {
     }
     public static void setCounterComplicationId(int counterComplicationId){
         StaticDataProvider.counterComplicationId = counterComplicationId;
-    }
-
-    public static int getOverallReminderCalls(){
-        return overallReminderCalls;
-    }
-    public static void setOverallReminderCalls(int overallReminderCalls){
-        StaticDataProvider.overallReminderCalls = overallReminderCalls;
     }
 
 }
