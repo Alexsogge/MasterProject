@@ -426,7 +426,7 @@ def get_latest_tf_model():
 
     print("found file ", latest_model)
     if latest_model is not None:
-        return send_from_directory(TFMODEL_FOLDER, filename=latest_model, as_attachment=True)
+        return send_from_directory(TFMODEL_FOLDER, path=latest_model, as_attachment=True)
     abort(404, description="Resource not found")
 
 
@@ -436,7 +436,7 @@ def get_latest_tf_model_settings():
 
     print("found file ", latest_model_settings)
     if latest_model_settings is not None:
-        return send_from_directory(TFMODEL_FOLDER, filename=latest_model_settings, as_attachment=True)
+        return send_from_directory(TFMODEL_FOLDER, path=latest_model_settings, as_attachment=True)
     abort(404, description="Resource not found")
 
 
