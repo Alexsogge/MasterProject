@@ -208,7 +208,7 @@ public class MainActivity extends FragmentActivity
 
     public void toggleStartRecording(){
         if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf), false))
-            networkManager.checkForTFModelUpdate();
+            NetworkManager.checkForTFModelUpdate(getApplicationContext());
         // handWashDetection.initModel();
         sensorService.startRecording();
     }
@@ -296,7 +296,7 @@ public class MainActivity extends FragmentActivity
 
     private void startRecording(){
         if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
-            networkManager.checkForTFModelUpdate();
+            NetworkManager.checkForTFModelUpdate(getApplicationContext());
         intent = new Intent(this, SensorRecordingManager.class );
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);

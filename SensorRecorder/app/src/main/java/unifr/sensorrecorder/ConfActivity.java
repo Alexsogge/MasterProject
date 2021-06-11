@@ -201,7 +201,7 @@ public class ConfActivity extends WearableActivity {
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            networkManager.downloadTFModel();
+                            NetworkManager.checkForTFModelUpdate(getApplicationContext());
                         }
                     }, 1000*5);
                 }
@@ -213,7 +213,7 @@ public class ConfActivity extends WearableActivity {
         downloadTFModelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                networkManager.downloadTFModel();
+                NetworkManager.downloadTFModel(getApplicationContext());
             }
         });
 

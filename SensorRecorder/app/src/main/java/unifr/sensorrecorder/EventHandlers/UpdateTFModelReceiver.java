@@ -23,8 +23,8 @@ public class UpdateTFModelReceiver extends BroadcastReceiver {
             configEditor.putString(context.getString(R.string.val_do_skip_tf_model), intent.getStringExtra("SKIP"));
             configEditor.apply();
         } else {
-            StaticDataProvider.getNetworkManager().downloadTFModel();
-            StaticDataProvider.getNetworkManager().restartRecording();
+            NetworkManager.downloadTFModel(context);
+            // StaticDataProvider.getNetworkManager().restartRecording();
             SharedPreferences configs = context.getSharedPreferences(
                     context.getString(R.string.configs), Context.MODE_PRIVATE);
             SharedPreferences.Editor configEditor = configs.edit();

@@ -4,7 +4,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -21,7 +20,6 @@ import androidx.work.WorkManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.HandWashDetection;
 import unifr.sensorrecorder.NotificationSpawner;
 import unifr.sensorrecorder.R;
@@ -44,7 +42,7 @@ import okhttp3.Response;
 public class NetworkManager {
     public SensorRecordingManager sensorService;
     private Context context;
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private static final Executor executor = Executors.newSingleThreadExecutor();
     private boolean initialized = false;
 
     private TextView infoText;
@@ -83,7 +81,7 @@ public class NetworkManager {
     }
 
 
-    private void makeToast(final String text){
+    private static void makeToast(final String text, final Context context){
         /*
         context.runOnUiThread(new Runnable() {
             public void run() {
@@ -206,12 +204,14 @@ public class NetworkManager {
     }
 
 
-    public void downloadTFModel(){
-        new NetworkManager.HTTPGetTFModel().execute();
+    public static void downloadTFModel(Context context){
+        SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
+        executor.execute(new NetworkManager.HTTPGetTFModel(configs, context));
     }
 
-    public void checkForTFModelUpdate(){
-        new NetworkManager.HTTPCheckForNewTFModel().execute();
+    public static void checkForTFModelUpdate(Context context){
+        SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
+        executor.execute(new NetworkManager.HTTPCheckForNewTFModel(configs, context));
     }
 
     public void requestServerToken(){
@@ -219,24 +219,30 @@ public class NetworkManager {
         WorkManager.getInstance(context).enqueue(serverTokenWorkRequest);
     }
 
-    protected final class HTTPGetTFModel extends AsyncTask<String, String, String> {
+    protected static class HTTPGetTFModel implements Runnable {
 
         private final OkHttpClient client = new OkHttpClient();
+        private SharedPreferences configs;
+        private Context context;
+
+        public HTTPGetTFModel(SharedPreferences configs, Context context){
+            this.configs = configs;
+            this.context = context;
+        }
 
         @Override
-        protected String doInBackground(String... strings) {
+        public void run() {
             String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
             try {
                 String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
                 downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
-                makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName);
+                makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName, context);
                 SharedPreferences.Editor configEditor = configs.edit();
                 configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
                 configEditor.apply();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            return null;
         }
 
         private String downloadTFFile(String url, String filename) throws IOException {
@@ -246,7 +252,7 @@ public class NetworkManager {
             Response response = null;
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
-                makeToast(context.getString(R.string.toast_failed_to_dl_file) + response);
+                makeToast(context.getString(R.string.toast_failed_to_dl_file) + response, context);
                 throw new IOException(response.toString());
             } else {
                 File path = HandWashDetection.modelFilePath;
@@ -270,12 +276,20 @@ public class NetworkManager {
     }
 
 
-    protected final class HTTPCheckForNewTFModel extends AsyncTask<String, String, String> {
+   protected static class HTTPCheckForNewTFModel implements Runnable{
 
         private final OkHttpClient client = new OkHttpClient();
+        private SharedPreferences configs;
+        private Context context;
+
+
+        public HTTPCheckForNewTFModel(SharedPreferences configs, Context context){
+            this.configs = configs;
+            this.context = context;
+        }
 
         @Override
-        protected String doInBackground(String... strings) {
+        public void run() {
             String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
             try {
                 String tfFileName = getActiveTFFile(serverName + "/tfmodel/check/latest/");
@@ -285,7 +299,7 @@ public class NetworkManager {
                     // Log.d("net", "active: " + tfFileName + " using " + currentModel + " skip " + doSkip);
                     if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
                         if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_auto_update_tf), false))
-                            downloadTFModel();
+                            downloadTFModel(context);
                         else if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_check_for_tf_update), true))
                             NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
                     }
@@ -297,7 +311,6 @@ public class NetworkManager {
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
-            return null;
         }
 
         private String getActiveTFFile(String url) throws IOException, JSONException {
@@ -315,6 +328,7 @@ public class NetworkManager {
             }
             return "";
         }
-    }
+
+   }
 
 }

@@ -62,6 +62,7 @@ import unifr.sensorrecorder.EventHandlers.BatteryEventHandler;
 import unifr.sensorrecorder.EventHandlers.ChargeEventHandler;
 import unifr.sensorrecorder.EventHandlers.EvaluationReceiver;
 import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
+import unifr.sensorrecorder.Networking.NetworkManager;
 
 
 import static android.Manifest.permission.RECORD_AUDIO;
@@ -144,7 +145,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             if (intent.getStringExtra("trigger").equals("startRecording")) {
                 if(!isRunning && initialized) {
                     if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
-                        StaticDataProvider.getNetworkManager().checkForTFModelUpdate();
+                        NetworkManager.checkForTFModelUpdate(getApplicationContext());
                     startRecording();
                 }
             }
@@ -988,6 +989,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             if (startStopButton != null)
                 setButtonText("Start");
 
+            NetworkManager.checkForTFModelUpdate(getApplicationContext());
             Log.d("mgr", "finished stop");
             stopLatch.countDown();
         }

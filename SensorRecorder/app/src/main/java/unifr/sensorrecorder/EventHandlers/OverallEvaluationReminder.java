@@ -18,6 +18,7 @@ import static android.content.Context.ALARM_SERVICE;
 public class OverallEvaluationReminder extends BroadcastReceiver {
     private static final int MAX_REMINDERS = 3;
     private static final int REPEAT_DELAY = 1000 * 60 * 10; // 10 minutes
+
     @Override
     public void onReceive(Context context, Intent intent) {
 
