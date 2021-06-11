@@ -12,6 +12,8 @@
                 {% if value|is_boolean %}
                     <input type="checkbox" class="form-check-input" name="{{ key }}" id="input_{{ key }}"
                            {{ value|render_is_checked }}>
+                {% elif value|is_number %}
+                    <input type="number" class="form-control" name="{{ key }}" id="input_{{ key }}" value="{{ value }}">
                 {% else %}
                     <input type="text" class="form-control" name="{{ key }}" id="input_{{ key }}" value="{{ value }}">
                 {% endif %}

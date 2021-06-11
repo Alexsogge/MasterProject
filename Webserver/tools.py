@@ -105,9 +105,9 @@ def get_session_size(path):
 
 
 def get_size_color(size):
-    if size < 100000:
+    if size < config.session_size_red:
         return 'red'
-    if size < 1000000:
+    if size < config.session_size_orange:
         return 'orange'
     return 'black'
 

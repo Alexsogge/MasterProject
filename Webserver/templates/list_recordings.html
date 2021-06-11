@@ -8,6 +8,24 @@
     <div class="row mb-3">
         <h1>Recordings</h1>
     </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                 <div class="input-group-prepend">
+                     <span class="input-group-text" for="filter_selection">Filter for :</span>
+                 </div>
+                  <select class="form-select" id="filter_selection" onchange="update_filter_field()">
+                         <option value="android_id">Android id</option>
+                         <option value="tf_model">TF model</option>
+                         <option value="app_version">App version</option>
+                     </select>
+                <input type="text" id="filter_field" class="form-control" placeholder="filter value">
+                <div class="input-group-append">
+                    <button class="btn btn-primary" onclick="filter_list()">set filter</button>
+                </div>
+            </div>
+        </div>
+    </div>
         {% for record in sorting %}
             <div class="row rec-entry">
                 <div class="col-md-3"><a href="{{url_for('views.get_recording', recording=record)}}">{{ record }}</a></div>
@@ -18,4 +36,47 @@
                 <div class="col-md-1 mr-auto"><a class="btn btn-danger" href="{{url_for('views.delete_recording', recording=record)}}">Delete</a></div>
             </div>
         {% endfor %}
+
+    <script>
+        const current_filter = {{ current_filter|tojson }};
+
+        function filter_list(){
+            let url = window.location.href;
+            const filter_param = document.getElementById('filter_selection').value;
+            const filter_value = document.getElementById('filter_field').value;
+
+            current_filter[filter_param] = filter_value;
+            if (filter_value === "")
+                delete current_filter[filter_param];
+            let params = '?';
+            console.log(current_filter);
+            for (let key in current_filter) {
+              params += key + '=' + current_filter[key];
+              params += '&';
+            }
+            params = params.slice(0, -1);
+            if (url.indexOf('?') > -1){
+                url = url.slice(0, url.indexOf('?')-1)
+            }
+            url += params
+            window.location.href = url;
+        }
+
+        function update_filter_field(){
+            console.log(current_filter);
+            const selected_filter = document.getElementById('filter_selection').value;
+            console.log(selected_filter);
+            if (selected_filter in current_filter){
+                document.getElementById('filter_field').value = current_filter[selected_filter];
+            } else {
+                document.getElementById('filter_field').value = '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            update_filter_field();
+        }, false);
+
+
+    </script>
 {% endblock %}

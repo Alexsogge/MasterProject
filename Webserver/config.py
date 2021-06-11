@@ -3,7 +3,7 @@ import random
 import string
 import os
 
-version = 1.3
+version = 1.4
 secret_key_iterations = 42
 
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite', 'json'}
@@ -13,8 +13,9 @@ RECORDINGS_FOLDER = os.path.join(UPLOAD_FOLDER, 'recordings')
 TFMODEL_FOLDER = os.path.join(UPLOAD_FOLDER, 'tf_models')
 
 config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix': '',
-                 'client_secret': '', 'user': 'admin', 'user_pw': 'admin',
-                 'hide_mic_files': True, 'rename_mic_files': True, 'pack_mic_files': False}
+                 'client_secret': '', 'user': 'admin', 'user_pw': 'admin', 'session_size_red': 100000,
+                 'session_size_orange': 1000000, 'hide_mic_files': True, 'rename_mic_files': True,
+                 'pack_mic_files': False}
 
 class Config:
     config_file = 'conf/config.yml'
@@ -26,6 +27,9 @@ class Config:
 
     user: str = None
     user_pw: str = None
+    session_size_red = None
+    session_size_orange = None
+
     hide_mic_files: bool = None
     rename_mic_files: bool = None
     pack_mic_files: bool = None

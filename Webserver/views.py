@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 
 from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for
@@ -20,6 +21,10 @@ view = Blueprint('views', __name__, template_folder='templates')
 @view.app_template_filter()
 def is_boolean(input):
     return type(input) is bool or input == 'True' or input == 'False' or input == 'on' or input == 'off'
+
+@view.app_template_filter()
+def is_number(input):
+    return type(input) is int or (type(input) is str and input.isnumeric())
 
 
 @view.app_template_filter()
@@ -68,10 +73,14 @@ def settings():
         settings_values = config.get_config_values().copy()
         for key in settings_values.keys():
             settings_values[key] = request.form.get(key)
+            print("save ", key, settings_values[key])
             if is_boolean(settings_values[key]):
                 settings_values[key] = bool(settings_values[key])
             if settings_values[key] is None and is_boolean(config.get_config_values()[key]):
                 settings_values[key] = False
+            if is_number(settings_values[key]):
+                print("save as number")
+                settings_values[key] = int(settings_values[key])
         print(settings_values)
         config.save_config(settings_values)
 
@@ -174,8 +183,12 @@ def grant_auth_request(auth_id):
 def list_recordings():
     recording_directories = os.listdir(RECORDINGS_FOLDER)
     recording_infos = dict()
+    filter_args = {}
+    if len(request.args) > 0:
+        filter_args = request.args.to_dict(flat=True)
 
     for directory in recording_directories:
+
         short_description = ""
         description_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, "README.md"))
         if os.path.exists(description_file):
@@ -183,21 +196,37 @@ def list_recordings():
         changed_time_stamp = os.stat(os.path.join(RECORDINGS_FOLDER, directory)).st_ctime
 
         # since directories creation time changes if a file was edited, we have to find the oldest file within them
+        meta_info_file = None
         for file in os.listdir(os.path.join(RECORDINGS_FOLDER, directory)):
+            if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
+                meta_info_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))
             tmp_c_time = os.stat(os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))).st_ctime
             if tmp_c_time < changed_time_stamp:
                 changed_time_stamp = tmp_c_time
 
+        meta_info = {}
+        if meta_info_file is not None:
+            with open(meta_info_file) as json_file:
+                meta_info = json.load(json_file)
+
+        skip_session = False
+        for filter_arg, arg_value in filter_args.items():
+            if filter_arg not in meta_info or str(arg_value) not in str(meta_info[filter_arg]):
+                skip_session = True
+        if skip_session:
+            continue
+
         session_size = get_session_size(os.path.join(RECORDINGS_FOLDER, directory))
         change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
         recording_infos[directory] = [change_time_string, changed_time_stamp, short_description,
-                                      convert_size(session_size), get_size_color(session_size)]
+                                      convert_size(session_size), get_size_color(session_size), meta_info]
 
     recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
     # recording_directories = [x[0] for x in os.walk(RECORDINGS_FOLDER)]
 
-    return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort)
+    return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort,
+                           current_filter=filter_args)
 
 @view.route('/recording/get/<string:recording>/')
 @basic_auth.login_required
@@ -206,13 +235,21 @@ def get_recording(recording):
     description = ""
     path = os.path.join(RECORDINGS_FOLDER, recording)
     total_size = 0
+    meta_info_file = None
     for file in os.listdir(path):
+        if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
+            meta_info_file = os.path.join(path, file)
         total_size += os.path.getsize(os.path.join(path, file))
         if config.hide_mic_files and '.zip' in file and contains_mic_files(file, path):
             continue
         if file == 'README.md':
             description = open(os.path.join(RECORDINGS_FOLDER, os.path.join(recording, "README.md")), 'r').read()
         recording_files.append(file)
+
+    meta_info = {}
+    if meta_info_file is not None:
+        with open(meta_info_file) as json_file:
+            meta_info = json.load(json_file)
 
     sensor_data_file = None
     sensor_data_flattened_file = None
@@ -231,7 +268,7 @@ def get_recording(recording):
     return render_template('show_recording.html', recording_name=recording, files=recording_files,
                            description=description, total_size=total_size, sensor_data_file=sensor_data_file,
                            sensor_data_flattened_file=sensor_data_flattened_file,
-                           generated_data_size=generated_data_size)
+                           generated_data_size=generated_data_size, meta_info=meta_info)
 
 
 @view.route('/recording/plot/<string:recording>/')
