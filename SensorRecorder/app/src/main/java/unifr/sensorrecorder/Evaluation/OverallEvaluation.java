@@ -70,7 +70,7 @@ public class OverallEvaluation extends WearableActivity {
         markerTexts = new HashMap<>();
         markerTexts.put(0, new Integer[]{R.string.str_one, R.string.str_five});
         markerTexts.put(1, new Integer[]{R.string.str_one, R.string.str_five});
-        markerTexts.put(2, new Integer[]{R.string.str_never, R.string.str_always});
+        markerTexts.put(2, new Integer[]{R.string.str_low_prc, R.string.str_high_prc});
 
         answers = new HashMap<>();
         textViewQuestion.setText(questions.get(0));

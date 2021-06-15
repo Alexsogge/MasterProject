@@ -65,10 +65,12 @@
     <string name="str_oar_question_2">Wie häufig war ihr Händewaschen heute insgesamt?</string>
     <string name="str_oar_question_3">Wie oft haben Sie ihr Hände waschen Protokolliert?</string>
 
-    <string name="str_one">1</string>
-    <string name="str_five">5</string>
+    <string name="str_one">0</string>
+    <string name="str_five">4</string>
     <string name="str_never">nie</string>
     <string name="str_always">immer</string>
+    <string name="str_low_prc">0–20%</string>
+    <string name="str_high_prc">80–100%</string>
 
     <string name="not_update_tf_title">Neues erkennungs modell verfügbar</string>
     <string name="not_update_tf_text">Aktualisieren zu &#160;</string>

@@ -468,7 +468,7 @@ public class HandWashDetection {
         // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
         if(debugAutoTrue) {
-            lastPositivePrediction = timestamp;
+            // lastPositivePrediction = timestamp;
             return new float[]{0, 1};
         }
         return labelProbArray[0];
