@@ -147,8 +147,8 @@ public class NotificationSpawner {
                 //.setAutoCancel(true)
         ;
         notificationManager.notify(EVALUATION_REQUEST_CODE, builder.build());
-        Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-        vibrator.vibrate(VibrationEffect.createWaveform(new long[]{1000, 500, 700, 500}, -1));
+        // Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
+        // vibrator.vibrate(VibrationEffect.createWaveform(new long[]{1000, 1000, 700, 500}, -1));
     }
 
 
