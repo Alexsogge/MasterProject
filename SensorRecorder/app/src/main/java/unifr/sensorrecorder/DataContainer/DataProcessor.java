@@ -21,8 +21,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -242,6 +246,7 @@ public class DataProcessor {
             int verCode = pInfo.versionCode;
             metaInfo.put("app_version", version);
             metaInfo.put("version_code", verCode);
+            metaInfo.put("date", getCurrentDateAsIso());
 
             metaInfo.put("build_board", Build.BOARD);
             metaInfo.put("build_device", Build.DEVICE);
@@ -253,6 +258,13 @@ public class DataProcessor {
         } catch (JSONException | PackageManager.NameNotFoundException | IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getCurrentDateAsIso() {
+        // see https://stackoverflow.com/questions/3914404/how-to-get-current-moment-in-iso-8601-format
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return df.format(new Date());
     }
 
     public void packMicFilesIntoZip() throws IOException {
