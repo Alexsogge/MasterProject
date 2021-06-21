@@ -190,9 +190,12 @@ def list_recordings():
     for directory in recording_directories:
 
         short_description = ""
+        long_description = ""
         description_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, "README.md"))
         if os.path.exists(description_file):
-            short_description = open(description_file, 'r').readline()
+            with open(description_file, 'r') as desc_file:
+                short_description = desc_file.readline()
+                long_description = short_description + desc_file.read()
         changed_time_stamp = os.stat(os.path.join(RECORDINGS_FOLDER, directory)).st_ctime
 
         # since directories creation time changes if a file was edited, we have to find the oldest file within them
@@ -208,6 +211,7 @@ def list_recordings():
         if meta_info_file is not None:
             with open(meta_info_file) as json_file:
                 meta_info = json.load(json_file)
+        meta_info['description'] = long_description
 
         skip_session = False
         for filter_arg, arg_value in filter_args.items():

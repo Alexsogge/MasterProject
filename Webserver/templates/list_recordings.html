@@ -9,15 +9,17 @@
         <h1>Recordings</h1>
     </div>
     <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <div class="input-group">
                  <div class="input-group-prepend">
                      <span class="input-group-text" for="filter_selection">Filter for :</span>
                  </div>
-                  <select class="form-select" id="filter_selection" onchange="update_filter_field()">
+                    <select class="form-select" id="filter_selection" onchange="update_filter_field()" style="max-width: 200px">
                          <option value="android_id">Android id</option>
                          <option value="tf_model">TF model</option>
                          <option value="app_version">App version</option>
+                         <option value="date">Date</option>
+                         <option value="description">Description</option>
                      </select>
                 <input type="text" id="filter_field" class="form-control" placeholder="filter value">
                 <div class="input-group-append">
