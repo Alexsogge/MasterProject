@@ -307,7 +307,7 @@ public class HandWashDetection {
         if(lastPositivePrediction > StaticDataProvider.getProcessor().lastEvaluationTS + notificationCoolDown) {
             lastNotificationTS = lastPositivePrediction;
             makeToast(context.getString(R.string.toast_pred_hw));
-            vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
+            // vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.EFFECT_TICK));
             NotificationSpawner.spawnHandWashPredictionNotification(context.getApplicationContext(), lastPositivePrediction);
             Log.d("pred", "spawn notification");
         } else {
