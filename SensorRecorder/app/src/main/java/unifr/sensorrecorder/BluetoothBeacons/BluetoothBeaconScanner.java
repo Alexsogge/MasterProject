@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 
@@ -37,7 +38,7 @@ public class BluetoothBeaconScanner {
     Environmental factor for rssi-based beacon distance calculation. Range 2 - 4.
     */
     private static final double BEACON_ENVIRONMENTAL = 2.0;
-    private static final double BEACON_MAX_DIST = 1.0;
+    private static final double BEACON_MAX_DIST = 4.0;
 
     public static void start() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -92,10 +93,12 @@ public class BluetoothBeaconScanner {
         public void onScanResult(int callbackType, ScanResult result) {
             double distance = getBeaconDistance(result.getRssi());
             long timestamp = SystemClock.elapsedRealtimeNanos();
-            String record = timestamp + "\t" + result.getRssi() + "\t" + result.getDevice().getAddress() + "\n";
+            String distanceRounded = String.format(Locale.getDefault(), "%.2f", distance);
+            String record = timestamp + "\t" + result.getRssi() + "\t"
+                    + distanceRounded + "\t" + result.getDevice().getAddress() + "\n";
             String log = "Found " + result.getDevice().getAddress()
                     + " (RSSI: " + result.getRssi()
-                    + " -> Distance: " + distance + ")";
+                    + " -> Distance: " + distanceRounded + ")";
             if (distance > BEACON_MAX_DIST) {
                 return;
             }
