@@ -65,8 +65,8 @@
     <string name="str_oar_question_2">Wie häufig war ihr Händewaschen heute insgesamt?</string>
     <string name="str_oar_question_3">Wie oft haben Sie ihr Hände waschen Protokolliert?</string>
 
-    <string name="str_one">0</string>
-    <string name="str_five">4</string>
+    <string name="str_one">gar nicht</string>
+    <string name="str_five">sehr stark</string>
     <string name="str_never">nie</string>
     <string name="str_always">immer</string>
     <string name="str_low_prc">0–20%</string>
