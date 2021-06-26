@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.icu.util.Calendar;
 import android.util.Log;
 
 import unifr.sensorrecorder.ConfActivity;
@@ -21,11 +22,15 @@ public class OverallEvaluationReminder extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
+        Calendar currentDate = Calendar.getInstance();
+        currentDate.setTimeInMillis(System.currentTimeMillis());
         int numReminders = intent.getIntExtra("numCalls", 0);
-        NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
-        if (numReminders < MAX_REMINDERS){
-            setNextReminder(context, numReminders+1);
+
+        if (currentDate.get(Calendar.HOUR_OF_DAY) >= 18) {
+            NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
+            if (numReminders < MAX_REMINDERS) {
+                setNextReminder(context, numReminders + 1);
+            }
         }
     }
 
