@@ -17,7 +17,7 @@ import unifr.sensorrecorder.R;
 import static android.content.Context.ALARM_SERVICE;
 
 public class OverallEvaluationReminder extends BroadcastReceiver {
-    private static final int MAX_REMINDERS = 3;
+    private static final int MAX_REMINDERS = 6;
     private static final int REPEAT_DELAY = 1000 * 60 * 10; // 10 minutes
 
     @Override
@@ -39,6 +39,6 @@ public class OverallEvaluationReminder extends BroadcastReceiver {
         reminderReceiver.putExtra("numCalls", numCalls);
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + REPEAT_DELAY, reminderPint);
+        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + (REPEAT_DELAY * numCalls), reminderPint);
     }
 }
