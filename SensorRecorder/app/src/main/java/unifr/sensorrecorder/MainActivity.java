@@ -311,7 +311,7 @@ public class MainActivity extends FragmentActivity
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
         targetDate.set(Calendar.HOUR_OF_DAY, OverallEvaluationReminderStarter.REMINDER_HOUR);
-        targetDate.set(Calendar.MINUTE, 15);
+        targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
         // Calendar calendar = Calendar.getInstance();
         // if(targetDate.before(calendar))

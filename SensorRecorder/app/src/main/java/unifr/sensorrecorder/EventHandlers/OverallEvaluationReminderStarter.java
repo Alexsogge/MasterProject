@@ -17,7 +17,7 @@ import unifr.sensorrecorder.R;
 import static android.content.Context.ALARM_SERVICE;
 
 public class OverallEvaluationReminderStarter extends BroadcastReceiver {
-    public static final int REMINDER_HOUR = 9;
+    public static final int REMINDER_HOUR = 18;
 
     @Override
     public void onReceive(Context context, Intent intent) {
