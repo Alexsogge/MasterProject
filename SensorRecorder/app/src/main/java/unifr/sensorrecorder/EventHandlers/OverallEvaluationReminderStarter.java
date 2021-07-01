@@ -25,9 +25,11 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
         reminderReceiver.putExtra("numCalls", 0);
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
-        AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, reminderPint);
+        // AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        // am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), reminderPint);
+        OverallEvaluationReminder.setNextReminder(context.getApplicationContext(), 1);
         setOverallEvaluationReminder(context);
+        NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
     }
 
     private void setOverallEvaluationReminder(Context context){

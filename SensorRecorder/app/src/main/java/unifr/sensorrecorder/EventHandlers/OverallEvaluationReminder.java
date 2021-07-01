@@ -34,7 +34,7 @@ public class OverallEvaluationReminder extends BroadcastReceiver {
         }
     }
 
-    private void setNextReminder(Context context, int numCalls){
+    public static void setNextReminder(Context context, int numCalls){
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
         reminderReceiver.putExtra("numCalls", numCalls);
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
