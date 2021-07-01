@@ -24,9 +24,11 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
         reminderReceiver.putExtra("numCalls", 0);
         PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
-        AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, reminderPint);
+        // AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        // am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), reminderPint);
+        OverallEvaluationReminder.setNextReminder(context.getApplicationContext(), 1);
         setOverallEvaluationReminder(context);
+        NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
     }
 
     private void setOverallEvaluationReminder(Context context){
@@ -34,7 +36,7 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
         targetDate.setTimeInMillis(System.currentTimeMillis());
         if(targetDate.get(Calendar.HOUR_OF_DAY) >= 18)
             targetDate.add(Calendar.DATE, 1);
-        targetDate.set(Calendar.HOUR_OF_DAY, 18);
+        targetDate.set(Calendar.HOUR_OF_DAY, 0);
         targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
 

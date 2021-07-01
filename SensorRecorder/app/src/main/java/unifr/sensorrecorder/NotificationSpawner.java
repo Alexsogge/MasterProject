@@ -176,7 +176,7 @@ public class NotificationSpawner {
 
         // manual vibration cause vibration defined in notification doesn't always work
         Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-        vibrator.vibrate(VibrationEffect.createWaveform(new long[]{1000, 1000, 700, 1000}, -1));
+        vibrator.vibrate(VibrationEffect.createWaveform(new long[]{0, 1000, 700, 1000}, -1));
     }
 
     public static void closeOverallEvaluationNotification(Context context){
