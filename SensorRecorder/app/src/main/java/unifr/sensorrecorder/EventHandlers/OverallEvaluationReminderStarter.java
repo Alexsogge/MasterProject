@@ -17,6 +17,7 @@ import unifr.sensorrecorder.R;
 import static android.content.Context.ALARM_SERVICE;
 
 public class OverallEvaluationReminderStarter extends BroadcastReceiver {
+    public static final int REMINDER_HOUR = 9;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -32,9 +33,9 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
     private void setOverallEvaluationReminder(Context context){
         Calendar targetDate = Calendar.getInstance();
         targetDate.setTimeInMillis(System.currentTimeMillis());
-        if(targetDate.get(Calendar.HOUR_OF_DAY) >= 18)
+        if(targetDate.get(Calendar.HOUR_OF_DAY) >= REMINDER_HOUR)
             targetDate.add(Calendar.DATE, 1);
-        targetDate.set(Calendar.HOUR_OF_DAY, 18);
+        targetDate.set(Calendar.HOUR_OF_DAY, REMINDER_HOUR);
         targetDate.set(Calendar.MINUTE, 0);
         targetDate.set(Calendar.SECOND, 0);
 

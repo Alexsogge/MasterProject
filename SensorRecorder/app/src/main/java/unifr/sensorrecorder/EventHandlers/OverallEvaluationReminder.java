@@ -26,7 +26,7 @@ public class OverallEvaluationReminder extends BroadcastReceiver {
         currentDate.setTimeInMillis(System.currentTimeMillis());
         int numReminders = intent.getIntExtra("numCalls", 0);
 
-        if (currentDate.get(Calendar.HOUR_OF_DAY) >= 18) {
+        if (currentDate.get(Calendar.HOUR_OF_DAY) >= OverallEvaluationReminderStarter.REMINDER_HOUR) {
             NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
             if (numReminders < MAX_REMINDERS) {
                 setNextReminder(context, numReminders + 1);
