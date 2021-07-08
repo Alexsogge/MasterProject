@@ -36,7 +36,7 @@ public class ServerTokenWorker extends NetworkWorker{
         if(!configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
             return Result.success(new Data.Builder().putInt(STATUS, STATUS_FINISHED).build());
         }
-        NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_authentication));
+        // NotificationSpawner.showUploadNotification(this.context, this.context.getString(R.string.not_upload_authentication));
         int requestStatus = getServerToken();
         if(requestStatus != STATUS_SUCCESS){
             sendStatus(requestStatus);
@@ -67,7 +67,7 @@ public class ServerTokenWorker extends NetworkWorker{
                     makeToast(context.getString(R.string.toast_auth_granted));
                     return STATUS_SUCCESS;
                 } else{
-                    makeToast(context.getString(R.string.toast_not_auth) + jObject.getString("msg"));
+                    // makeToast(context.getString(R.string.toast_not_auth) + jObject.getString("msg"));
                     return STATUS_PENDING;
                 }
             }

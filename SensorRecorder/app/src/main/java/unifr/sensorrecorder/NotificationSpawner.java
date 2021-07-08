@@ -226,6 +226,7 @@ public class NotificationSpawner {
                 .setSmallIcon(R.drawable.ic_hand_wash)
                 // .setVibrate(new long[]{1000, 500, 1000, 500})
                 // .setSound(alarmSound)
+                .setProgress(0, 0, true)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 ;
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);

@@ -127,7 +127,6 @@ public class NetworkManager {
             OneTimeWorkRequest uploadWorkRequest = buildUploadWorkRequest();
             WorkManager.getInstance(context).cancelAllWork();
             WorkManager.getInstance(context).pruneWork();
-            NotificationSpawner.showUploadNotification(context, context.getString(R.string.not_upload_connection));
             if(configs.getString(context.getString(R.string.conf_serverToken), "").equals("")) {
                 OneTimeWorkRequest serverTokenWorkRequest = buildGetServerTokenWorkRequest();
                 WorkManager.getInstance(context)
@@ -135,6 +134,7 @@ public class NetworkManager {
                         .then(uploadWorkRequest)
                         .enqueue();
             } else {
+                NotificationSpawner.showUploadNotification(context, context.getString(R.string.not_upload_connection));
                 WorkManager.getInstance(context).enqueue(uploadWorkRequest);
             }
         }
