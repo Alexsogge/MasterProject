@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.SystemClock;
 import android.provider.Settings;
 
 import org.json.JSONException;
@@ -247,6 +248,7 @@ public class DataProcessor {
             metaInfo.put("app_version", version);
             metaInfo.put("version_code", verCode);
             metaInfo.put("date", getCurrentDateAsIso());
+            metaInfo.put("start_time_stamp", SystemClock.elapsedRealtimeNanos());
 
             metaInfo.put("build_board", Build.BOARD);
             metaInfo.put("build_device", Build.DEVICE);
@@ -262,7 +264,7 @@ public class DataProcessor {
 
     private String getCurrentDateAsIso() {
         // see https://stackoverflow.com/questions/3914404/how-to-get-current-moment-in-iso-8601-format
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
         return df.format(new Date());
     }
