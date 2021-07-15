@@ -220,25 +220,7 @@ public class HandWashDetection {
 
 
     private void loadSettingsFromFile() throws IOException, JSONException {
-        File path = modelFilePath;
-        if(!path.exists())
-            return;
-        File settingsFile = new File(path, modelSettingsName);
-        if(!settingsFile.exists())
-            return;
-
-        FileReader fileReader = new FileReader(settingsFile);
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-        StringBuilder stringBuilder = new StringBuilder();
-        String line = bufferedReader.readLine();
-        while (line != null){
-            stringBuilder.append(line).append("\n");
-            line = bufferedReader.readLine();
-        }
-        bufferedReader.close();
-        String jsonString = stringBuilder.toString();
-
-        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONObject jsonObject = readModelSettingsFile();
         if(jsonObject.has("required_sensors")) {
             JSONArray jsonSensors = jsonObject.getJSONArray("required_sensors");
             requiredSensors = new int[jsonObject.length()];
@@ -260,6 +242,30 @@ public class HandWashDetection {
         if(jsonObject.has("mean_kernel_size"))
             meanKernelWidth = jsonObject.getInt("mean_kernel_size");
 
+    }
+
+
+    public static JSONObject readModelSettingsFile()throws IOException, JSONException{
+            File path = modelFilePath;
+            if(!path.exists())
+                return null;
+            File settingsFile = new File(path, modelSettingsName);
+            if(!settingsFile.exists())
+                return null;
+
+            FileReader fileReader = new FileReader(settingsFile);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            StringBuilder stringBuilder = new StringBuilder();
+            String line = bufferedReader.readLine();
+            while (line != null){
+                stringBuilder.append(line).append("\n");
+                line = bufferedReader.readLine();
+            }
+            bufferedReader.close();
+            String jsonString = stringBuilder.toString();
+
+            JSONObject jsonObject = new JSONObject(jsonString);
+            return  jsonObject;
     }
 
     public void queueBuffer(int sensorIndex, float[][] buffer, long[] timestamps) {

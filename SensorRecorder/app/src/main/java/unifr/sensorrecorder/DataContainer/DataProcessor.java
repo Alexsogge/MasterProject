@@ -15,7 +15,9 @@ import unifr.sensorrecorder.DataContainer.DataContainer;
 import unifr.sensorrecorder.DataContainer.MultyEntryZipContainer;
 import unifr.sensorrecorder.DataContainer.OutputStreamContainer;
 import unifr.sensorrecorder.DataContainer.ZipContainer;
+import unifr.sensorrecorder.HandWashDetection;
 import unifr.sensorrecorder.R;
+import unifr.sensorrecorder.SensorListenerService;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -241,6 +243,9 @@ public class DataProcessor {
         JSONObject metaInfo = new JSONObject();
         try {
             metaInfo.put("tf_model", configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "default.tflite"));
+            JSONObject tfSettings = HandWashDetection.readModelSettingsFile();
+            if (tfSettings != null)
+                metaInfo.put("tf_settings", tfSettings.toString());
 
             PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
             String version = pInfo.versionName;
