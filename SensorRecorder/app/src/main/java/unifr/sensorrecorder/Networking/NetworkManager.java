@@ -206,10 +206,16 @@ public class NetworkManager {
 
     public static void downloadTFModel(Context context){
         SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
-        executor.execute(new NetworkManager.HTTPGetTFModel(configs, context));
+        executor.execute(new NetworkManager.HTTPGetTFModel(configs, context, false));
+    }
+
+    public static void downloadTFModelSettings(Context context){
+        SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
+        executor.execute(new NetworkManager.HTTPGetTFModel(configs, context, true));
     }
 
     public static void checkForTFModelUpdate(Context context){
+        Log.d("detection", "check for update");
         SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
         executor.execute(new NetworkManager.HTTPCheckForNewTFModel(configs, context));
     }
@@ -224,22 +230,27 @@ public class NetworkManager {
         private final OkHttpClient client = new OkHttpClient();
         private SharedPreferences configs;
         private Context context;
+        private boolean justSettings;
 
-        public HTTPGetTFModel(SharedPreferences configs, Context context){
+        public HTTPGetTFModel(SharedPreferences configs, Context context, boolean justSettings){
             this.configs = configs;
             this.context = context;
+            this.justSettings = justSettings;
         }
 
         @Override
         public void run() {
             String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
             try {
-                String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
+                if(!justSettings) {
+                    String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
+                    makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName, context);
+                    SharedPreferences.Editor configEditor = configs.edit();
+                    configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
+                    configEditor.apply();
+                }
                 downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
-                makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName, context);
-                SharedPreferences.Editor configEditor = configs.edit();
-                configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
-                configEditor.apply();
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -297,11 +308,15 @@ public class NetworkManager {
                     String currentModel = configs.getString(context.getString(R.string.val_current_tf_model), "");
                     String doSkip = configs.getString(context.getString(R.string.val_do_skip_tf_model), "");
                     // Log.d("net", "active: " + tfFileName + " using " + currentModel + " skip " + doSkip);
-                    if(!tfFileName.equals(currentModel) && !tfFileName.equals(doSkip)){
-                        if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_auto_update_tf), false))
-                            downloadTFModel(context);
-                        else if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_check_for_tf_update), true))
-                            NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
+                    if(!tfFileName.equals(currentModel)){
+                        if(!tfFileName.equals(doSkip)){
+                            if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_auto_update_tf), false))
+                                downloadTFModel(context);
+                            else if (configs.getBoolean(context.getApplicationContext().getString(R.string.conf_check_for_tf_update), true))
+                                NotificationSpawner.showUpdateTFModelNotification(context.getApplicationContext(), tfFileName);
+                        }
+                    } else if(!currentModel.equals("")){
+                        downloadTFModelSettings(context);
                     }
                     SharedPreferences.Editor configEditor = configs.edit();
                     configEditor.putString(context.getApplicationContext().getString(R.string.val_last_checked_tf_model),tfFileName);
