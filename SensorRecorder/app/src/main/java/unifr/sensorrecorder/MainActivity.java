@@ -117,11 +117,11 @@ public class MainActivity extends FragmentActivity
                 getString(R.string.configs), Context.MODE_PRIVATE);
         configIntent = new Intent(this, ConfActivity.class);
         if (!configs.contains(getString(R.string.conf_serverName)) || !configs.contains(getString(R.string.conf_userIdentifier))){
-            Log.d("config", configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
-            if(!waitForConfigs) {
-                waitForConfigs = true;
-                startActivity(configIntent);
-            }
+            // Log.d("config", "ServerName:" + configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
+            waitForConfigs = true;
+            // Log.d("main", "open configs");
+            startActivity(configIntent);
+
         } else {
             waitForConfigs = false;
         }
@@ -210,11 +210,13 @@ public class MainActivity extends FragmentActivity
         if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf), false))
             NetworkManager.checkForTFModelUpdate(getApplicationContext());
         // handWashDetection.initModel();
-        sensorService.startRecording();
+        if (sensorService != null)
+            sensorService.startRecording();
     }
 
     public void toggleStopRecording(){
-        sensorService.directlyStopRecording();
+        if(sensorService != null)
+            sensorService.directlyStopRecording();
         // sensorService.dataProcessor.backup_recording_files();
     }
 
