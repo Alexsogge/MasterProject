@@ -30,15 +30,10 @@ public class HandwashEvaluation extends WearableActivity {
     private TextView questionText;
     private Button evalButtonYes;
     private Button evalButtonNo;
-    private Button rateButton;
-    private RatingBar ratingBar;
     private Button rateButton2;
     private RatingBar ratingBar2;
     private View answerYN;
-    private View answerRating;
     private View answerRating2;
-    private TextView ratingBarDescL;
-    private TextView ratingBarDescR;
 
     private long timestamp;
 
@@ -59,21 +54,13 @@ public class HandwashEvaluation extends WearableActivity {
         questionText = (TextView) findViewById(R.id.textQuestionText);
         evalButtonYes = (Button) findViewById(R.id.buttonEvalYes);
         evalButtonNo = (Button) findViewById(R.id.buttonEvalNo);
-        rateButton = (Button) findViewById(R.id.answerRateButton);
-        ratingBar = (RatingBar) findViewById(R.id.answerRatingBar);
         rateButton2 = (Button) findViewById(R.id.answerRateButton2);
         ratingBar2 = (RatingBar) findViewById(R.id.answerRatingBar2);
 
-
         answerYN = (View) findViewById(R.id.answerYesNo);
-        answerRating = (View) findViewById(R.id.answerRating);
         answerRating2 = (View) findViewById(R.id.answerRating2);
         answerYN.setVisibility(View.GONE);
-        answerRating.setVisibility(View.GONE);
         answerRating2.setVisibility(View.GONE);
-
-        ratingBarDescL = (TextView) findViewById(R.id.rtb_desc_l);
-        ratingBarDescR = (TextView) findViewById(R.id.rtb_desc_r);
 
 
         questions = new HashMap<>();
@@ -113,17 +100,6 @@ public class HandwashEvaluation extends WearableActivity {
                 setAnswer(0);
             }
         });
-        rateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (Math.round(ratingBar.getRating()) > 0) {
-                    setAnswer(Math.round(ratingBar.getRating()));
-                    ratingBar.setRating(0);
-                } else {
-                    Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
         rateButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -135,19 +111,6 @@ public class HandwashEvaluation extends WearableActivity {
                 }
             }
         });
-        ratingBarDescL.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ratingBar.setRating(0);
-            }
-        });
-        ratingBarDescR.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ratingBar.setRating(10);
-            }
-        });
-        ratingBar.setRating(0);
         ratingBar2.setRating(0);
     }
 
