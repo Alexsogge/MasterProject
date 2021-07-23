@@ -69,6 +69,7 @@ public class MainActivity extends FragmentActivity
     private UpdateTFModelReceiver updateTFModelReceiver;
     private Button startStopButton;
     private Button uploadButton;
+    private Button configButton;
 
     private ScrollView mainScrollView;
     //private CustomSpinner handWashSpinner;
@@ -79,37 +80,38 @@ public class MainActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.d("main", "create main activity");
-        if(!isActive) {
-            isActive = true;
-            turnOffDozeMode(this);
+        turnOffDozeMode(this);
 
-            WorkManager.getInstance(this).cancelAllWork();
-            WorkManager.getInstance(this).pruneWork();
+        WorkManager.getInstance(this).cancelAllWork();
+        WorkManager.getInstance(this).pruneWork();
 
-            // NotificationSpawner.deleteAllChannels(this.getApplicationContext());
-            NotificationSpawner.createChannels(this.getApplicationContext());
-            setOverallEvaluationReminder();
+        // NotificationSpawner.deleteAllChannels(this.getApplicationContext());
+        NotificationSpawner.createChannels(this.getApplicationContext());
+        setOverallEvaluationReminder();
 
-            // set scroll view to correct size
-            adjustInset();
+        // get elements from view
+        loadUI();
 
-            // initialize user interface elements
-            initUI();
+        // NotificationSpawner.showOverallEvaluationNotification(this.getApplicationContext());
+        // NotificationSpawner.spawnHandWashPredictionNotification(this.getApplicationContext(), 1000);
 
-            // get settings. If not already set open config activity
-            loadConfigs();
 
-            if (!waitForConfigs)
-                initServices();
-
-            // NotificationSpawner.showOverallEvaluationNotification(this.getApplicationContext());
-            // NotificationSpawner.spawnHandWashPredictionNotification(this.getApplicationContext(), 1000);
-
-        }
-
-        adjustInset();
         // Enables Always-on
-        //setAmbientEnabled();
+        // setAmbientEnabled();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // initialize user interface elements
+        initUI();
+        // get settings. If not already set open config activity
+        loadConfigs();
+        if (!waitForConfigs)
+            initServices();
+
+        // set scroll view to correct size
+        adjustInset();
     }
 
     private void loadConfigs(){
@@ -128,82 +130,21 @@ public class MainActivity extends FragmentActivity
         updateUploadButton();
     }
 
-    private void initUI(){
+    private void loadUI(){
         mainScrollView = (ScrollView) findViewById(R.id.mainScrollView);
-
         infoText = (TextView) findViewById(R.id.infoText);
         uploadProgressBar = (ProgressBar) findViewById(R.id.uploaadProgressBar);
-        uploadProgressBar.setMax(100);
-
         startStopButton = (Button) findViewById(R.id.startStopButton);
         uploadButton = (Button) findViewById(R.id.uploadaButton);
+        configButton = (Button)findViewById(R.id.buttonConfig);
+    }
 
-        Button configButton = (Button)findViewById(R.id.buttonConfig);
-        configButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(configIntent);
-            }
-        });
+    private void initUI(){
+        uploadProgressBar.setMax(100);
 
-        /*
-        handWashSpinner = (CustomSpinner) findViewById(R.id.handwash_spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.handwash_spinner_values, android.R.layout.simple_spinner_item);
-
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        handWashSpinner.setAdapter(adapter);
-
-        handWashSpinner.setSpinnerEventsListener(new CustomSpinner.OnSpinnerEventsListener(){
-
-            @Override
-            public void onSpinnerOpened(Spinner spin) {
-                mainScrollView.scrollTo(0, 100);
-            }
-
-            @Override
-            public void onSpinnerClosed(Spinner spin) {
-
-            }
-        });
-
-        handWashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-               if (sensorService != null){
-                    sensorService.addHandWashEventBefore(position * 60 * 5);
-                    handWashSpinner.setNoSelection();
-                    Toast.makeText(MainActivity.this, getResources().getString(R.string.toast_addedhandwash_sel) + ((TextView)view).getText(), Toast.LENGTH_SHORT).show();
-               }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-                // sometimes you need nothing here
-            }
-        });
-        */
-
-        uploadButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // sensorService.UploadSensorData();
-                toggleUpload();
-            }
-        });
-
-        startStopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (sensorService.isRunning) {
-                    toggleStopRecording();
-                } else {
-                    toggleStartRecording();
-                }
-            }
-        });
+        startStopButton.setOnClickListener(startStopButtonClickListener);
+        configButton.setOnClickListener(configButtonClickListener);
+        uploadButton.setOnClickListener(uploadButtonClickListener);
     }
 
     public void toggleStartRecording(){
@@ -326,6 +267,31 @@ public class MainActivity extends FragmentActivity
     }
 
 
+    private final View.OnClickListener startStopButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (sensorService.isRunning) {
+                toggleStopRecording();
+            } else {
+                toggleStartRecording();
+            }
+        }
+    };
+
+    private final View.OnClickListener uploadButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            // sensorService.UploadSensorData();
+            toggleUpload();
+        }
+    };
+
+    private final View.OnClickListener configButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            startActivity(configIntent);
+        }
+    };
 
     private ServiceConnection sensorConnection = new ServiceConnection() {
 
@@ -418,6 +384,9 @@ public class MainActivity extends FragmentActivity
     }
 
     public void onStop() {
+        startStopButton.setOnClickListener(null);
+        uploadButton.setOnClickListener(null);
+        configButton.setOnClickListener(null);
         super.onStop();
         Log.d("activity", "on stop main");
     }

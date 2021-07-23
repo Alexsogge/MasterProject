@@ -59,9 +59,18 @@ public class HandwashEvaluation extends WearableActivity {
 
         answerYN = (View) findViewById(R.id.answerYesNo);
         answerRating2 = (View) findViewById(R.id.answerRating2);
+
+
+        // Enables Always-on
+        setAmbientEnabled();
+        setAutoCancel();
+    }
+
+    @Override
+    protected void onStart () {
+        super.onStart();
         answerYN.setVisibility(View.GONE);
         answerRating2.setVisibility(View.GONE);
-
 
         questions = new HashMap<>();
         answerViews = new HashMap<>();
@@ -79,38 +88,15 @@ public class HandwashEvaluation extends WearableActivity {
         currentQuestion = 1;
         initUi();
         answerYN.setVisibility(View.VISIBLE);
-
-        // Enables Always-on
-        setAmbientEnabled();
-        setAutoCancel();
     }
 
     private void initUi(){
         questionText.setText(questions.get(currentQuestion));
         answerViews.get(currentQuestion).setVisibility(View.VISIBLE);
-        evalButtonYes.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setAnswer(1);
-            }
-        });
-        evalButtonNo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setAnswer(0);
-            }
-        });
-        rateButton2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(Math.round(ratingBar2.getRating()) > 0) {
-                    setAnswer(Math.round(ratingBar2.getRating()));
-                    ratingBar2.setRating(0);
-                } else {
-                    Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
+
+        evalButtonYes.setOnClickListener(evalButtonYesClickListener);
+        evalButtonNo.setOnClickListener(evalButtonNoClickListener);
+        rateButton2.setOnClickListener(rateButtonClickListener);
         ratingBar2.setRating(0);
     }
 
@@ -124,8 +110,37 @@ public class HandwashEvaluation extends WearableActivity {
             answerViews.get(currentQuestion-1).setVisibility(View.GONE);
             answerViews.get(currentQuestion).setVisibility(View.VISIBLE);
         }
-
     }
+
+
+
+    private final View.OnClickListener evalButtonYesClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            setAnswer(1);
+        }
+    };
+
+    private final View.OnClickListener evalButtonNoClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            setAnswer(0);
+        }
+    };
+
+    private final View.OnClickListener rateButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if(Math.round(ratingBar2.getRating()) > 0) {
+                setAnswer(Math.round(ratingBar2.getRating()));
+                ratingBar2.setRating(0);
+            } else {
+                Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+
 
     private void setAutoCancel(){
         final Handler handler = new Handler(Looper.getMainLooper());
@@ -157,6 +172,16 @@ public class HandwashEvaluation extends WearableActivity {
         moveTaskToBack(true);
         finish();
     }
+
+    @Override
+    protected void onStop() {
+        // call the superclass method first
+        evalButtonYes.setOnClickListener(null);
+        evalButtonNo.setOnClickListener(null);
+        rateButton2.setOnClickListener(null);
+        super.onStop();
+    }
+
 
     protected void onResume () {
         super.onResume();

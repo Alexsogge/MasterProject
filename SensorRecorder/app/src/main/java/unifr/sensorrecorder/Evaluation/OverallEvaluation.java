@@ -62,6 +62,13 @@ public class OverallEvaluation extends WearableActivity {
         answer = (Button) findViewById(R.id.ovEvRateButton);
         rlMarker = (RelativeLayout) findViewById(R.id.rlMarker);
 
+        // Enables Always-on
+        setAmbientEnabled();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         questions = new HashMap<>();
         questions.put(0, R.string.str_oar_question_1);
         questions.put(1, R.string.str_oar_question_2);
@@ -79,27 +86,39 @@ public class OverallEvaluation extends WearableActivity {
 
         // initSeekBar();
         initRatingBar();
-
-        // Enables Always-on
-        setAmbientEnabled();
     }
 
     private void initRatingBar(){
         ratingBar.setVisibility(View.VISIBLE);
         ratingBar.setRating(0);
-        answer.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int rating = Math.round(ratingBar.getProgress());
-                if (rating > 0) {
-                    setAnswer(rating);
-                    ratingBar.setRating(0);
-                } else {
-                    Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
+        answer.setOnClickListener(answerButtonRatingBarClickListener);
     }
+
+    private final View.OnClickListener answerButtonRatingBarClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int rating = Math.round(ratingBar.getProgress());
+            if (rating > 0) {
+                setAnswer(rating);
+                ratingBar.setRating(0);
+            } else {
+                Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+    private final View.OnClickListener answerButtonSeekBarClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int rating = Math.round(ratingBar.getProgress());
+            if (rating > 0) {
+                setAnswer(rating);
+                ratingBar.setRating(0);
+            } else {
+                Toast.makeText(getApplicationContext(), getString(R.string.toast_give_rating), Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
 
     private void setAnswer(int value){
         answers.put(currentQuestion, value);
@@ -155,13 +174,7 @@ public class OverallEvaluation extends WearableActivity {
         });
 
 
-        answer.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int rating = Math.round(seekBar.getProgress());
-                setAnswer(rating);
-            }
-        });
+        answer.setOnClickListener(answerButtonSeekBarClickListener);
     }
 
     private void saveRating(){
@@ -243,6 +256,12 @@ public class OverallEvaluation extends WearableActivity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onStop() {
+        answer.setOnClickListener(null);
+        super.onStop();
     }
 
     public static float convertDpToPixel(float dp, Context context) {
