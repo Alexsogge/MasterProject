@@ -50,6 +50,7 @@ public class ConfActivity extends WearableActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conf);
         confActivity = this;
+        Log.d("sensorrecorderevent", "Show config activity");
 
         adjustInset();
 
@@ -190,6 +191,7 @@ public class ConfActivity extends WearableActivity {
                 configEditor.putBoolean(getString(R.string.conf_scan_bluetooth_beacons), scanBluetoothBeaconsCheckbox.isChecked());
                 Log.d("conf", "save settings");
                 configEditor.apply();
+                // configEditor.commit();
 
                 if (configs.getString(getString(R.string.conf_serverToken), "").equals("") &&
                         !configs.getString(getString(R.string.conf_serverName), "").equals("")){
@@ -205,8 +207,8 @@ public class ConfActivity extends WearableActivity {
                         }
                     }, 1000*5);
                 }
-
                 finish();
+
             }
         });
 

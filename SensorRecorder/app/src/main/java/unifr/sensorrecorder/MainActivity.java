@@ -56,7 +56,7 @@ public class MainActivity extends FragmentActivity
     private NetworkManager networkManager;
 
     private boolean mBound = false;
-    private boolean waitForConfigs = false;
+    private boolean waitForConfigs = true;
 
     private TextView infoText;
     private ProgressBar uploadProgressBar;
@@ -103,25 +103,26 @@ public class MainActivity extends FragmentActivity
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d("main", "Start main actitvity");
         // initialize user interface elements
         initUI();
+        configs = this.getSharedPreferences(
+                getString(R.string.configs), Context.MODE_PRIVATE);
         // get settings. If not already set open config activity
-        loadConfigs();
-        if (!waitForConfigs)
-            initServices();
-
+//        loadConfigs(true);
+//        if (!waitForConfigs)
+//            initServices();
+//
+//        updateUploadButton();
         // set scroll view to correct size
         adjustInset();
     }
 
     private void loadConfigs(){
-        configs = this.getSharedPreferences(
-                getString(R.string.configs), Context.MODE_PRIVATE);
         configIntent = new Intent(this, ConfActivity.class);
         if (!configs.contains(getString(R.string.conf_serverName)) || !configs.contains(getString(R.string.conf_userIdentifier))){
             // Log.d("config", "ServerName:" + configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
             waitForConfigs = true;
-            // Log.d("main", "open configs");
             startActivity(configIntent);
 
         } else {
@@ -169,7 +170,7 @@ public class MainActivity extends FragmentActivity
     }
 
     private void updateUploadButton(){
-        if(configs.getString(getString(R.string.conf_serverName), "").equals("")){
+        if(configs.contains(getString(R.string.conf_serverName)) && configs.getString(getString(R.string.conf_serverName), "").equals("")){
             uploadButton.setEnabled(false);
         } else {
             uploadButton.setEnabled(true);
@@ -318,7 +319,7 @@ public class MainActivity extends FragmentActivity
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
+        // Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
         if (requestCode == 1) {
             if (grantResults.length > 1) {
                 boolean bluetooth = grantResults[0] == PackageManager.PERMISSION_GRANTED;
@@ -369,7 +370,7 @@ public class MainActivity extends FragmentActivity
 
     protected void onResume () {
         super.onResume();
-        Log.d("sensorrecorderevent", "Resume main actitvity");
+        Log.d("main", "Resume main actitvity");
         if(waitForConfigs){
             loadConfigs();
             if(!waitForConfigs)
@@ -380,7 +381,6 @@ public class MainActivity extends FragmentActivity
 
     protected void onPause () {
         super.onPause();
-        Log.d("sensorrecorderevent", "Pause main actitvity");
     }
 
     public void onStop() {
@@ -388,12 +388,12 @@ public class MainActivity extends FragmentActivity
         uploadButton.setOnClickListener(null);
         configButton.setOnClickListener(null);
         super.onStop();
-        Log.d("activity", "on stop main");
+        Log.d("main", "on stop main");
     }
 
     public void onDestroy () {
         super.onDestroy();
-        Log.d("activity", "on destroy main");
+        Log.d("main", "on destroy main");
         if (mBound) {
             unbindService(sensorConnection);
         }
