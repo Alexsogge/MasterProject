@@ -24,13 +24,13 @@
                     <div class="col ms-5">
                         {% for key, value in meta_info.items() %}
                             <div class="row">
-                                <div class="col-3">
+                                <div class="col-md-3">
                                     {{ key }}:
                                 </div>
-                                 <div class="col-3">
-                                    {{ value }}
+                                <div class="col-md-6">
+                                    {{ value|replace(',"', ', "') }}
                                 </div>
-                                <div class="col">
+                                <div class="col-md-3">
                                     <button  type="button" class="btn btn-primary btn-sm" onclick="filterRecordings('{{ key }}', '{{ value }}')">Show all</button>
                                 </div>
                             </div>

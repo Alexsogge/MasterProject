@@ -263,6 +263,7 @@ public class DataProcessor {
             metaInfo.put("version_code", verCode);
             metaInfo.put("date", getCurrentDateAsIso());
             metaInfo.put("start_time_stamp", SystemClock.elapsedRealtimeNanos());
+            metaInfo.put("run_number", DataContainer.currentRun);
 
             metaInfo.put("build_board", Build.BOARD);
             metaInfo.put("build_device", Build.DEVICE);
