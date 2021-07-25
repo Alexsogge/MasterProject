@@ -17,6 +17,7 @@ from sensor_processor.battery_decoder import BatteryDecoder
 from sensor_processor.handwash_decoder import HandwashDecoder
 from sensor_processor.prediction_decoder import PredictionDecoder
 from sensor_processor.evaluation_decoder import EvaluationDecoder
+from sensor_processor.bluetooth_decoder import BluetoothDecoder
 
 if len(sys.argv) > 2 and sys.argv[2] == 'mkv':
     from mkv_decode import MKVDecoder
@@ -35,6 +36,7 @@ class DataProcessor:
         self.data_dict['time_stamps'] = HandwashDecoder.read_data(folder_name)
         self.data_dict['predictions'] = PredictionDecoder.read_folder(folder_name)
         self.data_dict['evaluations'] = EvaluationDecoder.read_folder(folder_name)
+        self.data_dict['bluetooth_beacons'] = BluetoothDecoder.read_folder(folder_name)
         if use_mkv:
             self.data_dict = {**self.data_dict, **MKVDecoder.read_folder(folder_name)}
 
@@ -66,6 +68,8 @@ class DataProcessor:
             self.data_dict['battery'] = align_array(self.data_dict['battery'], self.sensor_decoder.min_time_stamp)
             self.data_dict['predictions'] = align_array(self.data_dict['predictions'], self.sensor_decoder.min_time_stamp)
             self.data_dict['evaluations'] = align_array(self.data_dict['evaluations'],
+                                                        self.sensor_decoder.min_time_stamp)
+            self.data_dict['bluetooth_beacons'] = align_array(self.data_dict['bluetooth_beacons'],
                                                         self.sensor_decoder.min_time_stamp)
 
 
@@ -106,6 +110,11 @@ class DataProcessor:
         ax.scatter(neutral_data[:, 0], np.full(neutral_data.shape[0], 50), c='grey', s=100, marker='>', alpha=0.8, label='neutral')
         ax.scatter(neg_data[:, 0], np.full(neg_data.shape[0], -5), c='purple', s=200, marker='^', alpha=1, label='no')
         ax.scatter(pos_data[:, 0], np.full(pos_data.shape[0], 105), c='green', s=200, marker='v', alpha=1, label='yes')
+
+        data = self.data_dict['bluetooth_beacons']
+        data[:, 0] *= nano_sec
+        ax.scatter(data[:, 0], np.full(data.shape[0], 50), c='royalblue', s=100, marker='d', alpha=0.8,
+                   label='bluetooth')
 
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
@@ -223,7 +232,7 @@ if __name__ == "__main__":
         if sys.argv[2] == 'mkv':
             use_mkv = True
     data_processor = DataProcessor(sys.argv[1], use_mkv)
-    # data_processor.plot_data()
+    data_processor.plot_data()
     # data_processor.plot_timings()
     # data_processor.export_numpy_array()
     data_processor.calc_prediction_ratio()

@@ -21,7 +21,6 @@ def read_csv(filename: str, limit=None) -> List[List]:
         # for row in reader:
         #     if len(row) > 0:
         #         data.append(row)
-
     return data
 
 
