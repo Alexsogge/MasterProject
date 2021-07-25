@@ -73,7 +73,7 @@ class PlotData:
         series['hw'] = {'ts': data[1][:,0][data[1][:, 0] != 0].tolist()}
         series['pred'] = {'ts': data[2][:, 0].tolist(), 'noise': data[2][:, 1].tolist(), 'hw': data[2][:, 2].tolist(),
                           'mean': data[2][:, 3].tolist(), 'pred': data[2][:, 4].tolist()}
-        series['eval'] = {'ts': data[3][:, 0].tolist(), 'answer': data[3][:, 1].tolist()}
+        series['eval'] = {'ts': data[3][:, 0].tolist(), 'answer': data[3][:, 1].tolist(), 'compulsive': data[3][:, 2].tolist(), 'tense': data[3][:, 3].tolist(), 'urge': data[3][:, 4].tolist()}
         series['bluetooth'] = {'ts': data[4][:, 0].tolist(), 'rssi': data[4][:, 1].tolist(), 'dist': data[4][:, 2].tolist()}
 
         return series

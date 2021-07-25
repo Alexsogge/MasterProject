@@ -174,7 +174,6 @@
             var hwY = Array(hwTimeStamps.length).fill(10);
             var hwText = Array(hwTimeStamps.length).fill('handwash');
             var hwTrace = {x: hwTimeStamps, y: hwY, mode:'markers+text', name: 'Handwash', textposition: 'top', marker: {color:'cyan', size: 12}, text: hwText};
-            console.log("hw:", hwTrace)
 
             var predTimeStamps = data.pred.ts.map(function(el){return el/1000});
             var predNoiseY = data.pred.noise.map(function (el){return el*10});
@@ -187,11 +186,18 @@
             var predMeanTrace = {x: predTimeStamps, y: predMeanY, type:'scatter', name: 'Pred mean *10', line: {color: '#e377c2'}};
 
             var evalTimeStamps = data.eval.ts.map(function(el){return el/1000});
+            var evalY = Array(evalTimeStamps.length).fill(13);
             var evalAnswers = data.eval.answer.map(function(el){
                 if(el == -1) return 'na';
                 if(el == 0) return 'no';
                 if(el == 1) return 'yes';
             });
+            var evalTexts = [];
+            for (let i = 0; i < evalTimeStamps.length; i++){
+                evalTexts.push(`compulsive: ${(data.eval.compulsive[i] == 0) ? 'no': 'yes'} <br>tense:${data.eval.tense[i]}<br>urge:${data.eval.urge[i]}`);
+            }
+            var evalTrace = {x: evalTimeStamps, y: evalY, mode: 'markers', name:'evaluation',
+                text: evalTexts, type: 'scatter', marker: {color:'green', size: 10, symbol: 206}};
 
             var bluetoothTimeStamps = data.bluetooth.ts.map(function(el){return el/1000});
             var bluetoothY = Array(bluetoothTimeStamps.length).fill(5);
@@ -215,11 +221,9 @@
             }];
             if(showEvaluation) {
                 for (let i = 0; i < evalTimeStamps.length; i++) {
-                    annotations.push({x: evalTimeStamps[i], y: 10, xref: 'x', yref: 'y', text: evalAnswers[i],});
+                    annotations.push({x: evalTimeStamps[i], y: 13, xref: 'x', yref: 'y', text: evalAnswers[i],});
                 }
             }
-
-            console.log("mean:", predMeanTrace);
 
             var data = [hwTrace];
             if(showSensor)
@@ -228,6 +232,8 @@
                 data.push(predNoiseTrace, predHwTrace);
             if(showPredictionMean)
                 data.push(predMeanTrace);
+            if(showEvaluation)
+                data.push(evalTrace);
             if(showBluetooth)
                 data.push(bluetoothTrace);
 
