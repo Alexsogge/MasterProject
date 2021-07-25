@@ -6,6 +6,10 @@ import numpy as np
 import time
 
 
+def get_index_of_ts(time_stamp, data):
+    return np.searchsorted(data, time_stamp)
+
+
 class PlotData:
 
     def __init__(self, recording_id, path):
@@ -35,31 +39,39 @@ class PlotData:
         np.save(os.path.join(self.path, 'data_array_evaluation.npy'), evaluation_array)
         return recording_array, hand_wash_array, prediction_array, evaluation_array
 
-    def get_index_of_ts(self, time_stamp):
-        return np.searchsorted(self.recording_data_array[:, 0], time_stamp)
+    @staticmethod
+    def slice_data(start_ts, end_ts, data):
+        start_i = get_index_of_ts(start_ts, data[:, 0])
+        end_i = get_index_of_ts(end_ts, data[:, 0])
+        return data[start_i:end_i]
 
     def get_sliced_data(self, start_ts, end_ts):
-        start_i = self.get_index_of_ts(start_ts)
-        end_i = self.get_index_of_ts(end_ts)
-
-        return self.recording_data_array[start_i:end_i]
+        return (self.slice_data(start_ts, end_ts, self.recording_data_array),
+                self.slice_data(start_ts, end_ts, self.hand_wash_time_stamps),
+                self.slice_data(start_ts, end_ts, self.predictions),
+                self.slice_data(start_ts, end_ts, self.evaluations))
 
     def get_series(self, start, end):
         start_time_stamp = self.time_range * start
         end_time_stamp = self.time_range * end
-        data_array = self.get_sliced_data(start_time_stamp, end_time_stamp)
+        # data_array = self.get_sliced_data(start_time_stamp, end_time_stamp)
+        data = self.get_sliced_data(start_time_stamp, end_time_stamp)
 
-        series: List[Dict] = list()
+        series: Dict[str, Dict] = dict()
 
-        for i in range(3):
-            series_entry = dict()
-            series_entry['name'] = 'axis ' + str(i)
-
-            series_entry['data'] = data_array[:, [0, i + 1]].tolist()
-            series_entry['id'] = str(i)
-            series.append(series_entry)
-
+        acc_entry = dict()
+        acc_entry['ts'] = data[0][:, 0].tolist()
+        acc_entry['vals'] = dict()
+        for i, label in enumerate(('x', 'y', 'z')):
+            acc_entry['vals'][label] = data[0][:, i+1].tolist()
         self.last_access = time.time()
+
+        series['acc'] = acc_entry
+        series['hw'] = {'ts': data[1][:,0][data[1][:, 0] != 0].tolist()}
+        series['pred'] = {'ts': data[2][:, 0].tolist(), 'noise': data[2][:, 1].tolist(), 'hw': data[2][:, 2].tolist(),
+                          'mean': data[2][:, 3].tolist(), 'pred': data[2][:, 4].tolist()}
+        series['eval'] = {'ts': data[3][:, 0].tolist(), 'answer': data[3][:, 1].tolist()}
+
         return series
 
     def build_annotations(self):

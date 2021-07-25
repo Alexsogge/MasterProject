@@ -10,6 +10,7 @@
     <link  href="{{ url_for('static', filename='cropper.min.css') }}" rel="stylesheet">
     <link  href="{{ url_for('static', filename='recording_plot.css') }}" rel="stylesheet">
     <script src="{{ url_for('static', filename='cropper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='plotly-2.3.0.min.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -39,91 +40,256 @@
         </div>
     </div>
     <div class="row mt-3">
-        <div id="chart">Interactive chart</div>
+        <div class="col">
+            <div class="row">
+                Select region in plot to generate interactive chart.
+                <div id="chart" style="height:700px;"></div>
+            </div>
+            <div class="row mb-3" id="chartUI" style="display: none">
+                <div class="col">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowSensor" onclick="changePlotSettings()">
+                        <label class="form-check-label" for="checkShowSensor">
+                            Show sensor
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowPredictions" onclick="changePlotSettings()">
+                        <label class="form-check-label" for="checkShowPredictions">
+                            Show predictions
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowPredictionMean" onclick="changePlotSettings()">
+                        <label class="form-check-label" for="checkShowPredictionMean">
+                            Show prediction mean
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowEvaluation" onclick="changePlotSettings()">
+                        <label class="form-check-label" for="checkShowEvaluation">
+                            Show evaluation
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
     <script>
-     let cropper;
-     function clear_selection(){
-         cropper.reset();
-         cropper.clear();
-         document.getElementById('loading-row').style.display = 'none';
-         document.getElementById('reset-row').style.display = 'none';
-     }
+        let cropper;
+        let plotData=null;
+        function clear_selection(){
+            cropper.reset();
+            cropper.clear();
+            document.getElementById('loading-row').style.display = 'none';
+            document.getElementById('reset-row').style.display = 'none';
+        }
 
-    function loadHighcharts(start, end) {
-        Highcharts.getJSON(`{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`, function (data) {
-            // Create the chart
-            console.log(data);
-            Highcharts.stockChart('chart', {
+        function loadHighcharts(start, end) {
+            Highcharts.getJSON(`{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`, function (data) {
+                // Create the chart
+                console.log(data);
+                Highcharts.stockChart('chart', {
 
-                rangeSelector: {
-                    selected: 1
-                },
+                    rangeSelector: {
+                        selected: 1
+                    },
 
-                title: {
-                    text: 'Accelerometer'
-                },
-                annotations: data['data']['annotations'],
+                    title: {
+                        text: 'Accelerometer'
+                    },
+                    annotations: data['data']['annotations'],
 
-                series: data['data']['series']
+                    series: data['data']['series']
+                });
+                window.scrollTo(0,document.body.scrollHeight);
+                document.getElementById('loading-row').style.display = 'none';
+                document.getElementById('reset-row').style.display = 'block';
             });
+
+        }
+
+        function requestNewPlotData(){
+            const offsetStart = 365;
+            const offsetEnd = 75;
+            let x = cropper.getData().x - offsetStart;
+            let width = cropper.getData().width;
+            var imageWidth = cropper.getImageData().naturalWidth - offsetStart - offsetEnd;
+
+            let timeStart = Math.round((x/imageWidth + Number.EPSILON) * 100)/100;
+            let timeEnd = Math.round(((x+width)/imageWidth + Number.EPSILON) * 100) / 100;
+            timeStart = Math.max(0, Math.min(timeStart, 100));
+            timeEnd = Math.max(0, Math.min(timeEnd, 100));
+            x = Math.max(0, x);
+
+            if(timeStart >= timeEnd)
+                return;
+            console.log(`timeStart ${timeStart} timeEnd ${timeEnd}`);
+            // loadHighcharts(timeStart, timeEnd);
+            document.getElementById('loading-row').style.display = 'block';
+            window.scrollTo(0,document.body.scrollHeight);
+            getSeries(timeStart, timeEnd);
+
+        }
+
+        function getSeries(start, end){
+            console.log("request", `{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`);
+            fetch(`{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                    plotData = data;
+                    buildChart(data);
+                })
+                .catch(error => {
+                    console.error('There has been a problem with your fetch operation:', error);
+                });
+
+        }
+
+        function buildChart(data, showSensor=true, showPredictions=true, showPredictionMean=true, showEvaluation=true){
+            let chartEle = document.getElementById("chart");
+
+            var timeStamps = data.acc.ts.map(function(el){return el/1000});
+
+
+            var accTraceX = {x: timeStamps, y: data.acc.vals.x, type:'scatter', name: 'Acc X', line: {width: 1, color: '#1f77b4'}};
+            var accTraceY = {x: timeStamps, y: data.acc.vals.y, type:'scatter', name: 'Acc Y', line: {width: 1, color:'#ff7f0e'}};
+            var accTraceZ = {x: timeStamps, y: data.acc.vals.z, type:'scatter', name: 'Acc Z', line: {width: 1, color:'#2ca02c'}};
+
+            var hwTimeStamps = data.hw.ts.map(function(el){return el/1000});
+            var hwY = Array(hwTimeStamps.length).fill(10);
+            var hwText = Array(hwTimeStamps.length).fill('handwash');
+            var hwTrace = {x: hwTimeStamps, y: hwY, mode:'markers+text', name: 'Handwash', textposition: 'top', marker: {color:'cyan', size: 12}, text: hwText};
+            console.log("hw:", hwTrace)
+
+            var predTimeStamps = data.pred.ts.map(function(el){return el/1000});
+            var predNoiseY = data.pred.noise.map(function (el){return el*10});
+            var predHWY = data.pred.hw.map(function (el){return el*10});
+            var predMeanY = data.pred.mean.map(function (el){return el*10});
+
+            var predNoiseTrace = {x: predTimeStamps, y: predNoiseY, mode:'markers', name: 'Pred noise *10', marker: {color:'blue', size: 8}};
+            var predHwTrace = {x: predTimeStamps, y: predHWY, mode:'markers', name: 'Pred hand wash *10', marker: {color:'red', size: 8}};
+
+            var predMeanTrace = {x: predTimeStamps, y: predMeanY, type:'scatter', name: 'Pred mean *10', line: {color: '#e377c2'}};
+
+            var evalTimeStamps = data.eval.ts.map(function(el){return el/1000});
+            var evalAnswers = data.eval.answer.map(function(el){
+                if(el == -1) return 'na';
+                if(el == 0) return 'no';
+                if(el == 1) return 'yes';
+            });
+
+            var annotations = [{
+                xref: 'paper',
+                yref: 'paper',
+                x: 1,
+                xanchor: 'left',
+                y: 0,
+                yanchor: 'top',
+                text: 'seconds',
+                showarrow: false
+            }];
+            if(showEvaluation) {
+                for (let i = 0; i < evalTimeStamps.length; i++) {
+                    annotations.push({x: evalTimeStamps[i], y: 10, xref: 'x', yref: 'y', text: evalAnswers[i],});
+                }
+            }
+
+            console.log("mean:", predMeanTrace);
+
+            var data = [hwTrace];
+            if(showSensor)
+                data.push(accTraceX, accTraceY, accTraceZ);
+            if(showPredictions)
+                data.push(predNoiseTrace, predHwTrace);
+            if(showPredictionMean)
+                data.push(predMeanTrace);
+
+
+            var selectorOptions = {
+                buttons: [{
+                    step: 'second',
+                    stepmode: 'backward',
+                    count: 10,
+                    label: '10s'
+                }, {
+                    step: 'minute',
+                    stepmode: 'backward',
+                    count: 1,
+                    label: '1m'
+                }, {
+                    step: 'minute',
+                    stepmode: 'backward',
+                    count: 10,
+                    label: '10m'
+                }, {
+                    step: 'hour',
+                    stepmode: 'backward',
+                    count: 1,
+                    label: '1h'
+                }, {
+                    step: 'all',
+                }],
+            };
+
+            var layout = {title: 'Interactive selection', annotations: annotations,
+                xaxis: {
+                    rangeselector: selectorOptions,
+                    rangeslider: {}
+                },
+                yaxis: {
+                    fixedrange: false
+                }};
+            Plotly.newPlot( chartEle, data, layout);
             window.scrollTo(0,document.body.scrollHeight);
             document.getElementById('loading-row').style.display = 'none';
             document.getElementById('reset-row').style.display = 'block';
+            document.getElementById('chartUI').style.display = 'block';
+        }
+
+        function changePlotSettings(){
+            const showSensor = document.getElementById('checkShowSensor').checked;
+            const showPredictions = document.getElementById('checkShowPredictions').checked;
+            const showPredictionMean = document.getElementById('checkShowPredictionMean').checked;
+            const showEvaluation = document.getElementById('checkShowEvaluation').checked;
+            buildChart(plotData, showSensor, showPredictions, showPredictionMean, showEvaluation)
+        }
+
+        $(document).ready(function () {
+            const image = document.getElementById('plot');
+            cropper = new Cropper(image, {
+                autoCrop: false,
+                movable: false,
+                rotatable: false,
+                scalable: false,
+                zoomable: false,
+                viewMode: 3,
+                cropend(event) {
+                    console.log(cropper.getData());
+                    console.log(event.detail.originalEvent);
+                    console.log(event.detail.action);
+                    requestNewPlotData();
+                },
+            });
+
+            $("#main").click(function(e) {
+                if(e.target.id == "main")
+                    clear_selection();
+            });
+
+            $("#plot").click(function(e) {
+                // Do something
+                e.stopPropagation();
+            });
         });
-
-    }
-
-    function requestNewPlotData(){
-        const offsetStart = 365;
-        const offsetEnd = 75;
-        let x = cropper.getData().x - offsetStart;
-        let width = cropper.getData().width;
-        var imageWidth = cropper.getImageData().naturalWidth - offsetStart - offsetEnd;
-
-        let timeStart = Math.round((x/imageWidth + Number.EPSILON) * 100)/100;
-        let timeEnd = Math.round(((x+width)/imageWidth + Number.EPSILON) * 100) / 100;
-        timeStart = Math.max(0, Math.min(timeStart, 100));
-        timeEnd = Math.max(0, Math.min(timeEnd, 100));
-        x = Math.max(0, x);
-
-        if(timeStart >= timeEnd)
-            return;
-        console.log(`timeStart ${timeStart} timeEnd ${timeEnd}`);
-        loadHighcharts(timeStart, timeEnd);
-        document.getElementById('loading-row').style.display = 'block';
-        window.scrollTo(0,document.body.scrollHeight);
-    }
-
-    $(document).ready(function () {
-        const image = document.getElementById('plot');
-        cropper = new Cropper(image, {
-            autoCrop: false,
-            movable: false,
-            rotatable: false,
-            scalable: false,
-            zoomable: false,
-            viewMode: 3,
-            cropend(event) {
-                console.log(cropper.getData());
-                console.log(event.detail.originalEvent);
-                console.log(event.detail.action);
-                requestNewPlotData();
-            },
-        });
-
-        $("#main").click(function(e) {
-            if(e.target.id == "main")
-                clear_selection();
-        });
-
-        $("#plot").click(function(e) {
-           // Do something
-           e.stopPropagation();
-        });
-    });
 
     </script>
 

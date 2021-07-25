@@ -401,6 +401,26 @@ def recording_data(recording):
     # series.append(plot_data.time_stamp_series)
 
     # print(time_stamp_series)
+    return jsonify(series)
+    # return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
+    # return jsonify({'data': {'series': series}})
+
+
+
+@view.route('/recording/series/<string:recording>/')
+def recording_series(recording):
+    print('User: ', token_auth.current_user())
+    plot_data = get_plot_data(recording)
+
+    start_point = float(request.args.get('start'))
+    end_point = float(request.args.get('end'))
+
+    series = plot_data.get_series(start_point, end_point)
+
+    # series.append(plot_data.annotations)
+    # series.append(plot_data.time_stamp_series)
+
+    # print(time_stamp_series)
 
     return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
     # return jsonify({'data': {'series': series}})
