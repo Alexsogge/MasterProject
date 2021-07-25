@@ -123,7 +123,6 @@ public class MainActivity extends FragmentActivity
         Log.d("main", "Resume main actitvity");
         if(waitForConfigs){
             loadConfigs();
-            Log.d("main", "continue after load configs");
             if(!waitForConfigs)
                 initServices();
         }
@@ -134,13 +133,11 @@ public class MainActivity extends FragmentActivity
         configIntent = new Intent(this, ConfActivity.class);
         configIntent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         if (!configs.contains(getString(R.string.conf_serverName)) || !configs.contains(getString(R.string.conf_userIdentifier))){
-            Log.d("main", "ServerName:" + configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
+            // Log.d("main", "ServerName:" + configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
             waitForConfigs = true;
-            Log.d("main", "start configs");
             startActivity(configIntent);
         } else {
             waitForConfigs = false;
-            Log.d("main", "configs ok");
         }
         updateUploadButton();
     }

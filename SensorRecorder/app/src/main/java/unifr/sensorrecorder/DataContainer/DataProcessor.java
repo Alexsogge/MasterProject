@@ -56,6 +56,7 @@ public class DataProcessor {
 
     public long lastEvaluationTS;
     public long lastPredictionTS;
+    private long queuedPredictionTS = 0;
     public int predictions = 0;
     public int handWashes = 0;
 
@@ -211,6 +212,13 @@ public class DataProcessor {
         //sensorContainer.writeData(sensorName, line);
     }
 
+    public void queueEvaluation(long predictionTS) throws IOException{
+        if (queuedPredictionTS != 0 && predictionTS != queuedPredictionTS){
+            containerEvaluation.writeData(queuedPredictionTS + "\t" + -1 + "\n");
+        }
+        queuedPredictionTS = predictionTS;
+    }
+
     public void writeEvaluation(String line, boolean isPrediction, long predictionTS) throws IOException {
         containerEvaluation.writeData(line);
         if(isPrediction) {
@@ -218,6 +226,7 @@ public class DataProcessor {
                 predictions++;
             lastPredictionTS = predictionTS;
         }
+        queuedPredictionTS = 0;
     }
 
     public void writeEvaluation(String line, long timestamp) throws IOException {
