@@ -71,6 +71,12 @@
                             Show evaluation
                         </label>
                     </div>
+                     <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowBluetooth" onclick="changePlotSettings()">
+                        <label class="form-check-label" for="checkShowBluetooth">
+                            Show bluetooth
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -154,7 +160,7 @@
 
         }
 
-        function buildChart(data, showSensor=true, showPredictions=true, showPredictionMean=true, showEvaluation=true){
+        function buildChart(data, showSensor=true, showPredictions=true, showPredictionMean=true, showEvaluation=true, showBluetooth=true){
             let chartEle = document.getElementById("chart");
 
             var timeStamps = data.acc.ts.map(function(el){return el/1000});
@@ -187,6 +193,16 @@
                 if(el == 1) return 'yes';
             });
 
+            var bluetoothTimeStamps = data.bluetooth.ts.map(function(el){return el/1000});
+            var bluetoothY = Array(bluetoothTimeStamps.length).fill(5);
+            var bluetoothTexts = [];
+            for(let i = 0; i < bluetoothTimeStamps.length; i++){
+                bluetoothTexts.push(`rssi: ${data.bluetooth.rssi[i]}<br>dist: ${data.bluetooth.dist[i]}`);
+            }
+            var bluetoothTrace = {x: bluetoothTimeStamps, y: bluetoothY, mode: 'markers', name:'bluetooth beacons',
+                text: bluetoothTexts, type: 'scatter', marker: {color:'#287AA9', size: 10, symbol: 'diamond'}};
+
+
             var annotations = [{
                 xref: 'paper',
                 yref: 'paper',
@@ -212,6 +228,8 @@
                 data.push(predNoiseTrace, predHwTrace);
             if(showPredictionMean)
                 data.push(predMeanTrace);
+            if(showBluetooth)
+                data.push(bluetoothTrace);
 
 
             var selectorOptions = {
@@ -260,7 +278,8 @@
             const showPredictions = document.getElementById('checkShowPredictions').checked;
             const showPredictionMean = document.getElementById('checkShowPredictionMean').checked;
             const showEvaluation = document.getElementById('checkShowEvaluation').checked;
-            buildChart(plotData, showSensor, showPredictions, showPredictionMean, showEvaluation)
+            const showBluetooth = document.getElementById('checkShowBluetooth').checked;
+            buildChart(plotData, showSensor, showPredictions, showPredictionMean, showEvaluation, showBluetooth);
         }
 
         $(document).ready(function () {

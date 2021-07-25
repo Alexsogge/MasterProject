@@ -18,9 +18,9 @@ class PlotData:
         self.last_access = time.time()
 
         if os.path.exists(os.path.join(path, 'data_array_acc.npy')):
-            self.recording_data_array, self.hand_wash_time_stamps, self.predictions, self.evaluations = self.load_data_array()
+            self.recording_data_array, self.hand_wash_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.load_data_array()
         else:
-            self.recording_data_array, self.hand_wash_time_stamps, self.predictions, self.evaluations = self.create_new_data_array()
+            self.recording_data_array, self.hand_wash_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.create_new_data_array()
         self.time_range = self.recording_data_array[-1, 0] - self.recording_data_array[0, 0]
         self.annotations, self.time_stamp_series = self.build_annotations()
 
@@ -29,15 +29,17 @@ class PlotData:
         hand_wash_array = np.load(os.path.join(self.path, 'data_array_hand_wash.npy'))
         prediction_array = np.load(os.path.join(self.path, 'data_array_prediction.npy'))
         evaluation_array = np.load(os.path.join(self.path, 'data_array_evaluation.npy'))
-        return recording_array, hand_wash_array, prediction_array, evaluation_array
+        bluetooth_array = np.load(os.path.join(self.path, 'data_array_bluetooth.npy'))
+        return recording_array, hand_wash_array, prediction_array, evaluation_array, bluetooth_array
 
     def create_new_data_array(self):
-        recording_array, hand_wash_array, prediction_array, evaluation_array = get_data_array(self.path)
+        recording_array, hand_wash_array, prediction_array, evaluation_array, bluetooth_array = get_data_array(self.path)
         np.save(os.path.join(self.path, 'data_array_acc.npy'), recording_array)
         np.save(os.path.join(self.path, 'data_array_hand_wash.npy'), hand_wash_array)
         np.save(os.path.join(self.path, 'data_array_prediction.npy'), prediction_array)
         np.save(os.path.join(self.path, 'data_array_evaluation.npy'), evaluation_array)
-        return recording_array, hand_wash_array, prediction_array, evaluation_array
+        np.save(os.path.join(self.path, 'data_array_bluetooth.npy'), bluetooth_array)
+        return recording_array, hand_wash_array, prediction_array, evaluation_array, bluetooth_array
 
     @staticmethod
     def slice_data(start_ts, end_ts, data):
@@ -49,7 +51,8 @@ class PlotData:
         return (self.slice_data(start_ts, end_ts, self.recording_data_array),
                 self.slice_data(start_ts, end_ts, self.hand_wash_time_stamps),
                 self.slice_data(start_ts, end_ts, self.predictions),
-                self.slice_data(start_ts, end_ts, self.evaluations))
+                self.slice_data(start_ts, end_ts, self.evaluations),
+                self.slice_data(start_ts, end_ts, self.bluetooth))
 
     def get_series(self, start, end):
         start_time_stamp = self.time_range * start
@@ -71,6 +74,7 @@ class PlotData:
         series['pred'] = {'ts': data[2][:, 0].tolist(), 'noise': data[2][:, 1].tolist(), 'hw': data[2][:, 2].tolist(),
                           'mean': data[2][:, 3].tolist(), 'pred': data[2][:, 4].tolist()}
         series['eval'] = {'ts': data[3][:, 0].tolist(), 'answer': data[3][:, 1].tolist()}
+        series['bluetooth'] = {'ts': data[4][:, 0].tolist(), 'rssi': data[4][:, 1].tolist(), 'dist': data[4][:, 2].tolist()}
 
         return series
 

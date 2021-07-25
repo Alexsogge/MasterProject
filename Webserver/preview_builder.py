@@ -23,4 +23,7 @@ def get_data_array(folder_name):
     evaluations = processor.data_dict['evaluations']
     evaluations[:, 0] /= 1000000
 
-    return data_array, hand_wash_time_stamps, predictions, evaluations
+    bluetooth = processor.data_dict['bluetooth_beacons']
+    bluetooth[:, 0] /= 1000000
+
+    return data_array, hand_wash_time_stamps, predictions, evaluations, bluetooth
