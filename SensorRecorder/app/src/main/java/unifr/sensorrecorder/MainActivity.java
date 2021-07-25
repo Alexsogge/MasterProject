@@ -118,15 +118,29 @@ public class MainActivity extends FragmentActivity
         adjustInset();
     }
 
+    protected void onResume () {
+        super.onResume();
+        Log.d("main", "Resume main actitvity");
+        if(waitForConfigs){
+            loadConfigs();
+            Log.d("main", "continue after load configs");
+            if(!waitForConfigs)
+                initServices();
+        }
+        updateUploadButton();
+    }
+
     private void loadConfigs(){
         configIntent = new Intent(this, ConfActivity.class);
+        configIntent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         if (!configs.contains(getString(R.string.conf_serverName)) || !configs.contains(getString(R.string.conf_userIdentifier))){
-            // Log.d("config", "ServerName:" + configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
+            Log.d("main", "ServerName:" + configs.contains(getString(R.string.conf_serverName)) + "  " + configs.contains(getString(R.string.conf_userIdentifier)));
             waitForConfigs = true;
+            Log.d("main", "start configs");
             startActivity(configIntent);
-
         } else {
             waitForConfigs = false;
+            Log.d("main", "configs ok");
         }
         updateUploadButton();
     }
@@ -368,16 +382,6 @@ public class MainActivity extends FragmentActivity
         }
     }
 
-    protected void onResume () {
-        super.onResume();
-        Log.d("main", "Resume main actitvity");
-        if(waitForConfigs){
-            loadConfigs();
-            if(!waitForConfigs)
-                initServices();
-        }
-        updateUploadButton();
-    }
 
     protected void onPause () {
         super.onPause();

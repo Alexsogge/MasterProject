@@ -207,7 +207,9 @@ public class ConfActivity extends WearableActivity {
                         }
                     }, 1000*5);
                 }
+
                 finish();
+
 
             }
         });
