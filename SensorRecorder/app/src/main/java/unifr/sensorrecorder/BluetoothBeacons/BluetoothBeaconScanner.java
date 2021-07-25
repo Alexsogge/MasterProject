@@ -93,7 +93,7 @@ public class BluetoothBeaconScanner {
         public void onScanResult(int callbackType, ScanResult result) {
             double distance = getBeaconDistance(result.getRssi());
             long timestamp = SystemClock.elapsedRealtimeNanos();
-            String distanceRounded = String.format(Locale.getDefault(), "%.2f", distance);
+            String distanceRounded = String.format(Locale.US,"%.2f", distance);
             String record = timestamp + "\t" + result.getRssi() + "\t"
                     + distanceRounded + "\t" + result.getDevice().getAddress() + "\n";
             String log = "Found " + result.getDevice().getAddress()
