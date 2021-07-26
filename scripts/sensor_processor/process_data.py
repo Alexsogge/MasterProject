@@ -4,6 +4,7 @@ import os
 from typing import Dict, List
 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import csv
 import sys
@@ -24,6 +25,7 @@ if len(sys.argv) > 2 and sys.argv[2] == 'mkv':
 
 nano_sec = 0.000000001
 
+mpl.rcParams['agg.path.chunksize'] = 20000
 
 class DataProcessor:
 
