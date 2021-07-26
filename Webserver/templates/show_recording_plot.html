@@ -48,31 +48,31 @@
             <div class="row mb-3" id="chartUI" style="display: none">
                 <div class="col">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowSensor" onclick="changePlotSettings()">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowSensor" onclick="updateInteractivePlot()">
                         <label class="form-check-label" for="checkShowSensor">
                             Show sensor
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowPredictions" onclick="changePlotSettings()">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowPredictions" onclick="updateInteractivePlot()">
                         <label class="form-check-label" for="checkShowPredictions">
                             Show predictions
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowPredictionMean" onclick="changePlotSettings()">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowPredictionMean" onclick="updateInteractivePlot()">
                         <label class="form-check-label" for="checkShowPredictionMean">
                             Show prediction mean
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowEvaluation" onclick="changePlotSettings()">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowEvaluation" onclick="updateInteractivePlot()">
                         <label class="form-check-label" for="checkShowEvaluation">
                             Show evaluation
                         </label>
                     </div>
                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowBluetooth" onclick="changePlotSettings()">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowBluetooth" onclick="updateInteractivePlot()">
                         <label class="form-check-label" for="checkShowBluetooth">
                             Show bluetooth
                         </label>
@@ -152,7 +152,7 @@
                 .then(data => {
                     console.log(data);
                     plotData = data;
-                    buildChart(data);
+                    updateInteractivePlot();
                 })
                 .catch(error => {
                     console.error('There has been a problem with your fetch operation:', error);
@@ -162,18 +162,36 @@
 
         function buildChart(data, showSensor=true, showPredictions=true, showPredictionMean=true, showEvaluation=true, showBluetooth=true){
             let chartEle = document.getElementById("chart");
+            var traces = [];
+            var shapes = [];
 
             var timeStamps = data.acc.ts.map(function(el){return el/1000});
-
-
             var accTraceX = {x: timeStamps, y: data.acc.vals.x, type:'scatter', name: 'Acc X', line: {width: 1, color: '#1f77b4'}};
             var accTraceY = {x: timeStamps, y: data.acc.vals.y, type:'scatter', name: 'Acc Y', line: {width: 1, color:'#ff7f0e'}};
             var accTraceZ = {x: timeStamps, y: data.acc.vals.z, type:'scatter', name: 'Acc Z', line: {width: 1, color:'#2ca02c'}};
-
+            var maxVal = 20;
+            var minVal = -20;
+            
             var hwTimeStamps = data.hw.ts.map(function(el){return el/1000});
-            var hwY = Array(hwTimeStamps.length).fill(10);
+            var hwY = Array(hwTimeStamps.length).fill(maxVal);
             var hwText = Array(hwTimeStamps.length).fill('handwash');
             var hwTrace = {x: hwTimeStamps, y: hwY, mode:'markers+text', name: 'Handwash', textposition: 'top', marker: {color:'cyan', size: 12}, text: hwText};
+            for (let i = 0; i < hwTimeStamps.length; i++){
+                shapes.push({
+                    type: 'rect',
+                    xref: 'x',
+                    yref: 'y',
+                    x0: hwTimeStamps[i]-20,
+                    y0: minVal,
+                    x1: hwTimeStamps[i],
+                    y1: maxVal,
+                    line: {
+                        color: 'rgb(55, 128, 191)',
+                        width: 1
+                    },
+                    fillcolor: 'rgba(55, 128, 191, 0.2)'
+                });
+            }
 
             var predTimeStamps = data.pred.ts.map(function(el){return el/1000});
             var predNoiseY = data.pred.noise.map(function (el){return el*10});
@@ -225,17 +243,17 @@
                 }
             }
 
-            var data = [hwTrace];
+            traces.push(hwTrace)
             if(showSensor)
-                data.push(accTraceX, accTraceY, accTraceZ);
+                traces.push(accTraceX, accTraceY, accTraceZ);
             if(showPredictions)
-                data.push(predNoiseTrace, predHwTrace);
+                traces.push(predNoiseTrace, predHwTrace);
             if(showPredictionMean)
-                data.push(predMeanTrace);
+                traces.push(predMeanTrace);
             if(showEvaluation)
-                data.push(evalTrace);
+                traces.push(evalTrace);
             if(showBluetooth)
-                data.push(bluetoothTrace);
+                traces.push(bluetoothTrace);
 
 
             var selectorOptions = {
@@ -271,15 +289,16 @@
                 },
                 yaxis: {
                     fixedrange: false
-                }};
-            Plotly.newPlot( chartEle, data, layout);
+                },
+                shapes: shapes};
+            Plotly.newPlot( chartEle, traces, layout);
             window.scrollTo(0,document.body.scrollHeight);
             document.getElementById('loading-row').style.display = 'none';
             document.getElementById('reset-row').style.display = 'block';
             document.getElementById('chartUI').style.display = 'block';
         }
 
-        function changePlotSettings(){
+        function updateInteractivePlot(){
             const showSensor = document.getElementById('checkShowSensor').checked;
             const showPredictions = document.getElementById('checkShowPredictions').checked;
             const showPredictionMean = document.getElementById('checkShowPredictionMean').checked;

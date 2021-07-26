@@ -19,6 +19,7 @@ public class DataContainer {
     public static final File recordingFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
     public static final String recordSubDirectoryPrefix = "recording";
     public static String fileNameSuffix = "";
+    public static int currentRun;
 
     public String name;
     public String extension;
@@ -43,7 +44,7 @@ public class DataContainer {
         String aid = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
-        int currentRun = configs.getInt(context.getString(R.string.val_current_run), 0);
+        currentRun = configs.getInt(context.getString(R.string.val_current_run), 0);
         SharedPreferences.Editor configEditor = configs.edit();
         configEditor.putInt(context.getString(R.string.val_current_run), currentRun+1);
         configEditor.apply();
