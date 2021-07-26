@@ -282,7 +282,10 @@ def plot_recording(recording):
     if not os.path.exists(plot_file):
         plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.png')
         if not os.path.exists(plot_file):
-            generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
+            try:
+                generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
+            except Exception as e:
+                return render_template('error_show_recording_plot.html', recording_name=recording, error=e)
 
     if os.path.exists(plot_file):
         if recording not in prepared_plot_data.copy():

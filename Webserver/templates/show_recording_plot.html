@@ -171,7 +171,7 @@
             var accTraceZ = {x: timeStamps, y: data.acc.vals.z, type:'scatter', name: 'Acc Z', line: {width: 1, color:'#2ca02c'}};
             var maxVal = 20;
             var minVal = -20;
-            
+
             var hwTimeStamps = data.hw.ts.map(function(el){return el/1000});
             var hwY = Array(hwTimeStamps.length).fill(maxVal);
             var hwText = Array(hwTimeStamps.length).fill('handwash');
