@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from datetime import datetime
 
 from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for
@@ -285,14 +286,16 @@ def plot_recording(recording):
             try:
                 generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
             except Exception as e:
-                return render_template('error_show_recording_plot.html', recording_name=recording, error=e)
+                traceback.print_tb(e.__traceback__)
+                return render_template('error_show_recording_plot.html', recording_name=recording, error=e, traceback=traceback.format_exc())
 
     if os.path.exists(plot_file):
         if recording not in prepared_plot_data.copy():
             try:
                 get_plot_data(recording)
             except Exception as e:
-                return render_template('error_show_recording_plot.html', recording_name=recording, error=e)
+                traceback.print_tb(e.__traceback__)
+                return render_template('error_show_recording_plot.html', recording_name=recording, error=e, traceback=traceback.format_exc())
         plot_file = os.path.join(recording, 'data_plot.png')
         return render_template('show_recording_plot.html', recording_name=recording, plot=plot_file)
 
