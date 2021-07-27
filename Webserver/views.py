@@ -16,7 +16,8 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
-view = Blueprint('views', __name__, template_folder='templates')
+
+view = Blueprint('views', __name__, template_folder='templates', static_folder='static')
 
 
 @view.app_template_filter()
