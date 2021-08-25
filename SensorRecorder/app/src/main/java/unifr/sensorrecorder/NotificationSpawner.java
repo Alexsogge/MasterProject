@@ -224,6 +224,7 @@ public class NotificationSpawner {
                 //        .bigText("Sensor recorder is active"))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setSmallIcon(R.drawable.ic_hand_wash)
+                .setOnlyAlertOnce(true)
                 // .setVibrate(new long[]{1000, 500, 1000, 500})
                 // .setSound(alarmSound)
                 .setProgress(0, 0, true)
