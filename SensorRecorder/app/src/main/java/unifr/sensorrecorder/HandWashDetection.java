@@ -221,6 +221,8 @@ public class HandWashDetection {
 
     private void loadSettingsFromFile() throws IOException, JSONException {
         JSONObject jsonObject = readModelSettingsFile();
+        if (jsonObject == null)
+            return;
         if(jsonObject.has("required_sensors")) {
             JSONArray jsonSensors = jsonObject.getJSONArray("required_sensors");
             requiredSensors = new int[jsonObject.length()];
