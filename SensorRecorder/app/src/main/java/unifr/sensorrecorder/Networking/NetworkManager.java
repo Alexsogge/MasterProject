@@ -1,9 +1,11 @@
 package unifr.sensorrecorder.Networking;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -11,6 +13,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.NetworkType;
@@ -216,8 +219,10 @@ public class NetworkManager {
 
     public static void checkForTFModelUpdate(Context context){
         Log.d("detection", "check for update");
-        SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
-        executor.execute(new NetworkManager.HTTPCheckForNewTFModel(configs, context));
+        if(ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            SharedPreferences configs = context.getSharedPreferences(context.getString(R.string.configs), Context.MODE_PRIVATE);
+            executor.execute(new NetworkManager.HTTPCheckForNewTFModel(configs, context));
+        }
     }
 
     public void requestServerToken(){

@@ -142,6 +142,7 @@ public class ConfActivity extends WearableActivity {
             public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
                 if(isChecked){
                     updateTFCheckbox.setEnabled(false);
+                    checkWritePermission();
                 } else {
                     updateTFCheckbox.setEnabled(true);
                 }
@@ -235,6 +236,23 @@ public class ConfActivity extends WearableActivity {
 
     }
 
+    @Override
+    public void onResume() {
+        if(autoUpdateTFCheckbox.isChecked())
+            checkWritePermission();
+        super.onResume();
+    }
+
+    private void checkWritePermission(){
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(confActivity,
+                    new String[]{
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    },
+                    1);
+        }
+    }
+
     private void adjustInset() {
         if (getResources().getConfiguration().isScreenRound()) {
             int inset = (int)(FACTOR * getResources().getDisplayMetrics().widthPixels);
@@ -249,8 +267,9 @@ public class ConfActivity extends WearableActivity {
      public void onRequestPermissionsResult(int requestCode,
                                             String permissions[], int[] grantResults) {
          Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
+  
          if (requestCode == 1) {
-             if (grantResults.length > 0) {
+             if (grantResults.length == 3) {
                  boolean bluetooth = grantResults[0] == PackageManager.PERMISSION_GRANTED;
                  boolean bluetoothAdmin = grantResults[1] == PackageManager.PERMISSION_GRANTED;
                  boolean fineLocation = grantResults[2] == PackageManager.PERMISSION_GRANTED;
@@ -261,6 +280,10 @@ public class ConfActivity extends WearableActivity {
                      scanBluetoothBeaconsCheckbox.setChecked(false);
                      // permission denied
                      Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
+                 }
+             } else if(grantResults.length == 1){
+                 if (grantResults[0] == PackageManager.PERMISSION_DENIED){
+                     autoUpdateTFCheckbox.setChecked(false);
                  }
              }
          }
