@@ -135,7 +135,7 @@ public class HandWashDetection {
 
         File modelFile = new File(modelFilePath, modelName);
         try {
-            if (modelFile.exists()) {
+            if (modelFile.exists() && modelFile.canRead() && modelFile.length() > 1) {
                 FileInputStream inputStream = new FileInputStream(modelFile);
                 FileChannel fileChannel = inputStream.getChannel();
                 SharedPreferences configs = context.getSharedPreferences(
@@ -252,7 +252,7 @@ public class HandWashDetection {
             if(!path.exists())
                 return null;
             File settingsFile = new File(path, modelSettingsName);
-            if(!settingsFile.exists())
+            if(!settingsFile.exists() || !settingsFile.canRead() || settingsFile.length() <= 1)
                 return null;
 
             FileReader fileReader = new FileReader(settingsFile);

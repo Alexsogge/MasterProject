@@ -42,6 +42,7 @@ public class ConfActivity extends WearableActivity {
     private Switch multipleMicSwitch;
     private Button downloadTFModelButton;
     private Button deleteTokenButton;
+    private Button applyButton;
     private NetworkManager networkManager;
 
 
@@ -153,18 +154,12 @@ public class ConfActivity extends WearableActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){
-                    ActivityCompat.requestPermissions(confActivity,
-                            new String[]{
-                                    Manifest.permission.BLUETOOTH,
-                                    Manifest.permission.BLUETOOTH_ADMIN,
-                                    Manifest.permission.ACCESS_FINE_LOCATION
-                            },
-                            1);
+                   checkBluetoothPermission();
                 }
             }
         });
 
-        Button applyButton = (Button)findViewById(R.id.buttonApply);
+        applyButton = (Button)findViewById(R.id.buttonApply);
         applyButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -211,7 +206,6 @@ public class ConfActivity extends WearableActivity {
 
                 finish();
 
-
             }
         });
 
@@ -240,6 +234,8 @@ public class ConfActivity extends WearableActivity {
     public void onResume() {
         if(autoUpdateTFCheckbox.isChecked())
             checkWritePermission();
+        if(scanBluetoothBeaconsCheckbox.isChecked())
+            checkBluetoothPermission();
         super.onResume();
     }
 
@@ -250,6 +246,23 @@ public class ConfActivity extends WearableActivity {
                             Manifest.permission.WRITE_EXTERNAL_STORAGE
                     },
                     1);
+        }
+    }
+
+    private void checkBluetoothPermission(){
+        boolean bluetooth = (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED);
+        boolean bluetoothAdmin = (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED);
+        boolean coarseLocation = (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED);
+        if  (!bluetooth || !bluetoothAdmin || !coarseLocation){
+            applyButton.setEnabled(false);
+            ActivityCompat.requestPermissions(confActivity,
+                    new String[]{
+                            Manifest.permission.BLUETOOTH,
+                            Manifest.permission.BLUETOOTH_ADMIN,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                    },
+                    1);
+
         }
     }
 
@@ -267,7 +280,7 @@ public class ConfActivity extends WearableActivity {
      public void onRequestPermissionsResult(int requestCode,
                                             String permissions[], int[] grantResults) {
          Log.d("Sensorrecorder", "rc: " + requestCode +  "length: "+permissions.length + " gr: " + grantResults.length);
-  
+
          if (requestCode == 1) {
              if (grantResults.length == 3) {
                  boolean bluetooth = grantResults[0] == PackageManager.PERMISSION_GRANTED;
@@ -287,5 +300,6 @@ public class ConfActivity extends WearableActivity {
                  }
              }
          }
+         applyButton.setEnabled(true);
      }
 }
