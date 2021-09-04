@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
 import android.view.View;
@@ -18,6 +19,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
@@ -74,6 +76,10 @@ public class ConfActivity extends WearableActivity {
 
         downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
+
+        TextView androidIdView = findViewById(R.id.textViewAndroidId);
+        String androidId = Settings.Secure.getString( getContentResolver(), Settings.Secure.ANDROID_ID);
+        androidIdView.setText("Android ID: " + androidId);
 
         if (configs.contains(getString(R.string.conf_serverName))) {
             String serverName = configs.getString(getString(R.string.conf_serverName), getString(R.string.predefined_serverName));

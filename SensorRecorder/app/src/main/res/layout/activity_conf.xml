@@ -124,6 +124,12 @@
                 android:text="Scan bluetooth beacons"
                 android:textAlignment="center" />
 
+            <TextView
+                android:id="@+id/textViewAndroidId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="android ID" />
+
             <Button
                 android:id="@+id/buttonApply"
                 android:layout_width="match_parent"
