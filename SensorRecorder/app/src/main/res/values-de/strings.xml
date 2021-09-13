@@ -14,7 +14,7 @@
     <string name="btn_stopping">Stoppe...</string>
     <string name="toast_addedhandwash">Händewaschen hinzugefügt</string>
     <string name="toast_couldnt_load_tf">Konnte TF modell nicht laden</string>
-    <string name="toast_use_dl_tf">Nutze Erkennungsmodell\n </string>
+    <string name="toast_use_dl_tf">Nutze Erkennungsmodell:\n </string>
     <string name="toast_pred_hw">Händwaschen erkannt</string>
 
     <string name="toast_no_inet_conn">Keine Internetverbindungt</string>

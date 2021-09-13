@@ -100,6 +100,9 @@ public class HandWashDetection {
     /** The loaded TensorFlow Lite model. */
     private MappedByteBuffer tfliteModel;
 
+    private boolean initialized = false;
+    private String loadedModelName = "base_model.tflite";
+
     private boolean debugAutoTrue = false;
     private boolean discardDoubleFalsePredicted = true;
 
@@ -120,33 +123,50 @@ public class HandWashDetection {
             e.printStackTrace();
             makeToast(context.getString(R.string.toast_couldnt_load_tf));
         }
-        if(tfliteModel != null)
-            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
 
+        if (tfliteModel == null) {
+            initModelFallback();
+        }
+        try {
+            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
+        } catch (IllegalArgumentException | NullPointerException e){
+            Log.e("Tensorflow", "Error during load tf model. Use fallback...");
+            e.printStackTrace();
+            initModelFallback();
+            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
+        }
+
+        initialized = true;
+        makeToast(this.context.getString(R.string.toast_use_dl_tf) + loadedModelName);
 
         labelList = new ArrayList<String>();
         labelList.add("0");
         labelList.add("1");
     }
 
+    public void initModelFallback(){
+        try {
+            tfliteModel = loadBaseModelFile(context);
+        } catch (IOException e){
+            e.printStackTrace();
+            makeToast(context.getString(R.string.toast_couldnt_load_tf));
+        }
+    }
+
 
     /** Memory-map the model file in Assets. */
     private MappedByteBuffer loadModelFile(Context context) throws IOException {
-
-        File modelFile = new File(modelFilePath, modelName);
         try {
-            if (modelFile.exists() && modelFile.canRead() && modelFile.length() > 1) {
-                FileInputStream inputStream = new FileInputStream(modelFile);
-                FileChannel fileChannel = inputStream.getChannel();
-                SharedPreferences configs = context.getSharedPreferences(
-                        context.getString(R.string.configs), Context.MODE_PRIVATE);
-                String tfName = configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "base_model.tf");
-                makeToast(this.context.getString(R.string.toast_use_dl_tf) + tfName);
-                return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
-            }
+            MappedByteBuffer model = loadDownloadedModelFile(context);
+            if (model != null)
+                return model;
         } catch (FileNotFoundException e){
             e.printStackTrace();
         }
+        return loadBaseModelFile(context);
+    }
+
+    private MappedByteBuffer loadBaseModelFile(Context context) throws IOException {
         AssetManager assetManager = context.getAssets();
         String[] assets = assetManager.list("");
         String assetModel = "";
@@ -162,8 +182,23 @@ public class HandWashDetection {
         FileChannel fileChannel = inputStream.getChannel();
         long startOffset = fileDescriptor.getStartOffset();
         long declaredLength = fileDescriptor.getDeclaredLength();
+        loadedModelName = "base_model.tflite";
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
+
+    private MappedByteBuffer loadDownloadedModelFile(Context context) throws IOException, FileNotFoundException{
+        File modelFile = new File(modelFilePath, modelName);
+        if (modelFile.exists() && modelFile.canRead() && modelFile.length() > 1) {
+            FileInputStream inputStream = new FileInputStream(modelFile);
+            FileChannel fileChannel = inputStream.getChannel();
+            SharedPreferences configs = context.getSharedPreferences(
+                    context.getString(R.string.configs), Context.MODE_PRIVATE);
+            loadedModelName = configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "base_model.tflite");
+            return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length());
+        }
+        return null;
+    }
+
 
     public float[][] RunInference(ByteBuffer sensorData){
         float[][] output =  new float[1][2];

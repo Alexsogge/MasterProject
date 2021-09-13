@@ -64,7 +64,7 @@ public class ConfActivity extends WearableActivity {
 
         serverNameInput = (EditText)findViewById(R.id.editTextServerName);
         userIdentifierInput = (EditText)findViewById(R.id.editTextUserIdentifier);
-        userIdentifierInput.setText(android.os.Build.MODEL);
+
 
         useZipsCheckbox = (CheckBox) findViewById(R.id.useZipCheckbox);
         useMKVCheckbox = (CheckBox) findViewById(R.id.useMKVCheckbox);
@@ -80,6 +80,7 @@ public class ConfActivity extends WearableActivity {
         TextView androidIdView = findViewById(R.id.textViewAndroidId);
         String androidId = Settings.Secure.getString( getContentResolver(), Settings.Secure.ANDROID_ID);
         androidIdView.setText("Android ID: " + androidId);
+        userIdentifierInput.setText(android.os.Build.MODEL + '[' + androidId + ']');
 
         if (configs.contains(getString(R.string.conf_serverName))) {
             String serverName = configs.getString(getString(R.string.conf_serverName), getString(R.string.predefined_serverName));

@@ -14,7 +14,7 @@
     </string>
     <string name="toast_permission_den">Permission denied.</string>
     <string name="toast_couldnt_load_tf">Couldn\'t load TF model</string>
-    <string name="toast_use_dl_tf">Use downloaded TF model</string>
+    <string name="toast_use_dl_tf">Use downloaded TF model:\n</string>
     <string name="toast_pred_hw">Predicted Handwash</string>
 
     <string name="toast_no_inet_conn">No connection to internet</string>
