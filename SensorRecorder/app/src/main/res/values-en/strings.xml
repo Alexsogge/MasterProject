@@ -63,9 +63,9 @@
 
     <string name="not_oar_title">Daily rating</string>
     <string name="not_oar_text">Please rate your day</string>
-    <string name="str_oar_question_1">How intense was your hand washing overall today? </string>
-    <string name="str_oar_question_2">How often was your hand washing overall today? </string>
-    <string name="str_oar_question_3">How often have you logged your hands washing? </string>
+    <string name="str_oar_question_1">How intense was your hand washing overall today?</string>
+    <string name="str_oar_question_2">How often was your hand washing overall today?</string>
+    <string name="str_oar_question_3">How many times have you confirmed your hand washing today?</string>
 
     <string name="str_one">0</string>
     <string name="str_five">4</string>

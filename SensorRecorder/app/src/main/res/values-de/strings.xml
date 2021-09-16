@@ -63,7 +63,7 @@
     <string name="not_oar_text">Bitte bewerten Sie Ihren Tag</string>
     <string name="str_oar_question_1">Wie intensiv war ihr Händewaschen heute insgesamt?</string>
     <string name="str_oar_question_2">Wie häufig war ihr Händewaschen heute insgesamt?</string>
-    <string name="str_oar_question_3">Wie oft haben Sie ihr Hände waschen Protokolliert?</string>
+    <string name="str_oar_question_3">Wie häufig haben Sie heute Ihr Händewaschen bestätigt?</string>
 
     <string name="str_one">gar nicht</string>
     <string name="str_five">sehr stark</string>
