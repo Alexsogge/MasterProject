@@ -6,7 +6,7 @@ import os
 version = 1.4
 secret_key_iterations = 42
 
-ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite', 'json', 'avi'}
+ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite', 'json', 'avi', 'ort'}
 UPLOAD_FOLDER = 'uploads'
 
 RECORDINGS_FOLDER = os.path.join(UPLOAD_FOLDER, 'recordings')
