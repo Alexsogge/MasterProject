@@ -117,7 +117,8 @@ def tfmodel():
             else:
                 if file and is_allowed_file(file.filename):
                     filename = os.path.splitext(secure_filename(file.filename))[0]
-                    file.save(os.path.join(TFMODEL_FOLDER, filename + '.tflite'))
+                    file_extension = os.path.splitext(secure_filename(file.filename))[1]
+                    file.save(os.path.join(TFMODEL_FOLDER, filename + file_extension))
                     upload_info_text = 'Uploaded ' + filename
                 else:
                     upload_error_text = 'Error: no valid file'
@@ -146,7 +147,7 @@ def tfmodel():
     all_model_file_paths = list()
     all_model_settings = list()
     for file in os.listdir(TFMODEL_FOLDER):
-        if '.tflite' not in file:
+        if '.tflite' not in file and '.ort' not in file:
             continue
         all_model_files.append(file)
         all_model_file_paths.append(file)
@@ -163,8 +164,10 @@ def tfmodel():
 @basic_auth.login_required
 def select_tfmodel(tf_model):
     tf_file = os.path.join(TFMODEL_FOLDER, tf_model)
+    print('tf file:', tf_file)
     if os.path.exists(tf_file):
         os.utime(tf_file, None)
+        print('update time')
     settings_file = os.path.join(TFMODEL_FOLDER, os.path.splitext(tf_model)[0] + '.json')
     if os.path.exists(settings_file):
         os.utime(settings_file, None)

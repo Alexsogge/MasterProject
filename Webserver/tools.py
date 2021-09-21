@@ -26,7 +26,7 @@ def find_newest_tf_file():
     latest_model = None
     latest_time_stamp = 0
     for file in os.listdir(TFMODEL_FOLDER):
-        if 'tflite' in file:
+        if 'tflite' in file or 'ort' in file:
             tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
             if tmp_c_time > latest_time_stamp:
                 latest_time_stamp = tmp_c_time
