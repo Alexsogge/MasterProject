@@ -251,7 +251,7 @@ public class NetworkManager {
                     String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
                     makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName, context);
                     SharedPreferences.Editor configEditor = configs.edit();
-                    configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName + ".tflite");
+                    configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName);
                     configEditor.apply();
                 }
                 downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
@@ -261,8 +261,9 @@ public class NetworkManager {
             }
         }
 
-        private String downloadTFFile(String url, String filename) throws IOException {
-            String fileName = "default name";
+        private String downloadTFFile(String url, String targetFilename) throws IOException {
+            String fileName = "default.tflite";
+            String fileExtension = "tflite";
             Pattern p = Pattern.compile(".+filename=(.+?)\\..*");
             Request request = new Request.Builder().url(url).build();
             Response response = null;
@@ -271,20 +272,18 @@ public class NetworkManager {
                 makeToast(context.getString(R.string.toast_failed_to_dl_file) + response, context);
                 throw new IOException(response.toString());
             } else {
+                String contentDisposition = response.header("content-disposition");
+                if(contentDisposition != null) {
+                    fileName = contentDisposition.split("filename=")[1];
+                    fileExtension = fileName.split("\\.(?=[^\\.]+$)")[1];
+                }
                 File path = HandWashDetection.modelFilePath;
                 if (!path.exists())
                     path.mkdirs();
-                File tfFile = new File(path, filename);
+                File tfFile = new File(path, targetFilename + '.' + fileExtension);
                 FileOutputStream fos = new FileOutputStream(tfFile);
                 fos.write(response.body().bytes());
                 fos.close();
-                String contentDisposition = response.header("content-disposition");
-                if(contentDisposition != null) {
-                    Matcher m = p.matcher(contentDisposition);
-                    if(m.find()) {
-                        fileName = m.group(1);
-                    }
-                }
             }
 
             return fileName;

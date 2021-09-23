@@ -20,6 +20,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.tensorflow.lite.Interpreter;
 
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,11 +33,18 @@ import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
+
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtLoggingLevel;
+import ai.onnxruntime.OrtSession;
 import unifr.sensorrecorder.DataContainer.DataProcessor;
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
 import unifr.sensorrecorder.MathLib.MathOperations;
@@ -44,8 +53,9 @@ import static android.content.Context.VIBRATOR_SERVICE;
 
 public class HandWashDetection {
     public static final File modelFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/hand_wash_prediction/");
-    public static final String modelName = "predictionModel.tflite";
-    public static final String modelSettingsName = "predictionModel.json";
+    public static final String modelName = "predictionModel";
+    public static final String ortModelName = "predictionModel.ort";
+    public static final String modelSettingsName = "predictionModel";
     private final Executor executor = Executors.newSingleThreadExecutor(); // change according to your requirements
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final int[] initialRequiredSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE};
@@ -69,8 +79,10 @@ public class HandWashDetection {
     private int meanKernelWidth;
 
     private int inputShape;
+    private int inputBufferShape;
     private long notificationCoolDown;
     private long lastNotificationTS;
+    private boolean useONNXModel = false;
 
     private Interpreter tfInterpreter;
     private List<String> labelList;
@@ -78,6 +90,9 @@ public class HandWashDetection {
     private Vibrator vibrator;
     private DataProcessor dataProcessor;
     private ReentrantLock queueBufferLock = new ReentrantLock();
+
+    private OrtSession session;
+    private OrtEnvironment env;
 
     private long lastPositivePrediction;
     private int positivePredictedCounter;
@@ -117,24 +132,31 @@ public class HandWashDetection {
     }
 
     public void initModel()  {
-        try {
-            tfliteModel = loadModelFile(context);
-        } catch (IOException e){
-            e.printStackTrace();
-            makeToast(context.getString(R.string.toast_couldnt_load_tf));
+        SharedPreferences configs = context.getSharedPreferences(
+                context.getString(R.string.configs), Context.MODE_PRIVATE);
+        String currentModelName = configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "base_model.tflite");
+        String[] currentModelNameParts = currentModelName.split("\\.(?=[^\\.]+$)");
+        String modelExtension = currentModelNameParts[1];
+
+        Log.d("pred", "try load model " + currentModelName + "with extension " + modelExtension);
+
+        if (modelExtension.equals("tflite")){
+            useONNXModel = false;
+            try {
+                loadTFModel();
+            } catch (IOException e){
+                e.printStackTrace();
+                makeToast(context.getString(R.string.toast_couldnt_load_tf));
+            }
+        } else {
+            try {
+                loadORTModel();
+                useONNXModel = true;
+            } catch (OrtException | IOException e) {
+                e.printStackTrace();
+            }
         }
 
-        if (tfliteModel == null) {
-            initModelFallback();
-        }
-        try {
-            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
-        } catch (IllegalArgumentException | NullPointerException e){
-            Log.e("Tensorflow", "Error during load tf model. Use fallback...");
-            e.printStackTrace();
-            initModelFallback();
-            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
-        }
 
         initialized = true;
         makeToast(this.context.getString(R.string.toast_use_dl_tf) + loadedModelName);
@@ -146,7 +168,7 @@ public class HandWashDetection {
 
     public void initModelFallback(){
         try {
-            tfliteModel = loadBaseModelFile(context);
+            tfliteModel = loadBaseTFModelFile(context);
         } catch (IOException e){
             e.printStackTrace();
             makeToast(context.getString(R.string.toast_couldnt_load_tf));
@@ -155,18 +177,18 @@ public class HandWashDetection {
 
 
     /** Memory-map the model file in Assets. */
-    private MappedByteBuffer loadModelFile(Context context) throws IOException {
+    private MappedByteBuffer loadTFModelFile(Context context) throws IOException {
         try {
-            MappedByteBuffer model = loadDownloadedModelFile(context);
+            MappedByteBuffer model = loadDownloadedTFModelFile(context);
             if (model != null)
                 return model;
         } catch (FileNotFoundException e){
             e.printStackTrace();
         }
-        return loadBaseModelFile(context);
+        return loadBaseTFModelFile(context);
     }
 
-    private MappedByteBuffer loadBaseModelFile(Context context) throws IOException {
+    private MappedByteBuffer loadBaseTFModelFile(Context context) throws IOException {
         AssetManager assetManager = context.getAssets();
         String[] assets = assetManager.list("");
         String assetModel = "";
@@ -177,7 +199,7 @@ public class HandWashDetection {
                 break;
             }
         }
-        AssetFileDescriptor fileDescriptor = assetManager.openFd(modelName);
+        AssetFileDescriptor fileDescriptor = assetManager.openFd(modelName + ".tflite");
         FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
         FileChannel fileChannel = inputStream.getChannel();
         long startOffset = fileDescriptor.getStartOffset();
@@ -186,8 +208,8 @@ public class HandWashDetection {
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
 
-    private MappedByteBuffer loadDownloadedModelFile(Context context) throws IOException, FileNotFoundException{
-        File modelFile = new File(modelFilePath, modelName);
+    private MappedByteBuffer loadDownloadedTFModelFile(Context context) throws IOException, FileNotFoundException{
+        File modelFile = new File(modelFilePath, modelName + ".tflite");
         if (modelFile.exists() && modelFile.canRead() && modelFile.length() > 1) {
             FileInputStream inputStream = new FileInputStream(modelFile);
             FileChannel fileChannel = inputStream.getChannel();
@@ -200,10 +222,116 @@ public class HandWashDetection {
     }
 
 
-    public float[][] RunInference(ByteBuffer sensorData){
+    private void loadORTModel() throws OrtException, IOException {
+        Log.d("pred", "Load ONNX model");
+        File modelFile = new File(modelFilePath, ortModelName);
+        long fileLength = modelFile.length();
+        byte[] model = new byte[(int)fileLength];
+
+        BufferedInputStream buf = new BufferedInputStream(new FileInputStream(modelFile));
+        buf.read(model, 0, model.length);
+        buf.close();
+        //OrtSession.SessionOptions session_options = new OrtSession.SessionOptions();
+        //session_options.addConfigEntry("session.load_model_format", "ORT");
+
+        env = OrtEnvironment.getEnvironment(OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR);
+        session = env.createSession(model);
+        SharedPreferences configs = context.getSharedPreferences(
+                context.getString(R.string.configs), Context.MODE_PRIVATE);
+        loadedModelName = configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "base_model.tflite");
+    }
+
+    private void loadTFModel() throws IOException {
+        Log.d("pred", "Load TF model");
+        tfliteModel = loadTFModelFile(context);
+        if (tfliteModel == null) {
+            initModelFallback();
+        }
+        try {
+            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
+        } catch (IllegalArgumentException | NullPointerException e){
+            Log.e("Tensorflow", "Error during load tf model. Use fallback...");
+            e.printStackTrace();
+            initModelFallback();
+            tfInterpreter = new Interpreter(tfliteModel, tfliteOptions);
+        }
+    }
+
+    private void runSample() throws OrtException {
+        Log.d("pred", "Run model");
+        float[][] sourceArray = new float[1][900];
+        OnnxTensor tensor = OnnxTensor.createTensor(env,sourceArray);
+        try{
+            OrtSession.Result output = session.run(Collections.singletonMap("input", tensor));
+            Log.d("pred", "Reslut size:" + output.size());
+            Log.d("pred", "Reslut info:" + output.get(0).getInfo().toString());
+            float[][] values = (float[][]) output.get(0).getValue();
+            Log.d("pred", "Reslut values:" + values[0][0] + " | " + values[0][1]);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+
+    public float[][] RunInference(float[][][] window){
+        // create byte buffer as required
+        ByteBuffer frameBuffer = ByteBuffer.allocateDirect(inputBufferShape);
+        frameBuffer.order(ByteOrder.nativeOrder());
+
+        // since model needs sensor values we probably don't have,
+        // we have to fill the frameBuffer with dummy values for these sensors
+        for(int x = 0; x < frameSize; x++) {
+            for (int i = 0; i < requiredSensors.length; i++) {
+                int activeSensorIndex = getActiveSensorIndexOfType(requiredSensors[i]);
+                // if index == -1 we don't have actual values -> insert dummy else value from buffer
+                for (int axes = 0; axes < requiredSensorsDimensions[i]; axes++) {
+                    if (activeSensorIndex == -1) {
+                        frameBuffer.putFloat(0);
+                    }else {
+                        frameBuffer.putFloat(window[activeSensorIndex][x][axes]);
+                    }
+                }
+            }
+        }
+
         float[][] output =  new float[1][2];
         if (tfInterpreter != null)
-            tfInterpreter.run(sensorData, output);
+            tfInterpreter.run(frameBuffer, output);
+        return output;
+    }
+
+    public float[][] RunONNXInference(float[][][] window){
+        // create buffer as required
+        float[][] frameBuffer = new float[1][inputShape];
+        int bufferPos = 0;
+
+        // since model needs sensor values we probably don't have,
+        // we have to fill the frameBuffer with dummy values for these sensors
+        for(int x = 0; x < frameSize; x++) {
+            for (int i = 0; i < requiredSensors.length; i++) {
+                int activeSensorIndex = getActiveSensorIndexOfType(requiredSensors[i]);
+                // if index == -1 we don't have actual values -> insert dummy else value from buffer
+                for (int axes = 0; axes < requiredSensorsDimensions[i]; axes++) {
+                    if (activeSensorIndex == -1) {
+                        frameBuffer[0][bufferPos] = 0;
+                    }else {
+                        frameBuffer[0][bufferPos] = window[activeSensorIndex][x][axes];
+                    }
+                    bufferPos++;
+                }
+            }
+        }
+
+        float[][] output =  new float[1][2];
+        try {
+            OnnxTensor tensor = OnnxTensor.createTensor(env, frameBuffer);
+            OrtSession.Result result = session.run(Collections.singletonMap("input", tensor));
+            output = (float[][]) result.get(0).getValue();
+
+        } catch (OrtException e) {
+            e.printStackTrace();
+        }
+
         return output;
     }
 
@@ -224,6 +352,7 @@ public class HandWashDetection {
         meanKernelWidth = initialMeanKernelWidth;
 
         inputShape = 0;
+        inputBufferShape = 0;
 
         try {
             loadSettingsFromFile();
@@ -234,8 +363,9 @@ public class HandWashDetection {
         this.requiredSensorsDimensions = new int[requiredSensors.length];
         for(int i = 0; i < requiredSensors.length; i++){
             this.requiredSensorsDimensions[i] = SensorRecordingManager.getNumChannels(requiredSensors[i]);
-            inputShape += 4 * frameSize * requiredSensorsDimensions[i];
+            inputShape += frameSize * requiredSensorsDimensions[i];
         }
+        inputBufferShape = 4 * inputShape;
 
         sensorBuffers = new float[sensorDimensions.length][][];
         sensorTimeStamps = new long[sensorDimensions.length][bufferSize];
@@ -286,7 +416,7 @@ public class HandWashDetection {
             File path = modelFilePath;
             if(!path.exists())
                 return null;
-            File settingsFile = new File(path, modelSettingsName);
+            File settingsFile = new File(path, modelSettingsName + ".json");
             if(!settingsFile.exists() || !settingsFile.canRead() || settingsFile.length() <= 1)
                 return null;
 
@@ -489,33 +619,16 @@ public class HandWashDetection {
 
         // System.arraycopy(sensorBuffers[sensorIndex][sensorPointer - i], 0, window[i], 0, window[0].length);
 
-
-        // create byte buffer as required
-        ByteBuffer frameBuffer = ByteBuffer.allocateDirect(inputShape);
-        frameBuffer.order(ByteOrder.nativeOrder());
-
-        // since model needs sensor values we probably don't have,
-        // we have to fill the frameBuffer with dummy values for these sensors
-
-        for(int x = 0; x < frameSize; x++) {
-            for (int i = 0; i < requiredSensors.length; i++) {
-                int activeSensorIndex = getActiveSensorIndexOfType(requiredSensors[i]);
-                // if index == -1 we don't have actual values -> insert dummy else value from buffer
-                for (int axes = 0; axes < requiredSensorsDimensions[i]; axes++) {
-                    if (activeSensorIndex == -1)
-                        frameBuffer.putFloat(0);
-                    else
-                        frameBuffer.putFloat(window[activeSensorIndex][x][axes]);
-                }
-            }
+        float[][] labelProbArray;
+        if(!useONNXModel) {
+            // use tflite model to determine hand wash
+            labelProbArray = RunInference(window);
+            // Log.d("Pred", "Predicted TF: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
+        } else {
+            // use onnx model to determine hand wash
+            labelProbArray = RunONNXInference(window);
+            // Log.d("Pred", "Predicted ONnX: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
         }
-
-
-        // use tflite model to determine hand wash
-        float[][] labelProbArray = RunInference(frameBuffer);
-        // Log.d("pred", "("+labelProbArray.length+", "+labelProbArray[0].length+")");
-
-        // Log.d("Pred", "Predicted: " + labelProbArray[0][0] + " " + labelProbArray[0][1]);
 
         if(debugAutoTrue) {
             // lastPositivePrediction = timestamp;

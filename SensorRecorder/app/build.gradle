@@ -14,7 +14,7 @@ android {
         versionName "1.5"
 
     }
-
+/*
     signingConfigs {
      release {
        storeFile file(System.getenv('KEYSTORE'))
@@ -27,12 +27,12 @@ android {
        v2SigningEnabled true
       }
     }
-
+*/
 
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+//            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -47,13 +47,20 @@ android {
     testOptions {
         unitTests.includeAndroidResources = true
     }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ["src/main/jniLibs", "$buildDir/native-libs"]
+        }
+    }
 }
 
 dependencies {
+    implementation files('src/main/libs/onnxruntime.aar')
     testImplementation 'org.testng:testng:6.9.6'
 
 
-    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation fileTree(dir: "libs", include: ["*.jar", "*.so"])
     implementation 'com.google.android.support:wearable:2.5.0'
     implementation 'com.google.android.gms:play-services-wearable:17.0.0'
     implementation 'androidx.percentlayout:percentlayout:1.0.0'
@@ -73,6 +80,11 @@ dependencies {
 
     // Import tflite dependencies
     implementation 'org.tensorflow:tensorflow-lite:0.0.0-nightly'
+
+    // Import ONNX Runtime dependenciew
+    // https://mvnrepository.com/artifact/com.microsoft.onnxruntime/onnxruntime-mobile
+    // implementation 'com.microsoft.onnxruntime:onnxruntime-mobile:1.8.2'
+
 
     // Required -- JUnit 4 framework
     testImplementation 'junit:junit:4.12'
