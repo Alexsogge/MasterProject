@@ -17,6 +17,8 @@ from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
 
+
+
 view = Blueprint('views', __name__, template_folder='templates', static_folder='static')
 
 
@@ -106,6 +108,7 @@ def tfmodel():
 
     if request.method == 'POST':
         print('Save new tf model', request.form)
+        do_save_file = True
         if 'file' not in request.files:
             upload_error_text = 'Info: no new file was selected'
         else:
@@ -118,8 +121,22 @@ def tfmodel():
                 if file and is_allowed_file(file.filename):
                     filename = os.path.splitext(secure_filename(file.filename))[0]
                     file_extension = os.path.splitext(secure_filename(file.filename))[1]
-                    file.save(os.path.join(TFMODEL_FOLDER, filename + file_extension))
-                    upload_info_text = 'Uploaded ' + filename
+                    file_path = os.path.join(TFMODEL_FOLDER, filename + file_extension)
+                    tmp_file_path = os.path.join(TFMODEL_FOLDER, filename + file_extension + '.tmp')
+                    file.save(tmp_file_path)
+                    print('[', file_extension, ']is ort?')
+                    if file_extension == '.ort':
+                        print(tmp_file_path, type(file))
+                        missing_optypes = check_valid_ort_model(tmp_file_path)
+                        print('missing op types:', missing_optypes)
+                        if len(missing_optypes) > 0:
+                            upload_error_text = 'Error: Missing operations: ' + str(missing_optypes)
+                            do_save_file = False
+                    os.remove(tmp_file_path)
+                    if do_save_file:
+                        file.save(file_path)
+                        upload_info_text = 'Uploaded ' + filename
+
                 else:
                     upload_error_text = 'Error: no valid file'
 
@@ -134,13 +151,13 @@ def tfmodel():
         settings_dict['required_sensors'] = required_sensors
         old_settings = settings_dict
 
-        with open(os.path.join(TFMODEL_FOLDER, filename + '.json'), 'w') as outfile:
-            json.dump(settings_dict, outfile)
-
-        if upload_info_text is None:
-            upload_info_text = 'Saved new settings'
-        else:
-            upload_info_text = 'Saved new settings and model ' + filename
+        if do_save_file:
+            with open(os.path.join(TFMODEL_FOLDER, filename + '.json'), 'w') as outfile:
+                json.dump(settings_dict, outfile)
+            if upload_info_text is None:
+                upload_info_text = 'Saved new settings'
+            else:
+                upload_info_text = 'Saved new settings and model ' + filename
 
     newest_tf_file = find_newest_tf_file()
     all_model_files = list()

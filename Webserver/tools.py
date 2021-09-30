@@ -5,10 +5,14 @@ from random import random
 from zipfile import ZipFile
 from typing import Dict
 
+# from util.ort_format_model.utils import _extract_ops_and_types_from_ort_models as _extract_ops_and_types_from_ort_models
+
 from plot_data import PlotData
 from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, config
+from ort_helpers import *
 
 prepared_plot_data: Dict[str, PlotData] = dict()
+
 
 to_clean_files = ['.npy', '.png', '.svg']
 
@@ -117,3 +121,44 @@ def clean_session_directory(path):
         if os.path.splitext(file)[1] in to_clean_files:
             os.remove(os.path.join(path, file))
 
+
+def extract_ops_from_ort_model(path):
+    file = open(path, 'rb').read()
+    buffer = bytearray(file)
+    model = InferenceSession.GetRootAsInferenceSession(buffer, 0).Model()
+    graph = model.Graph()
+    return process_graph(graph)
+
+def process_graph(graph):
+    '''
+    Process one level of the Graph, descending into any subgraphs when they are found
+    :param outer_scope_value_typeinfo: Outer scope NodeArg dictionary from ancestor graphs
+    '''
+    # Merge the TypeInfo for all values in this level of the graph with the outer scope value TypeInfo.
+
+    required_optypes = set()
+    for i in range(0, graph.NodesLength()):
+        node = graph.Nodes(i)
+
+        optype = node.OpType().decode()
+        print(node, optype)
+        required_optypes.add(optype)
+
+    print(required_optypes)
+    return required_optypes
+
+
+
+def check_valid_ort_model(path):
+    # required_ops, op_type_processors = _extract_ops_and_types_from_ort_models(path, True)
+    #print(required_ops)
+    required_optypes = extract_ops_from_ort_model(path)
+    missing_optypes = set()
+    for op_type in required_optypes:
+        if op_type not in config.available_optypes:
+            missing_optypes.add(op_type)
+    return missing_optypes
+
+
+if __name__ == '__main__':
+    check_valid_ort_model('/tmp/model_trained_lstm_16_09_21___12_49_08.all.ort')

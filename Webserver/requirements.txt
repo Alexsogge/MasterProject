@@ -1,8 +1,11 @@
-Flask
+Flask~=2.0.1
 Flask-HTTPAuth
-PyYAML
+PyYAML~=5.4.1
 gunicorn
-numpy
+numpy~=1.21.2
 matplotlib
 git+https://github.com/Alexsogge/MasterProject.git#subdirectory=scripts
 
+
+Werkzeug~=2.0.1
+flatbuffers~=2.0
