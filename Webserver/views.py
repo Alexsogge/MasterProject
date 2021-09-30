@@ -124,11 +124,8 @@ def tfmodel():
                     file_path = os.path.join(TFMODEL_FOLDER, filename + file_extension)
                     tmp_file_path = os.path.join(TFMODEL_FOLDER, filename + file_extension + '.tmp')
                     file.save(tmp_file_path)
-                    print('[', file_extension, ']is ort?')
                     if file_extension == '.ort':
-                        print(tmp_file_path, type(file))
                         missing_optypes = check_valid_ort_model(tmp_file_path)
-                        print('missing op types:', missing_optypes)
                         if len(missing_optypes) > 0:
                             upload_error_text = 'Error: Missing operations: ' + str(missing_optypes)
                             do_save_file = False

@@ -139,12 +139,9 @@ def process_graph(graph):
     required_optypes = set()
     for i in range(0, graph.NodesLength()):
         node = graph.Nodes(i)
-
         optype = node.OpType().decode()
-        print(node, optype)
         required_optypes.add(optype)
 
-    print(required_optypes)
     return required_optypes
 
 
