@@ -74,6 +74,7 @@ class Config:
 
     def create(self, overwrite_values):
         global secret_key_iterations
+        global config_values
         print('create config ', self.config_file)
         if not os.path.exists(os.path.dirname(self.config_file)):
             os.makedirs(os.path.dirname(self.config_file))
