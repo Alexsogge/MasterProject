@@ -39,6 +39,11 @@ android {
 
     }
 
+    lintOptions {
+        abortOnError false
+    }
+
+
     // Specify tflite file should not be compressed for the app apk
     aaptOptions {
         noCompress "tflite"
@@ -48,11 +53,16 @@ android {
         unitTests.includeAndroidResources = true
     }
 
+
     sourceSets {
         main {
             jniLibs.srcDirs = ["src/main/jniLibs", "$buildDir/native-libs"]
         }
     }
+
+
+
+
 }
 
 dependencies {
@@ -69,7 +79,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
     implementation 'androidx.wear:wear:1.0.0'
     // use gradle version: 4.10.2 and gradle plugin version: 3.3.2
-    implementation project(path: ':ffmpeg')
+    // implementation project(path: ':ffmpeg')
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
     compileOnly 'com.google.android.wearable:wearable:2.5.0'

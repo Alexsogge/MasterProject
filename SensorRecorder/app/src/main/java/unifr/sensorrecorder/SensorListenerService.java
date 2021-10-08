@@ -12,7 +12,6 @@ import java.nio.ByteOrder;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import de.uni_freiburg.ffmpeg.FFMpegProcess;
 import unifr.sensorrecorder.DataContainer.DataProcessor;
 
 public class SensorListenerService implements SensorEventListener, SensorEventListener2 {
@@ -35,10 +34,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
     private long[] sensorTimestampsBuffer;
     private float[][] sensorValuesBuffer;
 
-
-    private boolean useMKVStream;
-    private OutputStream sensorPipeOutput;
-    private FFMpegProcess mFFmpeg;
     private ByteBuffer mBuf;
 
     private boolean useZIPStream;
@@ -48,8 +43,8 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
     public SensorListenerService(SensorManagerInterface managerInterface, Sensor sensor,
                                  int sensorIndex, int bufferSize, long sensorStartTime,
                                  long sensorDelay, int sensorDimension,
-                                 float handWashActivationThreshold, boolean useMKVStream,
-                                 FFMpegProcess ffMpegProcess, boolean useZIPStream,
+                                 float handWashActivationThreshold,
+                                 boolean useZIPStream,
                                  DataProcessor dataProcessor){
         this.managerInterface = managerInterface;
         this.mySensor = sensor;
@@ -58,8 +53,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
         this.sensorDelay = sensorDelay;
         this.sensorDimension = sensorDimension;
         this.handWashActivationThreshold = handWashActivationThreshold;
-        this.useMKVStream = useMKVStream;
-        this.mFFmpeg = ffMpegProcess;
         this.useZIPStream = useZIPStream;
         this.dataProcessor = dataProcessor;
         sensorTimestampsBuffer = new long[bufferSize];
@@ -214,8 +207,6 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
         private void writeSensorData() throws IOException {
             // Log.d("sensor", "Write data " + closed);
             StringBuilder data = new StringBuilder();
-            if (useMKVStream && sensorPipeOutput == null)
-                sensorPipeOutput = mFFmpeg.getOutputStream(sensorIndex);
 
             for (int i = 1; i < flushedSensorPointer; i++) {
                 if(useZIPStream) {
@@ -225,23 +216,9 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
                     }
                     data.append(bufferValues[i][sensorDimension-1]).append("\n");
                 }
-                if (useMKVStream) {
-                    mBuf.clear();
-                    for(int axis = 0; axis < sensorDimension; axis++)
-                        mBuf.putFloat(bufferValues[i][axis]);
-                    sensorPipeOutput.write(mBuf.array());
-                }
+
             }
-            if (useMKVStream) {
-                sensorPipeOutput.flush();
-                if(stopped || flushed){
-                    try {
-                        sensorPipeOutput.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
+
             if (useZIPStream) {
                 dataProcessor.writeSensorData(mySensor.getStringType(), data.toString());
             }

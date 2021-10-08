@@ -1,2 +1,2 @@
-include ':app' , ':ffmpeg'
+include ':app'
 rootProject.name = "SensorRecorder"

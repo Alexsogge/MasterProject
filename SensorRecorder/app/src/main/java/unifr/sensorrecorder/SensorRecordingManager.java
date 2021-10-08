@@ -52,7 +52,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
-import de.uni_freiburg.ffmpeg.FFMpegProcess;
 import unifr.sensorrecorder.BluetoothBeacons.BluetoothBeaconScanner;
 import unifr.sensorrecorder.Complication.ComplicationProvider;
 import unifr.sensorrecorder.DataContainer.DataContainer;
@@ -104,9 +103,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     // data files
     private DataProcessor dataProcessor;
 
-    // ffmpeg stuff
-    private FFMpegProcess mFFmpeg;
-
     // Microphone stuff
     private MediaRecorder mediaRecorder;
     private boolean ongoing_mic_record = false;
@@ -116,7 +112,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
     // config stuff
     private SharedPreferences configs;
-    private boolean useMKVStream = false;
     private boolean useZIPStream = true;
     private boolean useMic = true;
     private boolean useMultipleMic = true;
@@ -273,7 +268,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             Sensor availableSensor = availableSensors.get(i);
             activeSensors[i] = availableSensor;
             sensorDimensions[i] = getNumChannels(availableSensor.getType());
-            sensorServices[i] = new SensorListenerService(this, availableSensor, i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(availableSensor.getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
+            sensorServices[i] = new SensorListenerService(this, availableSensor, i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(availableSensor.getType()), useZIPStream, dataProcessor);
         }
     }
 
@@ -298,107 +293,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      */
     private void resetSensorListeners(){
         for(int i = 0; i < activeSensors.length; i++){
-            sensorServices[i] = new SensorListenerService(this, activeSensors[i], i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(activeSensors[i].getType()), useMKVStream, mFFmpeg, useZIPStream, dataProcessor);
+            sensorServices[i] = new SensorListenerService(this, activeSensors[i], i, sensor_queue_size, sensorStartTime, sensorDelay, sensorDimensions[i], getHandWashActivateThreshold(activeSensors[i].getType()), useZIPStream, dataProcessor);
         }
     }
 
-    /**
-     * Use ffmpeg package and set up everything needed
-     */
-    private void setupFFMPEGfromLocal(){
-        String platform = Build.BOARD + " " + Build.DEVICE + " " + Build.VERSION.SDK_INT,
-                output = getDefaultOutputPath(getApplicationContext()),
-                output2 = dataProcessor.containerMKV.recordingFile.getAbsolutePath(),
-                android_id = Settings.Secure.getString(
-                        getContentResolver(), Settings.Secure.ANDROID_ID),
-                format = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN ? "f32le" : "f32be";
-        File tmpFile = new File(output);
-        Log.i("Sensorrecorder", "Output: " + output + tmpFile.exists());
-        Log.i("Sensorrecorder", "Output2: " + output2);
-        try {
-            FFMpegProcess.Builder b = new FFMpegProcess.Builder(getApplicationContext())
-                    .setOutput(output2, "matroska")
-                    .setCodec("a", "wavpack")
-                    .addOutputArgument("-shortest")
-                    .setTag("recorder", "sensorrecorder 1.0")
-                    .setTag("android_id", android_id)
-                    .setTag("platform", platform)
-                    .setTag("fingerprint", Build.FINGERPRINT)
-                    .setTag("beginning", getCurrentDateAsIso());
 
-            b.addAudio(format, 50.0, 3)
-                    .setStreamTag("name", "Acceleration");
-            b.addAudio(format, 50.0, 3)
-                    .setStreamTag("name", "Gyroscope");
-            mFFmpeg = b.build();
-
-
-            /**
-             * for each sensor there is thread that copies data to the ffmpeg process. For startup
-             * synchronization the threads are blocked until the starttime has been set at which
-             * point the threadlock will be released.
-             */
-            /*
-            int us = reportRate;
-
-            mStartTimeNS = -1L;
-            mSyncLatch = new CountDownLatch(2);
-
-            for(Sensor sensor: activeSensors) {
-                sensorManager.registerListener(new SensorEventListener() {
-                    @Override
-                    public void onSensorChanged(SensorEvent event) {
-                        mStartTimeNS = Long.max(event.timestamp, mStartTimeNS);
-                        mSyncLatch.countDown();
-                        sensorManager.unregisterListener(this);
-                    }
-
-                    @Override
-                    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-                    }
-                }, sensor, us);
-            }
-            */
-        } catch (Exception e) {
-
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Used by ffmpeg setup
-     * @param context
-     * @return
-     */
-    public static String getDefaultOutputPath(Context context) {
-        File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
-        return new File(path, getDefaultFileName(context)).toString();
-    }
-
-    /**
-     * Used by ffmpeg setup
-     * @param context
-     * @return
-     */
-    public static String getDefaultFileName(Context context) {
-        TimeZone tz = TimeZone.getTimeZone("UTC");
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
-        df.setTimeZone(tz);
-        String aid = Settings.Secure.getString(context.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-        return df.format(new Date()) + "_" + aid + ".mkv";
-    }
-
-    /**
-     * Used by ffmpeg setup
-     * @return
-     */
-    public static String getCurrentDateAsIso() {
-        // see https://stackoverflow.com/questions/3914404/how-to-get-current-moment-in-iso-8601-format
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return df.format(new Date());
-    }
 
     /**
      * Register active sensors to sensor manager to enable receive of sensor events.
@@ -458,7 +357,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
         // load config
         useZIPStream = configs.getBoolean(getString(R.string.conf_useZip), true) && ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED;
-        useMKVStream = configs.getBoolean(getString(R.string.conf_useMKV), false);
         useMic = configs.getBoolean(getString(R.string.conf_useMic), true);
         useMic &= ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_GRANTED;
         useMultipleMic = configs.getBoolean(getString(R.string.conf_multipleMic), true);
@@ -481,9 +379,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             startMediaRecorder();
             mediaRecorder.pause();
         }
-        // if we want to record into mkv files we have to setup and start the ffmpeg process
-        if (useMKVStream)
-            setupFFMPEGfromLocal();
 
         // initialize all fileoutputstreams
         DataContainer.generateFileNameSuffix(this);
@@ -575,7 +470,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         if(useZIPStream) {
             dataProcessor.activateSensorContainers();
         }
-        dataProcessor.activateDefaultContainer(useMKVStream, useMic);
+        dataProcessor.activateDefaultContainer(useMic);
     }
 
 
@@ -956,15 +851,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
             Log.d("mgr", "Stopped mediarecorder");
 
-            // close ffmpeg process
-            try {
-                // mFFmpeg.waitFor();
-                if (mFFmpeg != null)
-                    mFFmpeg.terminate();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            mFFmpeg = null;
 
             Log.d("mgr", "closed ffmpeg");
 

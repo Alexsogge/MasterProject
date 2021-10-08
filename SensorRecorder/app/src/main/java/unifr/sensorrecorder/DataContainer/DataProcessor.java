@@ -133,10 +133,7 @@ public class DataProcessor {
         //sensorContainer.setActive();
     }
 
-    public void activateDefaultContainer(boolean useMKVStream, boolean useMic) throws IOException {
-        if(useMKVStream)
-            containerMKV.setActive();
-
+    public void activateDefaultContainer(boolean useMic) throws IOException {
         if(useMic) {
             containerMic.setActive();
             containerMicTimeStamps.setActive();
