@@ -122,8 +122,7 @@ def clean_session_directory(path):
             os.remove(os.path.join(path, file))
 
 
-def extract_ops_from_ort_model(path):
-    file = open(path, 'rb').read()
+def extract_ops_from_ort_model(file):
     buffer = bytearray(file)
     model = InferenceSession.GetRootAsInferenceSession(buffer, 0).Model()
     graph = model.Graph()
@@ -146,10 +145,10 @@ def process_graph(graph):
 
 
 
-def check_valid_ort_model(path):
+def check_valid_ort_model(file):
     # required_ops, op_type_processors = _extract_ops_and_types_from_ort_models(path, True)
     #print(required_ops)
-    required_optypes = extract_ops_from_ort_model(path)
+    required_optypes = extract_ops_from_ort_model(file)
     missing_optypes = set()
     for op_type in required_optypes:
         if op_type not in config.available_optypes:
