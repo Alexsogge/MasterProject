@@ -53,13 +53,13 @@ android {
         unitTests.includeAndroidResources = true
     }
 
-
+    /*
     sourceSets {
         main {
             jniLibs.srcDirs = ["src/main/jniLibs", "$buildDir/native-libs"]
         }
     }
-
+    */
 
 
 
