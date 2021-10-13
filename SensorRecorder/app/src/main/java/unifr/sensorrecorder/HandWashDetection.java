@@ -302,22 +302,24 @@ public class HandWashDetection {
 
     public float[][] RunONNXInference(float[][][] window){
         // create buffer as required
-        float[][] frameBuffer = new float[1][inputShape];
+        float[][][] frameBuffer = new float[1][frameSize][6];
         int bufferPos = 0;
 
         // since model needs sensor values we probably don't have,
         // we have to fill the frameBuffer with dummy values for these sensors
         for(int x = 0; x < frameSize; x++) {
+            int axesIndex = 0;
             for (int i = 0; i < requiredSensors.length; i++) {
                 int activeSensorIndex = getActiveSensorIndexOfType(requiredSensors[i]);
                 // if index == -1 we don't have actual values -> insert dummy else value from buffer
                 for (int axes = 0; axes < requiredSensorsDimensions[i]; axes++) {
                     if (activeSensorIndex == -1) {
-                        frameBuffer[0][bufferPos] = 0;
+                        frameBuffer[0][x][axesIndex] = 0;
                     }else {
-                        frameBuffer[0][bufferPos] = window[activeSensorIndex][x][axes];
+                        frameBuffer[0][x][axesIndex] = window[activeSensorIndex][x][axes];
                     }
                     bufferPos++;
+                    axesIndex++;
                 }
             }
         }
