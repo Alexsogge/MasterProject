@@ -19,8 +19,9 @@ config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix'
                  'client_secret': '', 'user': 'admin', 'user_pw': 'admin', 'session_size_red': 100000,
                  'session_size_orange': 1000000, 'hide_mic_files': True, 'rename_mic_files': True,
                  'pack_mic_files': False,
-                 'available_optypes': ['Softmax', 'Gather', 'Shape', 'Gemm', 'Unsqueeze', 'Concat', 'Reshape',
-                                       'FusedGemm', 'Squeeze', 'Expand', 'LSTM']}
+                 'available_optypes': ['Gather', 'Shape', 'Gemm', 'Unsqueeze', 'Concat', 'Reshape', 'FusedGemm',
+                                       'Squeeze', 'Expand', 'Softmax', 'LSTM', 'Div', 'Sub', 'Add', 'MatMul',
+                                       'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv']}
 
 class Config:
     config_file = 'conf/config.yml'
