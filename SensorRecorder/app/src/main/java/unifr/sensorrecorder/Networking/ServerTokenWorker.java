@@ -15,7 +15,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
+import java.net.URLEncoder;
 
 import okhttp3.Request;
 import okhttp3.Response;
@@ -48,7 +50,12 @@ public class ServerTokenWorker extends NetworkWorker{
 
     private int getServerToken(){
         String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
-        String userIdentifier = configs.getString(context.getString(R.string.conf_userIdentifier), "");
+        String userIdentifier = "";
+        try {
+            userIdentifier = URLEncoder.encode(configs.getString(context.getString(R.string.conf_userIdentifier), ""), "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         Request request = new Request.Builder()
                 .url(serverName + "/tokenauth/request/?identifier="+userIdentifier)
                 .build();
