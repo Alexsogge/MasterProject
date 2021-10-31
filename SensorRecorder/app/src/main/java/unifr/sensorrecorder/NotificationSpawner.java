@@ -256,6 +256,7 @@ public class NotificationSpawner {
                 serviceChannel.enableVibration(true);
                 serviceChannel.setVibrationPattern(vibrationPattern);
             }
+            serviceChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             manager.createNotificationChannel(serviceChannel);
