@@ -45,6 +45,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
                 if (SensorRecordingManager.isRunning) {
                     long timestamp = intent.getLongExtra("timestamp", -1);
                     if (timestamp > -1) {
+                        StaticDataProvider.getProcessor().lastEvaluationTS = timestamp;
                         try {
                             String line = timestamp + "\t" + 0 + "\n";
                             StaticDataProvider.getProcessor().writeEvaluation(line, false, 0);
@@ -60,6 +61,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
             if (intent.getStringExtra("trigger").equals("close")) {
                 long timestamp = intent.getLongExtra("timestamp", -1);
                 if (timestamp > -1) {
+                    StaticDataProvider.getProcessor().lastEvaluationTS = timestamp;
                     try {
                         String line = timestamp + "\t" + -1 + "\n";
                         StaticDataProvider.getProcessor().writeEvaluation(line, true, timestamp);

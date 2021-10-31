@@ -50,6 +50,7 @@ public class EvaluationService extends Service {
                 if (SensorRecordingManager.isRunning) {
                     long timestamp = intent.getLongExtra("timestamp", -1);
                     if (timestamp > -1) {
+                        StaticDataProvider.getProcessor().lastEvaluationTS = timestamp;
                         try {
                             String line = timestamp + "\t" + 0 + "\n";
                             StaticDataProvider.getProcessor().writeEvaluation(line, false, 0);
@@ -66,6 +67,7 @@ public class EvaluationService extends Service {
                 long timestamp = intent.getLongExtra("timestamp", -1);
                 Log.d("eval", "Close evaluation: " + timestamp);
                 if (timestamp > -1) {
+                    StaticDataProvider.getProcessor().lastEvaluationTS = timestamp;
                     try {
                         String line = timestamp + "\t" + -1 + "\n";
                         StaticDataProvider.getProcessor().writeEvaluation(line, true, timestamp);
