@@ -71,10 +71,16 @@
                             Show evaluation
                         </label>
                     </div>
-                     <div class="form-check">
+                    <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="" checked id="checkShowBluetooth" onclick="updateInteractivePlot()">
                         <label class="form-check-label" for="checkShowBluetooth">
                             Show bluetooth
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" checked id="checkShowMarker" onclick="updateInteractivePlot()">
+                        <label class="form-check-label" for="checkShowMarker">
+                            Show marker
                         </label>
                     </div>
                 </div>
@@ -107,7 +113,6 @@
                         text: 'Accelerometer'
                     },
                     annotations: data['data']['annotations'],
-
                     series: data['data']['series']
                 });
                 window.scrollTo(0,document.body.scrollHeight);
@@ -150,7 +155,6 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log(data);
                     plotData = data;
                     updateInteractivePlot();
                 })
@@ -160,19 +164,19 @@
 
         }
 
-        function buildChart(data, showSensor=true, showPredictions=true, showPredictionMean=true, showEvaluation=true, showBluetooth=true){
+        function buildChart(data, showSensor=true, showPredictions=true, showPredictionMean=true, showEvaluation=true, showBluetooth=true, showMarker=true){
             let chartEle = document.getElementById("chart");
             var traces = [];
             var shapes = [];
 
-            var timeStamps = data.acc.ts.map(function(el){return el/1000});
+            var timeStamps = data.acc.ts.map(sec2dt);
             var accTraceX = {x: timeStamps, y: data.acc.vals.x, type:'scatter', name: 'Acc X', line: {width: 1, color: '#1f77b4'}};
             var accTraceY = {x: timeStamps, y: data.acc.vals.y, type:'scatter', name: 'Acc Y', line: {width: 1, color:'#ff7f0e'}};
             var accTraceZ = {x: timeStamps, y: data.acc.vals.z, type:'scatter', name: 'Acc Z', line: {width: 1, color:'#2ca02c'}};
             var maxVal = 20;
             var minVal = -20;
 
-            var hwTimeStamps = data.hw.ts.map(function(el){return el/1000});
+            var hwTimeStamps = data.hw.ts.map(sec2dt);
             var hwY = Array(hwTimeStamps.length).fill(maxVal);
             var hwText = Array(hwTimeStamps.length).fill('handwash');
             var hwTrace = {x: hwTimeStamps, y: hwY, mode:'markers+text', name: 'Handwash', textposition: 'top', marker: {color:'cyan', size: 12}, text: hwText};
@@ -193,7 +197,24 @@
                 });
             }
 
-            var predTimeStamps = data.pred.ts.map(function(el){return el/1000});
+            var markerTimeStamps = data.marker.ts.map(sec2dt);
+            if(showMarker) {
+                for (let i = 0; i < markerTimeStamps.length; i++) {
+                    shapes.push({
+                        type: 'line',
+                        x0: markerTimeStamps[i],
+                        y0: minVal,
+                        x1: markerTimeStamps[i],
+                        y1: maxVal,
+                        line: {
+                            color: 'rgb(75, 0, 130)',
+                            width: 3
+                        }
+                    });
+                }
+            }
+
+            var predTimeStamps = data.pred.ts.map(sec2dt);
             var predNoiseY = data.pred.noise.map(function (el){return el*10});
             var predHWY = data.pred.hw.map(function (el){return el*10});
             var predMeanY = data.pred.mean.map(function (el){return el*10});
@@ -203,7 +224,7 @@
 
             var predMeanTrace = {x: predTimeStamps, y: predMeanY, type:'scatter', name: 'Pred mean *10', line: {color: '#e377c2'}};
 
-            var evalTimeStamps = data.eval.ts.map(function(el){return el/1000});
+            var evalTimeStamps = data.eval.ts.map(sec2dt);
             var evalY = Array(evalTimeStamps.length).fill(13);
             var evalAnswers = data.eval.answer.map(function(el){
                 if(el == -1) return 'na';
@@ -217,7 +238,7 @@
             var evalTrace = {x: evalTimeStamps, y: evalY, mode: 'markers', name:'evaluation',
                 text: evalTexts, type: 'scatter', marker: {color:'green', size: 10, symbol: 206}};
 
-            var bluetoothTimeStamps = data.bluetooth.ts.map(function(el){return el/1000});
+            var bluetoothTimeStamps = data.bluetooth.ts.map(sec2dt);
             var bluetoothY = Array(bluetoothTimeStamps.length).fill(5);
             var bluetoothTexts = [];
             for(let i = 0; i < bluetoothTimeStamps.length; i++){
@@ -234,7 +255,7 @@
                 xanchor: 'left',
                 y: 0,
                 yanchor: 'top',
-                text: 'seconds',
+                text: 'time',
                 showarrow: false
             }];
             if(showEvaluation) {
@@ -285,7 +306,8 @@
             var layout = {title: 'Interactive selection', annotations: annotations,
                 xaxis: {
                     rangeselector: selectorOptions,
-                    rangeslider: {}
+                    rangeslider: {},
+                    tickformat: '%H:%M:%S'
                 },
                 yaxis: {
                     fixedrange: false
@@ -298,13 +320,20 @@
             document.getElementById('chartUI').style.display = 'block';
         }
 
+        function sec2dt(v) {
+            var t = new Date(plotData.start); // Epoch
+            t.setMilliseconds(v);
+            return t.toISOString();
+        }
+
         function updateInteractivePlot(){
             const showSensor = document.getElementById('checkShowSensor').checked;
             const showPredictions = document.getElementById('checkShowPredictions').checked;
             const showPredictionMean = document.getElementById('checkShowPredictionMean').checked;
             const showEvaluation = document.getElementById('checkShowEvaluation').checked;
             const showBluetooth = document.getElementById('checkShowBluetooth').checked;
-            buildChart(plotData, showSensor, showPredictions, showPredictionMean, showEvaluation, showBluetooth);
+            const showMarker = document.getElementById('checkShowMarker').checked;
+            buildChart(plotData, showSensor, showPredictions, showPredictionMean, showEvaluation, showBluetooth, showMarker);
         }
 
         $(document).ready(function () {

@@ -9,6 +9,7 @@
     <string name="ui_new_handwash" translatable="false">New hand wash</string>
 
     <string name="toast_addedhandwash">Added hand wash</string>
+    <string name="toast_addedmarker">Added marker</string>
 
     <string name="toast_addedhandwash_sel">Added hand wash
     </string>

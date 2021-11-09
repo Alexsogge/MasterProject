@@ -419,6 +419,22 @@ def recording_data(recording):
 
     series = plot_data.get_series(start_point, end_point)
 
+    time_offset = "1970-01-01T00:00:00.000Z"
+    meta_info_file = None
+    rec_path = os.path.join(RECORDINGS_FOLDER, recording)
+    for file in os.listdir(rec_path):
+        if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
+            meta_info_file = os.path.join(rec_path, file)
+    if meta_info_file is not None:
+        with open(meta_info_file) as json_file:
+            try:
+                meta_info = json.load(json_file)
+                if 'date' in meta_info:
+                    time_offset = meta_info['date']
+            except json.JSONDecodeError as e:
+                print(e.__traceback__)
+
+    series['start'] = time_offset
     # series.append(plot_data.annotations)
     # series.append(plot_data.time_stamp_series)
 

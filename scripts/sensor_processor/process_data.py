@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import json
 import os
+import time
 from typing import Dict, List
 
 import numpy as np
@@ -16,6 +17,7 @@ from sensor_processor.sensor_decoder import SensorDecoder
 from sensor_processor.mic_decoder import MicDecoder
 from sensor_processor.battery_decoder import BatteryDecoder
 from sensor_processor.handwash_decoder import HandwashDecoder
+from sensor_processor.marker_decoder import MarkerDecoder
 from sensor_processor.prediction_decoder import PredictionDecoder
 from sensor_processor.evaluation_decoder import EvaluationDecoder
 from sensor_processor.bluetooth_decoder import BluetoothDecoder
@@ -29,13 +31,15 @@ mpl.rcParams['agg.path.chunksize'] = 20000
 
 class DataProcessor:
 
-    def __init__(self, folder_name, use_mkv=False):
+    def __init__(self, folder_name, use_mkv=False, time_offset=0):
         self.folder_name = folder_name
+        self.time_offset = time_offset
         self.sensor_decoder = SensorDecoder(folder_name)
         self.data_dict: Dict[str, np.ndarray] = dict()
         self.data_dict['mic_time_stamps'] = MicDecoder.read_folder(folder_name)
         self.data_dict['battery'] = BatteryDecoder.read_folder(folder_name)
         self.data_dict['time_stamps'] = HandwashDecoder.read_data(folder_name)
+        self.data_dict['markers'] = MarkerDecoder.read_data(folder_name)
         self.data_dict['predictions'] = PredictionDecoder.read_folder(folder_name)
         self.data_dict['evaluations'] = EvaluationDecoder.read_folder(folder_name)
         self.data_dict['bluetooth_beacons'] = BluetoothDecoder.read_folder(folder_name)
@@ -60,6 +64,12 @@ class DataProcessor:
 
             self.data_dict['time_stamps'] = align_array(self.data_dict['time_stamps'],
                                                         self.sensor_decoder.min_time_stamp)
+
+            print('markers pre aligned:', self.data_dict['markers'])
+            self.data_dict['markers'] = align_array(self.data_dict['markers'],
+                                                        self.sensor_decoder.min_time_stamp)
+
+            print('markers aligned:', self.data_dict['markers'])
 
             self.data_dict['mic_time_stamps'] = align_array(self.data_dict['mic_time_stamps'],
                                                             self.sensor_decoder.min_time_stamp)
@@ -86,6 +96,10 @@ class DataProcessor:
             # print(ts[0]*nano_sec)
             ax.add_patch(plt.Rectangle((ts[0]*nano_sec*scaling - 50*scaling, dims[0]), 50*scaling, (dims[1] * 1.2) - dims[0], facecolor='blue', alpha=0.3))
         ax.vlines(self.data_dict['time_stamps'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='black')
+
+    def plot_markers(self, dims, ax, scaling: float=1.0):
+        print('plot', self.data_dict['markers'])
+        ax.vlines(self.data_dict['markers'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='indigo')
 
     def plot_mic_events(self, dims, ax=None, scaling: float=1.0):
         if ax is None:
@@ -120,7 +134,7 @@ class DataProcessor:
 
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
-        ax.set_xlabel('time in sec')
+        ax.set_xlabel('time')
         ax.set_ylabel('percentage')
         ax.legend()
 
@@ -130,7 +144,7 @@ class DataProcessor:
             ax.plot(x, data[:, i])
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
-        ax.set_xlabel('time in sec')
+        ax.set_xlabel('time')
         ax.set_ylabel(y_label)
 
         if add_time_stamps:
@@ -153,8 +167,15 @@ class DataProcessor:
         axs[2].set_title('Battery')
         axs[3].set_title('Predictions')
 
+        self.plot_markers((np.amin(self.data_dict['Acceleration'][:, 1:]), np.amax(self.data_dict['Acceleration'][:, 1:])), axs[0])
+        self.plot_markers((-1, 110), axs[3])
+
 
         plt.xlim([0, self.data_dict['Acceleration'][-1, 0]*nano_sec])
+
+        formatter = mpl.ticker.FuncFormatter(lambda s, x: time.strftime('%H:%M:%S', time.gmtime(s + self.time_offset)))
+        axs[0].xaxis.set_major_formatter(formatter)
+        # plt.gcf().autofmt_xdate()
 
         fig.tight_layout()
         if generate_image:
@@ -233,7 +254,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         if sys.argv[2] == 'mkv':
             use_mkv = True
-    data_processor = DataProcessor(sys.argv[1], use_mkv)
+    data_processor = DataProcessor(sys.argv[1], use_mkv, 10000)
     data_processor.plot_data()
     # data_processor.plot_timings()
     # data_processor.export_numpy_array()

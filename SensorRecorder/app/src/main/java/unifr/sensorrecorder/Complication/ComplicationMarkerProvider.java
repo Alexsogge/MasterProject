@@ -12,9 +12,9 @@ import android.util.Log;
 import unifr.sensorrecorder.R;
 import unifr.sensorrecorder.SensorRecordingManager;
 
-public class ComplicationICONProvider extends ComplicationProviderService{
+public class ComplicationMarkerProvider extends ComplicationProviderService{
 
-    private static final String TAG = "ComplicationICONProvider";
+    private static final String TAG = "CompMarkerProvider";
     /*
      * Called when a complication has been activated. The method is for any one-time
      * (per complication) set-up.
@@ -43,9 +43,9 @@ public class ComplicationICONProvider extends ComplicationProviderService{
             int complicationId, int dataType, ComplicationManager complicationManager) {
         Log.d(TAG, "onComplicationUpdate() id: " + complicationId);
 
-        Intent handwashIntent = new Intent(this, SensorRecordingManager.class);
-        handwashIntent.putExtra("trigger", "handWash");
-        PendingIntent pintHandWash = PendingIntent.getService(this, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent markerIntent = new Intent(this, SensorRecordingManager.class);
+        markerIntent.putExtra("trigger", "marker");
+        PendingIntent pintMarker = PendingIntent.getService(this, 573, markerIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         ComplicationData complicationData = null;
 
@@ -54,7 +54,7 @@ public class ComplicationICONProvider extends ComplicationProviderService{
                 complicationData =
                         new ComplicationData.Builder(ComplicationData.TYPE_ICON)
                                 .setIcon(Icon.createWithResource(this, R.drawable.ic_hand_wash))
-                                .setTapAction(pintHandWash)
+                                .setTapAction(pintMarker)
                                 //.setShortText(ComplicationText.plainText(predictionsText))
                                 .build();
                 break;

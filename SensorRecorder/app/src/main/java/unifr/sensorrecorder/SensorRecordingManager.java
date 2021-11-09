@@ -153,6 +153,14 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                     makeToast(getString(R.string.toast_record_not_active));
             }
 
+            if (intent.getStringExtra("trigger").equals("marker")) {
+                if(isRunning) {
+                    addMarkerNow();
+                }
+                else
+                    makeToast(getString(R.string.toast_record_not_active));
+            }
+
             // new hand wash event with timestamp
             if (intent.getStringExtra("trigger").equals("handWashTS")) {
                 if(isRunning) {
@@ -265,6 +273,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
         // initialize active sensors
         for(int i = 0; i < availableSensors.size(); i++){
+            Log.d("recorder", "init sensor " + availableSensors.get(i).getName());
             Sensor availableSensor = availableSensors.get(i);
             activeSensors[i] = availableSensor;
             sensorDimensions[i] = getNumChannels(availableSensor.getType());
@@ -597,6 +606,21 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         try {
             addHandWashEvent(timestamp);
             makeToast(getResources().getString(R.string.toast_addedhandwash));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Add new marker to current data set.
+     * Event time stamp is to current time when this method is called
+     */
+    public void addMarkerNow(){
+        long timestamp = SystemClock.elapsedRealtimeNanos();
+        try {
+            String lineContent = timestamp + "\n";
+            dataProcessor.writeMarker(lineContent);
+            makeToast(getResources().getString(R.string.toast_addedmarker));
         } catch (IOException e) {
             e.printStackTrace();
         }

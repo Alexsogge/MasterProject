@@ -23,6 +23,7 @@ config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix'
                                        'Squeeze', 'Expand', 'Softmax', 'LSTM', 'Div', 'Sub', 'Add', 'MatMul',
                                        'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv']}
 
+
 class Config:
     config_file = 'conf/config.yml'
     file_encoding = 'utf-8'

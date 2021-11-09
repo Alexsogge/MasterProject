@@ -39,6 +39,7 @@ public class DataProcessor {
     //public MultyEntryZipContainer sensorContainer;
     public DataContainer containerMKV;
     public OutputStreamContainer containerHandWashTimeStamps;
+    public OutputStreamContainer containerMarkerTimeStamps;
     public DataContainer containerMic;
     public OutputStreamContainer containerMicTimeStamps;
     public OutputStreamContainer containerBattery;
@@ -79,6 +80,9 @@ public class DataProcessor {
 
         containerHandWashTimeStamps = new OutputStreamContainer("hand_wash_time_stamps", "csv");
         streamContainers.add(containerHandWashTimeStamps);
+
+        containerMarkerTimeStamps = new OutputStreamContainer("marker_time_stamps", "csv");
+        streamContainers.add(containerMarkerTimeStamps);
 
         containerMicTimeStamps = new OutputStreamContainer("mic_time_stamps", "csv");
         streamContainers.add(containerMicTimeStamps);
@@ -140,6 +144,7 @@ public class DataProcessor {
         }
 
         containerHandWashTimeStamps.setActive();
+        containerMarkerTimeStamps.setActive();
         containerBattery.setActive();
         containerPrediction.setActive();
         containerEvaluation.setActive();
@@ -194,6 +199,10 @@ public class DataProcessor {
     public void writeHandWashTS(String line) throws IOException {
         containerHandWashTimeStamps.writeData(line);
         handWashes++;
+    }
+
+    public void writeMarker(String line) throws IOException {
+        containerMarkerTimeStamps.writeData(line);
     }
 
     public void writePrediction(String line) throws IOException {
