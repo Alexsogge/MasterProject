@@ -402,6 +402,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
         // update ui stuff
         isRunning = true;
+        StaticDataProvider.setIsRunning(true);
         if (startStopButton != null)
             setButtonText(getResources().getString(R.string.btn_stop));
 
@@ -897,6 +898,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             }
 
             isRunning = false;
+            StaticDataProvider.setIsRunning(false);
             if (startStopButton != null)
                 setButtonText("Start");
 

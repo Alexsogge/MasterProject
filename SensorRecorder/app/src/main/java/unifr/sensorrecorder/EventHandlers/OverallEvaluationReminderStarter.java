@@ -22,14 +22,16 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         // Log.e("alarm", "start overall reminder");
-        Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
-        reminderReceiver.putExtra("numCalls", 0);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        // Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
+        // reminderReceiver.putExtra("numCalls", 0);
+        // PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
         // AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         // am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), reminderPint);
-        OverallEvaluationReminder.setNextReminder(context.getApplicationContext(), 1);
+        if (StaticDataProvider.getIsRunning()) {
+            OverallEvaluationReminder.setNextReminder(context.getApplicationContext(), 1);
+            NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
+        }
         setOverallEvaluationReminder(context);
-        NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
     }
 
     private void setOverallEvaluationReminder(Context context){

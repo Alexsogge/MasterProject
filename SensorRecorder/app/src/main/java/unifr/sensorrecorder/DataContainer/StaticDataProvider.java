@@ -13,12 +13,14 @@ public class StaticDataProvider extends Application {
     private static DataProcessor dataProcessor;
     private static NetworkManager networkManager;
     private static int counterComplicationId;
+    private static boolean isRunning;
 
     @Override
     public void onCreate() {
         super.onCreate();
         dataProcessor = new DataProcessor();
         networkManager = new NetworkManager();
+        isRunning = false;
     }
 
     public static DataProcessor getProcessor(){
@@ -30,8 +32,12 @@ public class StaticDataProvider extends Application {
     public static int getCounterComplicationId(){
         return counterComplicationId;
     }
+    public static boolean getIsRunning(){return isRunning;}
     public static void setCounterComplicationId(int counterComplicationId){
         StaticDataProvider.counterComplicationId = counterComplicationId;
+    }
+    public static void setIsRunning(boolean isRunning){
+        StaticDataProvider.isRunning = isRunning;
     }
 
 }
