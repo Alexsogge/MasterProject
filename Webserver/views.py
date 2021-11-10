@@ -370,10 +370,12 @@ def new_recording():
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error'})
 
-
+@view.route('/recording/delete/')
 @view.route('/recording/delete/<string:recording>/')
 @basic_auth.login_required
-def delete_recording(recording):
+def delete_recording(recording=None):
+    if recording is None:
+        return redirect(url_for('views.list_recordings'))
     file = os.path.join(RECORDINGS_FOLDER, recording)
     if os.path.exists(file):
         shutil.rmtree(file)
