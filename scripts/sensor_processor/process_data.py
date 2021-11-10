@@ -65,11 +65,8 @@ class DataProcessor:
             self.data_dict['time_stamps'] = align_array(self.data_dict['time_stamps'],
                                                         self.sensor_decoder.min_time_stamp)
 
-            print('markers pre aligned:', self.data_dict['markers'])
             self.data_dict['markers'] = align_array(self.data_dict['markers'],
                                                         self.sensor_decoder.min_time_stamp)
-
-            print('markers aligned:', self.data_dict['markers'])
 
             self.data_dict['mic_time_stamps'] = align_array(self.data_dict['mic_time_stamps'],
                                                             self.sensor_decoder.min_time_stamp)
@@ -98,7 +95,6 @@ class DataProcessor:
         ax.vlines(self.data_dict['time_stamps'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='black')
 
     def plot_markers(self, dims, ax, scaling: float=1.0):
-        print('plot', self.data_dict['markers'])
         ax.vlines(self.data_dict['markers'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='indigo')
 
     def plot_mic_events(self, dims, ax=None, scaling: float=1.0):
