@@ -619,7 +619,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     public void addMarkerNow(){
         long timestamp = SystemClock.elapsedRealtimeNanos();
         try {
-            String lineContent = timestamp + "\n";
+            String lineContent = timestamp + "\t0\n";
             dataProcessor.writeMarker(lineContent);
             makeToast(getResources().getString(R.string.toast_addedmarker));
         } catch (IOException e) {
