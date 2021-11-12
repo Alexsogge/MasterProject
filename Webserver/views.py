@@ -483,10 +483,20 @@ def add_marker(recording):
         csv_file = search_file_of_recording(recording, r'marker_time_stamps_.*\.csv')
         add_row_in_csv(csv_file, (nanos, 1))
     else:
+        existing_marker = plot_data.marker_time_stamps[existing_marker_index]
         plot_data.marker_time_stamps = np.delete(plot_data.marker_time_stamps, existing_marker_index, 0)
         np.save(os.path.join(plot_data.path, 'data_array_marker.npy'), plot_data.marker_time_stamps)
         csv_file = search_file_of_recording(recording, r'marker_time_stamps_.*\.csv')
-        remove_row_in_csv(csv_file, existing_marker_index)
+        new_csv_data = []
+        for old_csv in read_csv(csv_file):
+            print(old_csv[0], 'is close to', nanos, np.isclose(old_csv[0], nanos, atol=1500000000))
+            if not np.isclose(old_csv[0], nanos, atol=1500000000):
+                new_csv_data.append(old_csv)
+            else:
+                print('found close')
+
+        save_csv(csv_file, new_csv_data)
+        #remove_row_in_csv(csv_file, existing_marker_index)
     return jsonify({'status': 'success'})
 
 

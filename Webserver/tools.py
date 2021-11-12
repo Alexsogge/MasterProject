@@ -200,6 +200,14 @@ def save_csv(path, data: numpy.ndarray):
         csv_writer.writerows(data)
 
 
+def read_csv(path):
+    lines = []
+    with open(path, 'r', newline='') as inp:
+        for i, row in enumerate(csv.reader(inp, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)):
+          lines.append(row)
+    return lines
+
+
 def add_row_in_csv(path, row):
     with open(path, 'a', newline='') as csvfile:
         csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
