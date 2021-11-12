@@ -193,17 +193,29 @@ def search_file_of_recording(recording, search_query):
             return os.path.join(rec_path, file)
     return None
 
+
 def save_csv(path, data: numpy.ndarray):
     with open(path, 'w', newline='') as csvfile:
         csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
         csv_writer.writerows(data)
-        print("written csv", data)
 
-def add_row_to_csv(path, row):
+
+def add_row_in_csv(path, row):
     with open(path, 'a', newline='') as csvfile:
         csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
         csv_writer.writerow(row)
-        print("written row in csv", row)
+
+
+def remove_row_in_csv(path, row_index):
+    old_lines = []
+    with open(path, 'r', newline='') as inp:
+        for i, row in enumerate(csv.reader(inp, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)):
+            if i != row_index:
+                old_lines.append(row)
+    with open(path, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        for row in old_lines:
+            csv_writer.writerow(row)
 
 if __name__ == '__main__':
     check_valid_ort_model('/tmp/model_trained_lstm_16_09_21___12_49_08.all.ort')

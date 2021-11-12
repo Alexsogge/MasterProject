@@ -468,15 +468,25 @@ def add_marker(recording):
     nanos += meta_data['start_time_stamp']
     #print("new nanos:", nanos)
 
-    new_timestamps = np.zeros((plot_data.marker_time_stamps.shape[0]+1, 2))
-    new_timestamps[:plot_data.marker_time_stamps.shape[0]] = plot_data.marker_time_stamps
-    new_timestamps[-1] = np.array((millis, 1))
-    plot_data.marker_time_stamps = new_timestamps[new_timestamps[:, 0].argsort()]
-    #print("new sorted markers:", plot_data.marker_time_stamps)
-    np.save(os.path.join(plot_data.path, 'data_array_marker.npy'), plot_data.marker_time_stamps)
-    csv_file = search_file_of_recording(recording, r'marker_time_stamps_.*\.csv')
-    add_row_to_csv(csv_file, (nanos, 1))
+    existing_marker_index = None
+    for i, ex_marker in enumerate(plot_data.marker_time_stamps):
+        if np.abs(ex_marker[0] - millis) < 1500:
+            existing_marker_index = i
 
+    if existing_marker_index is None:
+        new_timestamps = np.zeros((plot_data.marker_time_stamps.shape[0]+1, 2))
+        new_timestamps[:plot_data.marker_time_stamps.shape[0]] = plot_data.marker_time_stamps
+        new_timestamps[-1] = np.array((millis, 1))
+        plot_data.marker_time_stamps = new_timestamps[new_timestamps[:, 0].argsort()]
+        #print("new sorted markers:", plot_data.marker_time_stamps)
+        np.save(os.path.join(plot_data.path, 'data_array_marker.npy'), plot_data.marker_time_stamps)
+        csv_file = search_file_of_recording(recording, r'marker_time_stamps_.*\.csv')
+        add_row_in_csv(csv_file, (nanos, 1))
+    else:
+        plot_data.marker_time_stamps = np.delete(plot_data.marker_time_stamps, existing_marker_index, 0)
+        np.save(os.path.join(plot_data.path, 'data_array_marker.npy'), plot_data.marker_time_stamps)
+        csv_file = search_file_of_recording(recording, r'marker_time_stamps_.*\.csv')
+        remove_row_in_csv(csv_file, existing_marker_index)
     return jsonify({'status': 'success'})
 
 
