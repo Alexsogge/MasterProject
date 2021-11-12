@@ -9,3 +9,4 @@ git+https://github.com/Alexsogge/MasterProject.git#subdirectory=scripts
 
 Werkzeug~=2.0.1
 flatbuffers~=2.0
+python-dateutil~=2.8.2

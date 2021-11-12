@@ -1,11 +1,15 @@
+import json
 import os
 import string
 import math
 from random import random
 from zipfile import ZipFile
 from typing import Dict
+import csv
+import re
 
 # from util.ort_format_model.utils import _extract_ops_and_types_from_ort_models as _extract_ops_and_types_from_ort_models
+import numpy
 
 from plot_data import PlotData
 from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, config
@@ -155,6 +159,51 @@ def check_valid_ort_model(file):
             missing_optypes.add(op_type)
     return missing_optypes
 
+
+def get_meta_data(recording):
+    meta_info = {}
+    meta_info_file = None
+    rec_path = os.path.join(RECORDINGS_FOLDER, recording)
+    for file in os.listdir(rec_path):
+        if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
+            meta_info_file = os.path.join(rec_path, file)
+    if meta_info_file is not None:
+        with open(meta_info_file) as json_file:
+            try:
+                meta_info = json.load(json_file)
+            except json.JSONDecodeError as e:
+                print(e.__traceback__)
+    return meta_info
+
+
+def get_time_offset(recording):
+    time_offset = "1970-01-01T00:00:00.000Z"
+    meta_info = get_meta_data(recording)
+    if 'date' in meta_info:
+        time_offset = meta_info['date']
+    return time_offset
+
+
+def search_file_of_recording(recording, search_query):
+    rec_path = os.path.join(RECORDINGS_FOLDER, recording)
+    regex = re.compile(search_query)
+    for file in os.listdir(rec_path):
+        if regex.search(file):
+            print("found file:", file)
+            return os.path.join(rec_path, file)
+    return None
+
+def save_csv(path, data: numpy.ndarray):
+    with open(path, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        csv_writer.writerows(data)
+        print("written csv", data)
+
+def add_row_to_csv(path, row):
+    with open(path, 'a', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        csv_writer.writerow(row)
+        print("written row in csv", row)
 
 if __name__ == '__main__':
     check_valid_ort_model('/tmp/model_trained_lstm_16_09_21___12_49_08.all.ort')

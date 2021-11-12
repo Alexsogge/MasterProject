@@ -1,7 +1,10 @@
 import json
 import os
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
+
+import numpy as np
+from dateutil import parser
 
 from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for
 
@@ -420,23 +423,12 @@ def recording_data(recording):
     end_point = float(request.args.get('end'))
 
     series = plot_data.get_series(start_point, end_point)
+    print("Markers:", series['marker'])
 
-    time_offset = "1970-01-01T00:00:00.000Z"
-    meta_info_file = None
-    rec_path = os.path.join(RECORDINGS_FOLDER, recording)
-    for file in os.listdir(rec_path):
-        if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
-            meta_info_file = os.path.join(rec_path, file)
-    if meta_info_file is not None:
-        with open(meta_info_file) as json_file:
-            try:
-                meta_info = json.load(json_file)
-                if 'date' in meta_info:
-                    time_offset = meta_info['date']
-            except json.JSONDecodeError as e:
-                print(e.__traceback__)
-
-    series['start'] = time_offset
+    series['start'] = get_time_offset(recording)
+    offset_date = parser.parse(series['start'])
+    for tmp_marker in plot_data.marker_time_stamps:
+        print("marker times: ", offset_date + timedelta(milliseconds=tmp_marker[0]))
     # series.append(plot_data.annotations)
     # series.append(plot_data.time_stamp_series)
 
@@ -444,6 +436,50 @@ def recording_data(recording):
     return jsonify(series)
     # return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
     # return jsonify({'data': {'series': series}})
+
+
+@view.route('/recording/add_marker/<string:recording>/')
+def add_marker(recording):
+    plot_data = get_plot_data(recording)
+
+    marker_x = request.args.get('x')
+    print("new marker at: ", marker_x)
+    print(plot_data.marker_time_stamps)
+    target_date = parser.parse(marker_x)
+    offset_date = parser.parse(get_time_offset(recording))
+    target_date = target_date.replace(tzinfo=offset_date.tzinfo)
+    time_diff = target_date-offset_date
+    # offset_date.replace(tzinfo=None)
+    #print('target:', target_date)
+    #print('offset:', offset_date)
+    #print('diff:', time_diff)
+
+#
+    millis = time_diff.total_seconds() * 1000
+    millis += 250
+    # print('millis:', millis)
+    nanos = millis * 1000000
+    # print('nanos:', nanos)
+
+
+    # print("new tartget times: ", offset_date + timedelta(milliseconds=millis))
+
+    meta_data = get_meta_data(recording)
+    nanos += meta_data['start_time_stamp']
+    #print("new nanos:", nanos)
+
+    new_timestamps = np.zeros((plot_data.marker_time_stamps.shape[0]+1, 2))
+    new_timestamps[:plot_data.marker_time_stamps.shape[0]] = plot_data.marker_time_stamps
+    new_timestamps[-1] = np.array((millis, 1))
+    plot_data.marker_time_stamps = new_timestamps[new_timestamps[:, 0].argsort()]
+    #print("new sorted markers:", plot_data.marker_time_stamps)
+    np.save(os.path.join(plot_data.path, 'data_array_marker.npy'), plot_data.marker_time_stamps)
+    csv_file = search_file_of_recording(recording, r'marker_time_stamps_.*\.csv')
+    add_row_to_csv(csv_file, (nanos, 1))
+
+    return jsonify({'status': 'success'})
+
+
 
 
 

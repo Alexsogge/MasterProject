@@ -92,6 +92,8 @@
     <script>
         let cropper;
         let plotData=null;
+        let current_start = 0;
+        let current_end = 1;
         function clear_selection(){
             cropper.reset();
             cropper.clear();
@@ -146,6 +148,8 @@
         }
 
         function getSeries(start, end){
+            current_start = start;
+            current_end = end;
             console.log("request", `{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`);
             fetch(`{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`)
                 .then(response => {
@@ -198,6 +202,7 @@
             }
 
             var markerTimeStamps = data.marker.ts.map(sec2dt);
+            console.log("marker time stamps:", markerTimeStamps);
             if(showMarker) {
                 for (let i = 0; i < markerTimeStamps.length; i++) {
                     shapes.push({
@@ -314,10 +319,38 @@
                 },
                 shapes: shapes};
             Plotly.newPlot( chartEle, traces, layout);
+            chartEle.on('plotly_click', function(data){
+                var pts = '';
+                for(var i=0; i < data.points.length; i++){
+
+                    /*annotate_text = 'x = '+data.points[i].x +
+                        'y = '+data.points[i].y.toPrecision(4);
+                    annotation = {
+                        text: annotate_text,
+                        x: data.points[i].x,
+                        y: parseFloat(data.points[i].y.toPrecision(4))
+                    }
+                    annotations.push(annotation);
+                    Plotly.relayout(chartEle,{annotations: annotations})
+                    */
+                    add_marker(data.points[i].x);
+                }
+            });
+
             window.scrollTo(0,document.body.scrollHeight);
             document.getElementById('loading-row').style.display = 'none';
             document.getElementById('reset-row').style.display = 'block';
             document.getElementById('chartUI').style.display = 'block';
+        }
+
+        function add_marker(x){
+            fetch(`{{url_for('views.add_marker', recording=recording_name)}}?x=${x}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    getSeries(current_start, current_end);
+                })
         }
 
         function sec2dt(v) {

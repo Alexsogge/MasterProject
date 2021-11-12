@@ -63,7 +63,7 @@ class PlotData:
         end_time_stamp = self.time_range * end
         # data_array = self.get_sliced_data(start_time_stamp, end_time_stamp)
         data = self.get_sliced_data(start_time_stamp, end_time_stamp)
-
+        print("plot daste markers:", self.marker_time_stamps)
         series: Dict[str, Dict] = dict()
 
         acc_entry = dict()
@@ -79,7 +79,7 @@ class PlotData:
                           'mean': data[2][:, 3].tolist(), 'pred': data[2][:, 4].tolist()}
         series['eval'] = {'ts': data[3][:, 0].tolist(), 'answer': data[3][:, 1].tolist(), 'compulsive': data[3][:, 2].tolist(), 'tense': data[3][:, 3].tolist(), 'urge': data[3][:, 4].tolist()}
         series['bluetooth'] = {'ts': data[4][:, 0].tolist(), 'rssi': data[4][:, 1].tolist(), 'dist': data[4][:, 2].tolist()}
-        series['marker'] = {'ts': data[5][:, 0].tolist()}
+        series['marker'] = {'ts': data[5][:, 0].tolist(), 'val': data[5][:, 1].tolist()}
 
         return series
 

@@ -16,7 +16,7 @@ class MarkerDecoder:
     @classmethod
     def read_data(cls, folder) -> np.ndarray:
 
-        value_array = read_csvs_in_folder(folder, 'marker_time_stamp', 1)
+        value_array = read_csvs_in_folder(folder, 'marker_time_stamp', 2)
         return value_array
 
 
