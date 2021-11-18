@@ -1,3 +1,10 @@
 .rec-entry:hover{
     background-color: #d6d6d6;
 }
+
+.filter{
+    border-radius: 25px;
+    background: #73AD21;
+    padding-left: 3px;
+    padding-right: 3px;
+}
