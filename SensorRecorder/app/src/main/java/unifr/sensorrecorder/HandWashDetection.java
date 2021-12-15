@@ -545,7 +545,7 @@ public class HandWashDetection {
             for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++){
                 ts = possibleHandWash(sensorIndex, i);
                 if (ts > -1) {
-                    fadeOutCounter = 3;
+                    fadeOutCounter = 4;
                     break;
                 }
             }

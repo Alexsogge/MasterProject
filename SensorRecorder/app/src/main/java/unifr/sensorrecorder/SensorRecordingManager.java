@@ -78,7 +78,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private final long sensorDelay = (long) (1e9 / 50);
     private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD, Sensor.TYPE_ROTATION_VECTOR};
     //private final int[] possibleSensors = new int[]{Sensor.TYPE_ACCELEROMETER};
-    private final float[] possibleHandWashActivateThresholds = new float[]{10f, 10f, -1f, -1f};
+    private final float[] possibleHandWashActivateThresholds = new float[]{13f, 13f, -1f, -1f};
     private final int[] sensorsUsedInTFModel = new int[]{Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE};
 
 
