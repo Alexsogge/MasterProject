@@ -19,6 +19,8 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
+from models import db, AuthenticationRequest
+
 
 
 
@@ -50,27 +52,51 @@ def index():
 @view.route('/tokenauth/request/')
 def request_token():
     identifier = request.args.get('identifier')
+    db_identifiers = AuthenticationRequest.query.all()
+    # print('DB identifiers:', db_identifiers)
     if identifier is None or identifier == '':
         return jsonify({'status': 'error', 'msg': 'no identifier'})
 
-    auth_request: AuthRequest = open_auth_requests.get_request(identifier)
+    auth_request: AuthenticationRequest = AuthenticationRequest.query.filter_by(identifier=identifier).first()
+    # print('auth_request', auth_request)
     if auth_request is None:
-        open_auth_requests.new_request(identifier)
+        # open_auth_requests.new_request(identifier)
+
+        new_auth_request = AuthenticationRequest(identifier=identifier)
+        db.session.add(new_auth_request)
+        db.session.commit()
         return jsonify({'status': 'new', 'msg': 'created request'})
 
     else:
-        if not auth_request.granted:
-            return jsonify({'status': 'pending', 'msg': 'waiting for confirmation'})
+        if auth_request.used:
+            auth_request.used = False
+            auth_request.granted = False
+            db.session.commit()
+            return jsonify({'status': 'new', 'msg': 'created request'})
         else:
-            open_auth_requests.remove_request(auth_request)
-            return jsonify({'status': 'grant', 'token': config.client_secret})
+            if not auth_request.granted:
+                return jsonify({'status': 'pending', 'msg': 'waiting for confirmation'})
+            else:
+                auth_request.used = True
+                auth_request.granted = False
+                db.session.commit()
+                return jsonify({'status': 'grant', 'token': config.client_secret})
 
 
 @view.route('/tokenauth/check/')
 @basic_auth.login_required
 def get_open_auth_requests():
-    return render_template('list_requests.html', open_requests=open_auth_requests.open_auth_requests)
+    return render_template('list_requests.html', open_requests=AuthenticationRequest.query.filter_by(used=False))
 
+
+@view.route('/tokenauth/grant/<int:auth_id>/')
+@basic_auth.login_required
+def grant_auth_request(auth_id):
+    auth_request = AuthenticationRequest.query.filter_by(id=auth_id).first()
+    if auth_request is not None:
+        auth_request.granted = True
+        db.session.commit()
+    return redirect(url_for('views.get_open_auth_requests'))
 
 @view.route('/settings/', methods=['GET', 'POST'])
 @basic_auth.login_required
@@ -187,15 +213,6 @@ def select_tfmodel(tf_model):
     if os.path.exists(settings_file):
         os.utime(settings_file, None)
     return redirect(url_for('views.tfmodel'))
-
-
-@view.route('/tokenauth/grant/<int:auth_id>/')
-@basic_auth.login_required
-def grant_auth_request(auth_id):
-    auth_request = open_auth_requests.get_by_id(auth_id)
-    if auth_request is not None:
-        auth_request.granted = True
-    return redirect(url_for('views.get_open_auth_requests'))
 
 
 @view.route('/recording/list/')
