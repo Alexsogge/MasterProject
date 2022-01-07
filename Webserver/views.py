@@ -116,8 +116,9 @@ def settings():
                 settings_values[key] = int(settings_values[key])
         print(settings_values)
         config.save_config(settings_values)
-
-    return render_template('settings.html', setting_entries=config.get_config_values())
+    print(config.get_config_values())
+    setting_hints = {'database_uri': 'dialect+driver://username:password@host:port/database'}
+    return render_template('settings.html', setting_entries=config.get_config_values(), setting_hints=setting_hints)
 
 
 @view.route('/tfmodel/', methods=['GET', 'POST'])

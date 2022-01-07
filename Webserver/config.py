@@ -6,7 +6,7 @@ import string
 import os
 
 
-version = 1.5
+version = 1.6
 secret_key_iterations = 42
 
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite', 'json', 'avi', 'ort'}
@@ -18,7 +18,7 @@ TFMODEL_FOLDER = os.path.join(UPLOAD_FOLDER, 'tf_models')
 config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix': '',
                  'client_secret': '', 'user': 'admin', 'user_pw': 'admin', 'session_size_red': 100000,
                  'session_size_orange': 1000000, 'hide_mic_files': True, 'rename_mic_files': True,
-                 'pack_mic_files': False,
+                 'pack_mic_files': False, 'database_uri': 'sqlite:///sensor_recorder.db',
                  'available_optypes': ['Gather', 'Shape', 'Gemm', 'Unsqueeze', 'Concat', 'Reshape', 'FusedGemm',
                                        'Squeeze', 'Expand', 'Softmax', 'LSTM', 'Div', 'Sub', 'Add', 'MatMul',
                                        'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv']}
@@ -36,6 +36,8 @@ class Config:
     user_pw: str = None
     session_size_red = None
     session_size_orange = None
+
+    database_uri: str = None
 
     hide_mic_files: bool = None
     rename_mic_files: bool = None

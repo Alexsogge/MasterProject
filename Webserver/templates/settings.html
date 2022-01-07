@@ -7,7 +7,7 @@
     <div class="row">
         <form action="{{url_for('views.settings')}}" method="post">
             {% for key, value in setting_entries.items() %}
-            <div class="form-group">
+            <div class="form-group mt-2">
                 <label for="input_{{ key }}">{{ key}}</label>
                 {% if value|is_boolean %}
                     <input type="checkbox" class="form-check-input" name="{{ key }}" id="input_{{ key }}"
@@ -16,6 +16,9 @@
                     <input type="number" class="form-control" name="{{ key }}" id="input_{{ key }}" value="{{ value }}">
                 {% else %}
                     <input type="text" class="form-control" name="{{ key }}" id="input_{{ key }}" value="{{ value }}">
+                {% endif %}
+                {% if key in setting_hints %}
+                    <small id="{{ key }}Help" class="form-text text-muted">{{ setting_hints[key] }}</small>
                 {% endif %}
             </div>
             {% endfor %}
