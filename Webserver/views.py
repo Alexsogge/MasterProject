@@ -277,7 +277,8 @@ def get_recording(recording):
     path = os.path.join(RECORDINGS_FOLDER, recording)
     total_size = 0
     meta_info_file = None
-    for file in os.listdir(path):
+
+    for file in sorted(os.listdir(path)):
         if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
             meta_info_file = os.path.join(path, file)
         total_size += os.path.getsize(os.path.join(path, file))

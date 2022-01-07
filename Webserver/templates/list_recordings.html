@@ -10,20 +10,29 @@
     </div>
     <div class="row mb-3">
         <div class="col-md-8">
-            <div class="input-group">
-                 <div class="input-group-prepend">
-                     <span class="input-group-text" for="filter_selection">Filter for :</span>
-                 </div>
-                    <select class="form-select" id="filter_selection" onchange="update_filter_field()" style="max-width: 200px">
-                         <option value="android_id">Android id</option>
-                         <option value="tf_model">TF model</option>
-                         <option value="app_version">App version</option>
-                         <option value="date">Date</option>
-                         <option value="description">Description</option>
-                     </select>
-                <input type="text" id="filter_field" class="form-control" placeholder="filter value">
-                <div class="input-group-append">
-                    <button class="btn btn-primary" onclick="filter_list()">set filter</button>
+            <div class="row">
+                <div class="input-group">
+                     <div class="input-group-prepend">
+                         <span class="input-group-text" for="filter_selection">Filter for :</span>
+                     </div>
+                        <select class="form-select" id="filter_selection" onchange="update_filter_field()" style="max-width: 200px">
+                             <option value="android_id">Android id</option>
+                             <option value="tf_model">TF model</option>
+                             <option value="app_version">App version</option>
+                             <option value="date">Date</option>
+                             <option value="description">Description</option>
+                         </select>
+                    <input type="text" id="filter_field" class="form-control" placeholder="filter value">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" onclick="filter_list()">set filter</button>
+                    </div>
+                </div>
+                <div class="row mt-1 g-1 ms-5">
+                    {% for key, val in current_filter.items() %}
+                        <div class="col-auto">
+                            <div class="filter">{{ key}}: {{ val }}<button type="button" class="btn bg-transparent ms-1" onclick="remove_filter('{{ key }}')">X</button></div>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -47,13 +56,17 @@
         let deletion_buffer = 0;
 
         function filter_list(){
-            let url = window.location.href;
             const filter_param = document.getElementById('filter_selection').value;
             const filter_value = document.getElementById('filter_field').value;
 
             current_filter[filter_param] = filter_value;
             if (filter_value === "")
                 delete current_filter[filter_param];
+            load_filtered_list();
+        }
+
+        function load_filtered_list(){
+            let url = window.location.href;
             let params = '?';
             console.log(current_filter);
             for (let key in current_filter) {
@@ -77,6 +90,11 @@
             } else {
                 document.getElementById('filter_field').value = '';
             }
+        }
+
+        function remove_filter(filter){
+            delete current_filter[filter];
+            load_filtered_list();
         }
 
         function update_selection(box){
