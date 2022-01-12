@@ -15,7 +15,11 @@ from plot_data import PlotData
 from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, config
 from ort_helpers import *
 
-prepared_plot_data: Dict[str, PlotData] = dict()
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from models import Recording
+
+prepared_plot_data: Dict[int, PlotData] = dict()
 
 
 to_clean_files = ['.npy', '.png', '.svg']
@@ -79,8 +83,8 @@ def contains_mic_files(file, path):
     return False
 
 
-def get_plot_data(recording):
-    if recording not in prepared_plot_data:
+def get_plot_data(recording: 'Recording'):
+    if recording.id not in prepared_plot_data:
         if len(prepared_plot_data) > 2:
             oldest_data = None
             oldest_ts = math.inf
@@ -90,8 +94,8 @@ def get_plot_data(recording):
                     oldest_data = key
                 if oldest_data in prepared_plot_data:
                     del prepared_plot_data[oldest_data]
-        prepared_plot_data[recording] = PlotData(recording, os.path.join(RECORDINGS_FOLDER, recording))
-    return prepared_plot_data[recording]
+        prepared_plot_data[recording.id] = PlotData(recording)
+    return prepared_plot_data[recording.id]
 
 
 def convert_size(size_bytes):
@@ -160,32 +164,16 @@ def check_valid_ort_model(file):
     return missing_optypes
 
 
-def get_meta_data(recording):
-    meta_info = {}
-    meta_info_file = None
-    rec_path = os.path.join(RECORDINGS_FOLDER, recording)
-    for file in os.listdir(rec_path):
-        if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
-            meta_info_file = os.path.join(rec_path, file)
-    if meta_info_file is not None:
-        with open(meta_info_file) as json_file:
-            try:
-                meta_info = json.load(json_file)
-            except json.JSONDecodeError as e:
-                print(e.__traceback__)
-    return meta_info
-
-
-def get_time_offset(recording):
+def get_time_offset(recording: 'Recording'):
     time_offset = "1970-01-01T00:00:00.000Z"
-    meta_info = get_meta_data(recording)
-    if 'date' in meta_info:
-        time_offset = meta_info['date']
+    meta_info = recording.my_meta_info
+    if meta_info is not None and meta_info.date is not None:
+        time_offset = meta_info.date
     return time_offset
 
 
-def search_file_of_recording(recording, search_query):
-    rec_path = os.path.join(RECORDINGS_FOLDER, recording)
+def search_file_of_recording(recording: 'Recording', search_query):
+    rec_path = recording.path
     regex = re.compile(search_query)
     for file in os.listdir(rec_path):
         if regex.search(file):

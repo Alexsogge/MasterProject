@@ -1,8 +1,12 @@
 import datetime
 import os
+from typing import Union
+
 from dateutil import parser
 
 from flask_sqlalchemy import SQLAlchemy
+
+from tools import get_session_size, convert_size, get_size_color
 
 db = SQLAlchemy()
 
@@ -49,15 +53,49 @@ class Recording(db.Model):
     description = db.Column(db.TEXT, default='')
 
     last_changed = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    session_size = db.Column(db.Integer, default=0)
 
-    stats = db.relationship('RecordingStats', backref='recording', lazy=True)
-    meta_info = db.relationship('MetaInfo', backref='recording', lazy=True)
+    stats = db.relationship('RecordingStats', backref='recording', lazy=True, cascade="all,delete")
+    meta_info = db.relationship('MetaInfo', backref='recording', lazy=True, cascade="all,delete")
+
+    @property
+    def base_name(self) -> str:
+        return os.path.basename(os.path.normpath(self.path))
+
+    @property
+    def my_meta_info(self) -> Union[None, 'MetaInfo']:
+        if len(self.meta_info) > 0:
+            return self.meta_info[0]
+        return None
 
     def get_name(self):
         if self.alias is not None:
             return self.alias
         else:
-            return os.path.basename(os.path.normpath(self.path))
+            return self.base_name
+
+    def update_session_size(self):
+        self.session_size = get_session_size(self.path)
+
+    def get_file_size(self):
+        if self.session_size is None:
+            self.session_size = 0
+        return convert_size(self.session_size)
+
+    def get_file_size_color(self):
+        if self.session_size is None:
+            self.session_size = 0
+        return get_size_color(self.session_size)
+
+    def get_last_changed(self):
+        return self.last_changed.strftime('%d/%m/%Y, %H:%M:%S')
+
+    def get_zip_path(self):
+        return self.base_name + '/.' + self.base_name + '.zip'
+
+    def update_last_changed(self):
+        self.last_changed = datetime.datetime.utcnow()
+
 
 
 
@@ -83,6 +121,7 @@ class MetaInfo(db.Model):
     date = db.Column(db.DateTime, nullable=True)
     start_time_stamp = db.Column(db.Integer, nullable=True)
     run_number = db.Column(db.Integer, nullable=True)
+    android_id = db.Column(db.String(256), nullable=True)
 
     recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
 
@@ -101,3 +140,5 @@ class MetaInfo(db.Model):
             self.start_time_stamp = int(info_dict['start_time_stamp'])
         if 'run_number' in info_dict:
             self.run_number = int(info_dict['run_number'])
+        if 'android_id' in info_dict:
+            self.android_id = info_dict['android_id']

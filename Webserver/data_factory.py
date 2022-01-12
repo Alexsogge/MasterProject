@@ -2,14 +2,17 @@ import os
 import numpy as np
 from sensor_processor.process_data import DataProcessor
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from models import Recording
 
 class DataFactory:
     sensor_data_file_name = 'sensor_data.npy'
     sensor_data_flattened_file_name = 'sensor_data_flattened.npy'
 
-    def __init__(self, recording_id, path):
-        self.recording_id = recording_id
-        self.path = path
+    def __init__(self, recording: 'Recording'):
+        self.recording = recording
+        self.path = recording.path
         self._data_processor = None
 
     @property

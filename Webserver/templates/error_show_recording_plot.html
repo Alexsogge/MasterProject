@@ -2,13 +2,13 @@
 
 {% block content %}
     <div class="row mb-3">
-        <h1>Error during plot {{ recording_name }}</h1>
+        <h1>Error during plot {{ recording.get_name() }}</h1>
     </div>
     <div class="row">
         Please try to clean data plot
     </div>
     <div class="row">
-        <a class="btn btn-danger" href="{{url_for('views.clean_recording', recording=recording_name)}}">Clean plot data</a>
+        <a class="btn btn-danger" href="{{url_for('views.clean_recording', recording_id=recording.id)}}">Clean plot data</a>
     </div>
     {% if error %}
         <div class="row mt-3">

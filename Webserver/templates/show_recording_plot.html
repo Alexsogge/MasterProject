@@ -15,7 +15,7 @@
 
 {% block content %}
     <div class="row mb-3">
-        <h1>Plot {{ recording_name }}</h1>
+        <h1>Plot {{ recording.get_name() }}</h1>
     </div>
     <div class="row">
         <img src="{{url_for('views.uploaded_recording_file', path=plot)}}" id="plot" class="img-fluid" alt="Plot" style="display: block; max-width: 100%;">
@@ -102,7 +102,7 @@
         }
 
         function loadHighcharts(start, end) {
-            Highcharts.getJSON(`{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`, function (data) {
+            Highcharts.getJSON(`{{url_for('views.recording_data', recording_id=recording.id)}}?start=${start}&end=${end}`, function (data) {
                 // Create the chart
                 console.log(data);
                 Highcharts.stockChart('chart', {
@@ -150,8 +150,8 @@
         function getSeries(start, end){
             current_start = start;
             current_end = end;
-            console.log("request", `{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`);
-            fetch(`{{url_for('views.recording_data', recording=recording_name)}}?start=${start}&end=${end}`)
+            console.log("request", `{{url_for('views.recording_data', recording_id=recording.id)}}?start=${start}&end=${end}`);
+            fetch(`{{url_for('views.recording_data', recording_id=recording.id)}}?start=${start}&end=${end}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -344,7 +344,7 @@
         }
 
         function add_marker(x){
-            fetch(`{{url_for('views.add_marker', recording=recording_name)}}?x=${x}`)
+            fetch(`{{url_for('views.add_marker', recording_id=recording.id)}}?x=${x}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');

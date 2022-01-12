@@ -9,6 +9,7 @@ from dateutil import parser
 from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for
 
 from werkzeug.utils import secure_filename
+from sqlalchemy import desc
 import uuid
 import shutil
 
@@ -219,63 +220,54 @@ def select_tfmodel(tf_model):
 @view.route('/recording/list/')
 @basic_auth.login_required
 def list_recordings():
-    recording_directories = os.listdir(RECORDINGS_FOLDER)
-    recording_infos = dict()
     filter_args = {}
     if len(request.args) > 0:
         filter_args = request.args.to_dict(flat=True)
 
-    for directory in recording_directories:
+    all_recordings = Recording.query.order_by(desc(Recording.last_changed)).all()
+    recordings = []
 
-        short_description = ""
-        long_description = ""
-        description_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, "README.md"))
-        if os.path.exists(description_file):
-            with open(description_file, 'r') as desc_file:
-                short_description = desc_file.readline()
-                long_description = short_description + desc_file.read()
-        changed_time_stamp = os.stat(os.path.join(RECORDINGS_FOLDER, directory)).st_ctime
+    if len(filter_args) > 0:
+        for recording in all_recordings:
+            skip = False
+            for key, value in filter_args.items():
+                meta_info = None
+                if len(recording.meta_info) > 0:
+                    meta_info = recording.meta_info[0]
 
-        # since directories creation time changes if a file was edited, we have to find the oldest file within them
-        meta_info_file = None
-        for file in os.listdir(os.path.join(RECORDINGS_FOLDER, directory)):
-            if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
-                meta_info_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))
-            tmp_c_time = os.stat(os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))).st_ctime
-            if tmp_c_time < changed_time_stamp:
-                changed_time_stamp = tmp_c_time
+                if hasattr(recording, key):
+                    if str(value) not in str(getattr(recording, key)):
+                        skip = True
+                        break
+                elif meta_info is not None and hasattr(meta_info, key):
+                    if str(value) not in str(getattr(meta_info, key)):
+                        skip = True
+                        break
+                else:
+                    skip = True
+                    break
+            if not skip:
+                recordings.append(recording)
+    else:
+        recordings = all_recordings
 
-        meta_info = {}
-        if meta_info_file is not None:
-            with open(meta_info_file) as json_file:
-                meta_info = json.load(json_file)
-        meta_info['description'] = long_description
 
-        skip_session = False
-        for filter_arg, arg_value in filter_args.items():
-            if filter_arg not in meta_info or str(arg_value) not in str(meta_info[filter_arg]):
-                skip_session = True
-        if skip_session:
-            continue
+    print(recordings)
 
-        session_size = get_session_size(os.path.join(RECORDINGS_FOLDER, directory))
-        change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
-        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description,
-                                      convert_size(session_size), get_size_color(session_size), meta_info]
 
-    recordings_sort = sorted(recording_infos.keys(), key=lambda key: recording_infos[key][1], reverse=True)
 
     # recording_directories = [x[0] for x in os.walk(RECORDINGS_FOLDER)]
 
-    return render_template('list_recordings.html', recordings=recording_infos, sorting=recordings_sort,
+    return render_template('list_recordings.html', recordings=recordings, sorting=None,
                            current_filter=filter_args)
 
-@view.route('/recording/get/<string:recording>/')
+@view.route('/recording/get/<int:recording_id>/')
 @basic_auth.login_required
-def get_recording(recording):
+def get_recording(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
     recording_files = []
-    description = ""
-    path = os.path.join(RECORDINGS_FOLDER, recording)
+    description = recording.description
+    path = recording.path
     total_size = 0
     meta_info_file = None
 
@@ -285,8 +277,6 @@ def get_recording(recording):
         total_size += os.path.getsize(os.path.join(path, file))
         if config.hide_mic_files and '.zip' in file and contains_mic_files(file, path):
             continue
-        if file == 'README.md':
-            description = open(os.path.join(RECORDINGS_FOLDER, os.path.join(recording, "README.md")), 'r').read()
         recording_files.append(file)
 
     meta_info = {}
@@ -299,53 +289,54 @@ def get_recording(recording):
     generated_data_size = 0
     data_file = os.path.join(path, DataFactory.sensor_data_file_name)
     if os.path.exists(data_file):
-        sensor_data_file = os.path.join(recording, DataFactory.sensor_data_file_name)
+        sensor_data_file = os.path.join(recording.base_name, DataFactory.sensor_data_file_name)
         generated_data_size += os.path.getsize(data_file)
     data_file = os.path.join(path, DataFactory.sensor_data_flattened_file_name)
     if os.path.exists(data_file):
-        sensor_data_flattened_file = os.path.join(recording, DataFactory.sensor_data_flattened_file_name)
+        sensor_data_flattened_file = os.path.join(recording.base_name, DataFactory.sensor_data_flattened_file_name)
         generated_data_size += os.path.getsize(data_file)
 
     total_size = convert_size(total_size)
     generated_data_size = convert_size(generated_data_size)
-    return render_template('show_recording.html', recording_name=recording, files=recording_files,
-                           description=description, total_size=total_size, sensor_data_file=sensor_data_file,
+    return render_template('show_recording.html', recording=recording,
+                           files=recording_files, total_size=total_size, sensor_data_file=sensor_data_file,
                            sensor_data_flattened_file=sensor_data_flattened_file,
                            generated_data_size=generated_data_size, meta_info=meta_info)
 
 
-@view.route('/recording/plot/<string:recording>/')
+@view.route('/recording/plot/<int:recording_id>/')
 @basic_auth.login_required
-def plot_recording(recording):
-    plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.svg')
+def plot_recording(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    plot_file = os.path.join(recording.path, 'data_plot.svg')
     if not os.path.exists(plot_file):
-        plot_file = os.path.join(os.path.join(RECORDINGS_FOLDER, recording), 'data_plot.png')
+        plot_file = os.path.join(recording.path, 'data_plot.png')
         if not os.path.exists(plot_file):
             try:
-                generate_plot_data(os.path.join(RECORDINGS_FOLDER, recording))
+                generate_plot_data(recording.path)
             except Exception as e:
                 traceback.print_tb(e.__traceback__)
-                return render_template('error_show_recording_plot.html', recording_name=recording, error=e, traceback=traceback.format_exc())
+                return render_template('error_show_recording_plot.html', recording=recording, error=e, traceback=traceback.format_exc())
 
     if os.path.exists(plot_file):
-        if recording not in prepared_plot_data.copy():
+        if recording.id not in prepared_plot_data.copy():
             try:
                 get_plot_data(recording)
             except Exception as e:
                 traceback.print_tb(e.__traceback__)
-                return render_template('error_show_recording_plot.html', recording_name=recording, error=e, traceback=traceback.format_exc())
-        plot_file = os.path.join(recording, 'data_plot.png')
-        return render_template('show_recording_plot.html', recording_name=recording, plot=plot_file)
+                return render_template('error_show_recording_plot.html', recording=recording, error=e, traceback=traceback.format_exc())
+        plot_file = os.path.join(recording.base_name, 'data_plot.png')
+        return render_template('show_recording_plot.html', recording=recording, plot=plot_file)
 
-    return render_template('error_show_recording_plot.html', recording_name=recording)
+    return render_template('error_show_recording_plot.html', recording=recording)
 
 
-@view.route('/recording/clean/<string:recording>/')
+@view.route('/recording/clean/<int:recording_id>/')
 @basic_auth.login_required
-def clean_recording(recording):
-    recording_path = os.path.join(RECORDINGS_FOLDER, recording)
-    clean_session_directory(recording_path)
-    return redirect(url_for('views.get_recording', recording=recording))
+def clean_recording(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    clean_session_directory(recording.path)
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
 @view.route('/recording/new/', methods=['GET', 'POST'])
@@ -387,55 +378,92 @@ def new_recording():
 
             file.save(os.path.join(upload_path, filename))
             add_file_to_zip(filename, upload_path, request_uuid)
+
+            recording = Recording.query.filter_by(path=upload_path).first()
+            if recording is None:
+                print('new recording')
+                recording = Recording(path=upload_path, description='')
+                db.session.add(recording)
+            recording.update_session_size()
+            recording.update_last_changed()
+
+            if os.path.splitext(filename)[1] == '.json' and 'metaInfo' in filename:
+                print('recived metainfo')
+                meta_info_file = os.path.join(upload_path, filename)
+                meta_info = {}
+                if meta_info_file is not None:
+                    with open(meta_info_file) as json_file:
+                        meta_info = json.load(json_file)
+                meta_info_m = MetaInfo()
+                meta_info_m.load_from_dict(meta_info)
+                recording.meta_info.append(meta_info_m)
+                print('Metainfo:', meta_info_m)
+                if 'android_id' in meta_info:
+                    participant = Participant.query.filter_by(android_id=meta_info['android_id']).first()
+                    print('load participant')
+                    if participant is None:
+                        participant = Participant(android_id=meta_info['android_id'])
+                        db.session.add(participant)
+                    if participant is not None:
+                        print('add recording to participant')
+                        participant.recordings.append(recording)
+
+                db.session.add(meta_info_m)
+
+            db.session.commit()
             return jsonify({'status': 'success, uploaded ' + file.filename})
 
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error'})
 
 @view.route('/recording/delete/')
-@view.route('/recording/delete/<string:recording>/')
+@view.route('/recording/delete/<int:recording_id>/')
 @basic_auth.login_required
-def delete_recording(recording=None):
-    if recording is None:
+def delete_recording(recording_id=None):
+    if recording_id is None:
         return redirect(url_for('views.list_recordings'))
-    file = os.path.join(RECORDINGS_FOLDER, recording)
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    file = recording.path
     if os.path.exists(file):
         shutil.rmtree(file)
+    db.session.delete(recording)
+    db.session.commit()
     return redirect(url_for('views.list_recordings'))
 
 
-@view.route('/recordingfile/delete/<string:recording>/<string:file_name>/')
+@view.route('/recordingfile/delete/<int:recording_id>/<string:file_name>/')
 @basic_auth.login_required
-def delete_recording_file(recording, file_name):
-    file = os.path.join(RECORDINGS_FOLDER, os.path.join(recording, file_name))
+def delete_recording_file(recording_id, file_name):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    file = os.path.join(recording.path, file_name)
     if os.path.exists(file):
         os.remove(file)
-    return redirect(url_for('views.get_recording', recording=recording))
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
-@view.route('/recording/description/<string:recording>/', methods=['GET', 'POST'])
+@view.route('/recording/description/<int:recording_id>/', methods=['GET', 'POST'])
 @basic_auth.login_required
-def recording_description(recording):
-    print('User: ', token_auth.current_user())
-
-    description_file_path = os.path.join(RECORDINGS_FOLDER, os.path.join(recording, "README.md"))
+def recording_description(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    description_file_path = os.path.join(recording.path, "README.md")
 
     if request.method == 'GET':
         description_file = open(description_file_path, 'r')
         return jsonify({'description': description_file.read()})
     elif request.method == 'POST':
-        print('Get new description')
         new_description = request.form.get('description')
         description_file = open(description_file_path, 'w')
         description_file.write(new_description)
         description_file.close()
+        recording.description = new_description
+        db.session.commit()
 
-    return redirect(url_for('views.get_recording', recording=recording))
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
-@view.route('/recording/data/<string:recording>/')
-def recording_data(recording):
-    print('User: ', token_auth.current_user())
+@view.route('/recording/data/<int:recording_id>/')
+def recording_data(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
     plot_data = get_plot_data(recording)
 
     start_point = float(request.args.get('start'))
@@ -445,7 +473,7 @@ def recording_data(recording):
     print("Markers:", series['marker'])
 
     series['start'] = get_time_offset(recording)
-    offset_date = parser.parse(series['start'])
+    offset_date = series['start']
     for tmp_marker in plot_data.marker_time_stamps:
         print("marker times: ", offset_date + timedelta(milliseconds=tmp_marker[0]))
     # series.append(plot_data.annotations)
@@ -457,15 +485,16 @@ def recording_data(recording):
     # return jsonify({'data': {'series': series}})
 
 
-@view.route('/recording/add_marker/<string:recording>/')
-def add_marker(recording):
+@view.route('/recording/add_marker/<int:recording_id>/')
+def add_marker(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
     plot_data = get_plot_data(recording)
 
     marker_x = request.args.get('x')
     print("new marker at: ", marker_x)
     print(plot_data.marker_time_stamps)
     target_date = parser.parse(marker_x)
-    offset_date = parser.parse(get_time_offset(recording))
+    offset_date = get_time_offset(recording)
     target_date = target_date.replace(tzinfo=offset_date.tzinfo)
     time_diff = target_date-offset_date
     # offset_date.replace(tzinfo=None)
@@ -483,8 +512,8 @@ def add_marker(recording):
 
     # print("new tartget times: ", offset_date + timedelta(milliseconds=millis))
 
-    meta_data = get_meta_data(recording)
-    nanos += meta_data['start_time_stamp']
+    meta_data = recording.my_meta_info
+    nanos += meta_data.start_time_stamp
     #print("new nanos:", nanos)
 
     existing_marker_index = None
@@ -522,9 +551,9 @@ def add_marker(recording):
 
 
 
-@view.route('/recording/series/<string:recording>/')
-def recording_series(recording):
-    print('User: ', token_auth.current_user())
+@view.route('/recording/series/<int:recording_id>/')
+def recording_series(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
     plot_data = get_plot_data(recording)
 
     start_point = float(request.args.get('start'))
@@ -537,30 +566,29 @@ def recording_series(recording):
 
     # print(time_stamp_series)
 
-    return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording].annotations}})
+    return jsonify({'data': {'series': series, 'annotations': prepared_plot_data[recording.id].annotations}})
     # return jsonify({'data': {'series': series}})
 
 
-@view.route('/recording/np/generate/<string:recording>/')
-def generate_numpy_data(recording):
-    data_factory = DataFactory(recording, os.path.join(RECORDINGS_FOLDER, recording))
+@view.route('/recording/np/generate/<int:recording_id>/')
+def generate_numpy_data(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    data_factory = DataFactory(recording)
     data_factory.generate_np_sensor_data_file()
-    return redirect(url_for('views.get_recording', recording=recording))
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
-@view.route('/recording/np/delete/<string:recording>/')
-def delete_numpy_data(recording):
-    path = os.path.join(RECORDINGS_FOLDER, recording)
+@view.route('/recording/np/delete/<int:recording_id>/')
+def delete_numpy_data(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    path = recording.path
     os.remove(os.path.join(path, DataFactory.sensor_data_file_name))
     os.remove(os.path.join(path, DataFactory.sensor_data_flattened_file_name))
-    return redirect(url_for('views.get_recording', recording=recording))
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 @view.route('/participant/list/')
 @basic_auth.login_required
 def list_participants():
-    print(Participant.query.all())
-    for participant in Participant.query.all():
-        print(type(participant.recordings))
     return render_template('list_participants.html', participants=Participant.query.all())
 
 
@@ -647,6 +675,7 @@ def index_recordings():
 
 
         recording_m = Recording(path=path, description=long_description, last_changed=datetime.fromtimestamp(changed_time_stamp))
+        recording_m.session_size = session_size
         meta_info_m = MetaInfo()
         meta_info_m.load_from_dict(meta_info)
         recording_m.meta_info.append(meta_info_m)
@@ -657,6 +686,27 @@ def index_recordings():
         db.session.add(recording_m)
     db.session.commit()
 
+    return redirect(url_for('views.settings'))
+
+
+@view.route('/trigger/update_recordings/')
+def update_recordings():
+    for recording in Recording.query.all():
+        recording.update_session_size()
+        meta_info_file = None
+        for file in os.listdir(recording.path):
+            if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
+                meta_info_file = os.path.join(recording.path, file)
+
+        meta_info = {}
+        if meta_info_file is not None:
+            with open(meta_info_file) as json_file:
+                meta_info = json.load(json_file)
+
+        if len(recording.meta_info)>0:
+            recording.meta_info[0].load_from_dict(meta_info)
+
+    db.session.commit()
     return redirect(url_for('views.settings'))
 
 @view.route("/auth")

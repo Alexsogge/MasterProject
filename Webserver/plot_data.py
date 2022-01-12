@@ -5,6 +5,9 @@ from preview_builder import generate_plot_data, get_data_array
 import numpy as np
 import time
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from models import Recording
 
 def get_index_of_ts(time_stamp, data):
     return np.searchsorted(data, time_stamp)
@@ -12,12 +15,12 @@ def get_index_of_ts(time_stamp, data):
 
 class PlotData:
 
-    def __init__(self, recording_id, path):
-        self.recording_id = recording_id
-        self.path = path
+    def __init__(self, recording: 'Recording'):
+        self.recording = recording
+        self.path = recording.path
         self.last_access = time.time()
 
-        if os.path.exists(os.path.join(path, 'data_array_acc.npy')):
+        if os.path.exists(os.path.join(self.path, 'data_array_acc.npy')):
             self.recording_data_array, self.hand_wash_time_stamps, self.marker_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.load_data_array()
         else:
             self.recording_data_array, self.hand_wash_time_stamps, self.marker_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.create_new_data_array()

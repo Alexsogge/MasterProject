@@ -2,15 +2,15 @@
 
 {% block content %}
     <div class="row mb-3">
-        <h1>Recording: {{ recording_name }}</h1>
+        <h1>Recording: {{ recording.get_name() }}</h1>
     </div>
 
     <div class="row mb-6">
         <div class="col md-6">
-            <form action="{{url_for('views.recording_description', recording=recording_name)}}" method="post">
+            <form action="{{url_for('views.recording_description', recording_id=recording.id)}}" method="post">
                 <div class="form-group">
                     <label for="descriptionInput">Description</label>
-                    <textarea class="form-control" id="descriptionInput" name="description">{{ description}}</textarea>
+                    <textarea class="form-control" id="descriptionInput" name="description">{{ recording.description}}</textarea>
                 </div>
                 <button type="submit" class="btn btn-sm btn-primary mt-1" value="Submit">New description</button>
             </form>
@@ -41,15 +41,15 @@
                 <div class="row mb-1">
                     <div class="col">
                         <button class="btn btn-primary" id="plot_button" onclick="loadPlot()">Data plot</button>
-                        <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording_name+'/.'+recording_name+'.zip')}}">Download data set</a>
+                        <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_path())}}">Download data set</a>
                     </div>
-                    <div class="col"><a class="btn btn-danger" href="{{url_for('views.clean_recording', recording=recording_name)}}">Clean plot data</a></div>
+                    <div class="col"><a class="btn btn-danger" href="{{url_for('views.clean_recording', recording_id=recording.id)}}">Clean plot data</a></div>
                 </div>
 
                 {% if not sensor_data_file %}
                     <div class="row">
                         <div class="col">
-                            <h4><a class="btn btn-primary" href="{{url_for('views.generate_numpy_data', recording=recording_name)}}">Generate numpy data</a></h4>
+                            <h4><a class="btn btn-primary" href="{{url_for('views.generate_numpy_data', recording_id=recording.id)}}">Generate numpy data</a></h4>
                         </div>
                     </div>
                 {% else %}
@@ -61,7 +61,7 @@
                             <h4><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=sensor_data_flattened_file)}}" data-toggle="tooltip" data-placement="top" title="Shape: (num_values * 6,)">Sensor numpy file flattened</a></h4>
                         </div>
                         <div class="col-md-2">
-                            <h4><a class="btn btn-danger btn-sm" href="{{url_for('views.delete_numpy_data', recording=recording_name)}}">Clean generated data ({{ generated_data_size }})</a></h4>
+                            <h4><a class="btn btn-danger btn-sm" href="{{url_for('views.delete_numpy_data', recording_id=recording.id)}}">Clean generated data ({{ generated_data_size }})</a></h4>
                         </div>
                     </div>
                 {% endif %}
@@ -75,8 +75,8 @@
 
         {% for file in files %}
             <div class="row mt-1">
-                <div class="col"><a href="{{url_for('views.uploaded_recording_file', path=recording_name+'/'+file)}}">{{ file }}</a></div>
-                <div class="col"><a class="btn btn-danger" href="{{url_for('views.delete_recording_file', recording=recording_name, file_name=file)}}">Delete</a></div>
+                <div class="col"><a href="{{url_for('views.uploaded_recording_file', path=recording.base_name+'/'+file)}}">{{ file }}</a></div>
+                <div class="col"><a class="btn btn-danger" href="{{url_for('views.delete_recording_file', recording_id=recording.id, file_name=file)}}">Delete</a></div>
             </div>
         {% endfor %}
 
@@ -86,7 +86,7 @@
             const button = document.getElementById("plot_button");
 
             button.innerHTML = "Generating plot...";
-            window.location.href = '{{url_for('views.plot_recording', recording=recording_name)}}';
+            window.location.href = '{{url_for('views.plot_recording', recording_id=recording.id)}}';
         }
 
         function filterRecordings(filter_arg, filter_val){
