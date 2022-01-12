@@ -67,6 +67,7 @@ public class ServerTokenWorker extends NetworkWorker{
                 String jsonData = response.body().string();
                 JSONObject jObject = new JSONObject(jsonData);
                 String status = jObject.getString("status");
+                Log.d("http", "Got status:" + status);
                 if (status.equals("grant")){
                     SharedPreferences.Editor configEditor = configs.edit();
                     configEditor.putString(context.getString(R.string.conf_serverToken), jObject.getString("token"));

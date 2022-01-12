@@ -105,7 +105,7 @@
     <string name="val_current_tf_model" translatable="false">valCurrentTFModel</string>
     <string name="val_last_checked_tf_model" translatable="false">valLastCheckedTFModel</string>
     <string name="val_do_skip_tf_model" translatable="false">valLastCheckedTFModel</string>
-    <string name="predefined_serverName" translatable="false">https://earth.informatik.uni-freiburg.de/handwash</string>
+    <string name="predefined_serverName" translatable="false">http://192.168.0.101:8000</string>
     <string name="title_activity_handwash_evaluation" translatable="false">HandwashEvaluation</string>
     <string name="title_activity_overall_evaluation" translatable="false">OverallEvaluation</string>
 </resources>

@@ -44,5 +44,13 @@ if __name__ == '__main__':
     print("Read:", sys.argv[1])
 
     decoder = SensorDecoder(sys.argv[1])
-    data = decoder.read_data('acc')
-    print(data)
+
+    gyro_data = decoder.read_data('gyro')
+    print('gyro_data:', gyro_data.shape, gyro_data[0:5,0])
+    print('min:', decoder.min_time_stamp)
+    old_min = decoder.min_time_stamp
+
+    acc_data = decoder.read_data('acc')
+    print('acc_data:', acc_data.shape, acc_data[0:5,0])
+    print('min:', decoder.min_time_stamp)
+    print(old_min in acc_data[:,0])

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row mb-3">
+        <h1>Participants</h1>
+    </div>
+        {% for participant in participants %}
+            <div class="row">
+                <div class="col">{{ participant.id }}</div>
+                <div class="col">{{ participant.get_name() }}</div>
+                <div class="col">{{ participant.recordings|length }}</div>
+            </div>
+        {% endfor %}
+{% endblock %}

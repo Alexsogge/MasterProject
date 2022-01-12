@@ -19,7 +19,7 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
-from models import db, AuthenticationRequest
+from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo
 
 
 
@@ -555,6 +555,14 @@ def delete_numpy_data(recording):
     os.remove(os.path.join(path, DataFactory.sensor_data_flattened_file_name))
     return redirect(url_for('views.get_recording', recording=recording))
 
+@view.route('/participant/list/')
+@basic_auth.login_required
+def list_participants():
+    print(Participant.query.all())
+    for participant in Participant.query.all():
+        print(type(participant.recordings))
+    return render_template('list_participants.html', participants=Participant.query.all())
+
 
 @view.route('/tfmodel/get/latest/')
 def get_latest_tf_model():
@@ -591,6 +599,65 @@ def check_latest_tf_model():
         return jsonify({'activeModel': latest_model})
     abort(404, description="Resource not found")
 
+
+@view.route('/trigger/index_recordings/')
+def index_recordings():
+    recording_directories = os.listdir(RECORDINGS_FOLDER)
+    recording_infos = dict()
+
+    for directory in recording_directories:
+        short_description = ""
+        long_description = ""
+        description_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, "README.md"))
+        if os.path.exists(description_file):
+            with open(description_file, 'r') as desc_file:
+                short_description = desc_file.readline()
+                long_description = short_description + desc_file.read()
+        changed_time_stamp = os.stat(os.path.join(RECORDINGS_FOLDER, directory)).st_ctime
+
+        # since directories creation time changes if a file was edited, we have to find the oldest file within them
+        meta_info_file = None
+        for file in os.listdir(os.path.join(RECORDINGS_FOLDER, directory)):
+            if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
+                meta_info_file = os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))
+            tmp_c_time = os.stat(os.path.join(RECORDINGS_FOLDER, os.path.join(directory, file))).st_ctime
+            if tmp_c_time < changed_time_stamp:
+                changed_time_stamp = tmp_c_time
+
+        meta_info = {}
+        if meta_info_file is not None:
+            with open(meta_info_file) as json_file:
+                meta_info = json.load(json_file)
+        meta_info['description'] = long_description
+
+        session_size = get_session_size(os.path.join(RECORDINGS_FOLDER, directory))
+        change_time_string = datetime.fromtimestamp(changed_time_stamp).strftime('%d/%m/%Y, %H:%M:%S')
+        recording_infos[directory] = [change_time_string, changed_time_stamp, short_description,
+                                      convert_size(session_size), get_size_color(session_size), meta_info]
+
+        path = os.path.join(RECORDINGS_FOLDER, directory)
+        if Recording.query.filter_by(path=path).first() is not None:
+            continue
+        participant = None
+        if 'android_id' in meta_info:
+            participant = Participant.query.filter_by(android_id=meta_info['android_id']).first()
+            if participant is None:
+                participant = Participant(android_id=meta_info['android_id'])
+                db.session.add(participant)
+
+
+        recording_m = Recording(path=path, description=long_description, last_changed=datetime.fromtimestamp(changed_time_stamp))
+        meta_info_m = MetaInfo()
+        meta_info_m.load_from_dict(meta_info)
+        recording_m.meta_info.append(meta_info_m)
+        if participant is not None:
+            participant.recordings.append(recording_m)
+
+        db.session.add(meta_info_m)
+        db.session.add(recording_m)
+    db.session.commit()
+
+    return redirect(url_for('views.settings'))
 
 @view.route("/auth")
 @basic_auth.login_required

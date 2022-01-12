@@ -2,6 +2,8 @@ Flask~=2.0.1
 Flask-HTTPAuth
 Flask-SQLAlchemy
 Flask-Migrate
+Flask-APScheduler
+
 PyYAML~=5.4.1
 gunicorn
 numpy~=1.21.2

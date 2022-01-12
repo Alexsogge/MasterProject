@@ -216,8 +216,8 @@ class DataProcessor:
 
 
     def calc_prediction_ratio(self):
-        pos_pred = self.data_dict['predictions'][:, 2] >= 0.8
-        neg_pred = self.data_dict['predictions'][:, 2] < 0.8
+        pos_pred = self.data_dict['predictions'][:, 2] >= 0.5
+        neg_pred = self.data_dict['predictions'][:, 2] < 0.5
         print(pos_pred, neg_pred, np.sum(pos_pred), np.sum(neg_pred), np.sum(pos_pred)/len(pos_pred))
 
     def get_acceleration_data(self, as_json=False):
@@ -251,7 +251,7 @@ if __name__ == "__main__":
         if sys.argv[2] == 'mkv':
             use_mkv = True
     data_processor = DataProcessor(sys.argv[1], use_mkv, 10000)
-    data_processor.plot_data()
+    # data_processor.plot_data()
     # data_processor.plot_timings()
     # data_processor.export_numpy_array()
     data_processor.calc_prediction_ratio()
