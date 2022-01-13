@@ -1,11 +1,25 @@
 {% extends "base.html" %}
 
+{% block head %}
+    <link  href="{{ url_for('views.static', filename='list_participants.css') }}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-    <div class="row mb-3">
+    <div class="row mb-1">
         <h1>Participants</h1>
     </div>
+    <div class="row mb-3">
+        <div class="col">
+            <a class="btn btn-primary" href="{{ url_for('views.update_participant') }}">New participant</a>
+        </div>
+    </div>
+     <div class="row">
+         <div class="col"><p class="fs-3">Id</p></div>
+         <div class="col"><p class="fs-3">Alias</p></div>
+         <div class="col"><p class="fs-3">Recordings</p></div>
+     </div>
         {% for participant in participants %}
-            <div class="row">
+            <div class="row part-entry" onclick="location.href='{{url_for('views.get_participant', participant_id=participant.id)}}'">
                 <div class="col">{{ participant.id }}</div>
                 <div class="col">{{ participant.get_name() }}</div>
                 <div class="col">{{ participant.recordings|length }}</div>

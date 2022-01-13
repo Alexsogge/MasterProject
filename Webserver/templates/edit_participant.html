@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row mb-3">
+        {% if participant_id %}
+            <h1>Edit Participant: {{ alias }}</h1>
+        {% else %}
+            <h1>Create Participant</h1>
+        {% endif %}
+    </div>
+    <div class="row">
+        <form action="{{url_for('views.update_participant', participant_id=participant_id)}}" method="post">
+            <div class="form-group mt-2">
+                <label for="input_android_id">android_id</label>
+                <input type="text" class="form-control" name="android_id" id="input_android_id" value="{{ android_id }}">
+            </div>
+            <div class="form-group mt-2">
+                <label for="input_alias">alias</label>
+                <input type="text" class="form-control" name="alias" id="input_alias" value="{{ alias }}">
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Submit</button>
+        </form>
+    </div>
+
+
+
+{% endblock %}

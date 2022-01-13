@@ -399,7 +399,7 @@ def new_recording():
                 recording.meta_info.append(meta_info_m)
                 print('Metainfo:', meta_info_m)
                 if 'android_id' in meta_info:
-                    participant = Participant.query.filter_by(android_id=meta_info['android_id']).first()
+                    participant = Participant.query.filter_by(android_id=meta_info['android_id']).order_by(Participant.id.desc()).first()
                     print('load participant')
                     if participant is None:
                         participant = Participant(android_id=meta_info['android_id'])
@@ -590,6 +590,38 @@ def delete_numpy_data(recording_id):
 @basic_auth.login_required
 def list_participants():
     return render_template('list_participants.html', participants=Participant.query.all())
+
+@view.route('/participant/get/<int:participant_id>/')
+@basic_auth.login_required
+def get_participant(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    return render_template('show_participant.html', participant=participant)
+
+@view.route('/participant/update/', methods=['GET', 'POST'])
+@view.route('/participant/update/<int:participant_id>/', methods=['GET', 'POST'])
+@basic_auth.login_required
+def update_participant(participant_id=None):
+    participant = None
+    if participant_id is not None:
+        participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    if request.method == 'POST':
+        print('Save participant')
+        if participant is None:
+            participant = Participant()
+            db.session.add(participant)
+
+        participant.android_id = request.form.get('android_id')
+        participant.alias = request.form.get('alias')
+        db.session.commit()
+
+    alias = ''
+    android_id = ''
+    if participant is not None:
+        participant_id = participant.id
+        alias = participant.alias
+        android_id = participant.android_id
+
+    return render_template('edit_participant.html', participant_id=participant_id, alias=alias, android_id=android_id)
 
 
 @view.route('/tfmodel/get/latest/')

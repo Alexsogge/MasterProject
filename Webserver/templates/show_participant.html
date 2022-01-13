@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link  href="{{ url_for('views.static', filename='list_recordings.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="row mb-1">
+        <h1>Participant: {{ participant.get_name() }}</h1>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <a class="btn btn-primary" href="{{ url_for('views.update_participant', participant_id=participant.id) }}">Edit participant</a>
+        </div>
+    </div>
+
+    <div class="row mb-2">
+        <h1>Statistics</h1>
+    </div>
+
+    <div class="row mb-1">
+        <h1>Recordings</h1>
+    </div>
+    <div class="row">
+        <div class="col">
+            {% for recording in participant.recordings %}
+                <div class="row rec-entry">
+                    <div class="col-md-4"><a href="{{url_for('views.get_recording', recording_id=recording.id)}}">{{ recording.get_name() }}</a></div>
+                    <div class="col-md-2">{{ recording.description }}</div>
+                    <div class="col-md-2 text-end" style="color: {{ recording.get_file_size_color() }}">{{ recording.get_file_size() }}</div>
+                    <div class="col-md-2 mr-auto">{{ recording.get_last_changed() }}</div>
+                    <div class="col-md-1 mr-auto"><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_path())}}">Download</a></div>
+                    <div class="col-md-1 mr-auto"><a class="btn btn-danger" href="{{url_for('views.delete_recording', recording_id=recording.id)}}">Delete</a></div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+{% endblock %}
