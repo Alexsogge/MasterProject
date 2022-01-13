@@ -2,7 +2,7 @@
 import json
 import os
 import time
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy as np
 import matplotlib as mpl
@@ -11,6 +11,7 @@ import csv
 import sys
 from os import listdir
 from os.path import isfile, join, splitext
+from enum import Enum
 
 from sensor_processor.helpers import *
 from sensor_processor.sensor_decoder import SensorDecoder
@@ -29,80 +30,123 @@ nano_sec = 0.000000001
 
 mpl.rcParams['agg.path.chunksize'] = 20000
 
+class RecordingEntry(Enum):
+    ACCELERATION = 1
+    GYROSCOPE = 2
+
+    MICTIMESTAMPS = 3
+    BATTERY = 4
+    MANUALWHTS = 5
+    MARKERS = 6
+    PREDICTIONS = 7
+    EVALUATIONS = 8
+    BLUETOOTHBEACONS = 9
+
+
+
+
 class DataProcessor:
 
-    def __init__(self, folder_name, use_mkv=False, time_offset=0):
+    def __init__(self, folder_name, time_offset=0, init_all=True):
         self.folder_name = folder_name
         self.time_offset = time_offset
         self.sensor_decoder = SensorDecoder(folder_name)
-        self.data_dict: Dict[str, np.ndarray] = dict()
-        self.data_dict['mic_time_stamps'] = MicDecoder.read_folder(folder_name)
-        self.data_dict['battery'] = BatteryDecoder.read_folder(folder_name)
-        self.data_dict['time_stamps'] = HandwashDecoder.read_data(folder_name)
-        self.data_dict['markers'] = MarkerDecoder.read_data(folder_name)
-        self.data_dict['predictions'] = PredictionDecoder.read_folder(folder_name)
-        self.data_dict['evaluations'] = EvaluationDecoder.read_folder(folder_name)
-        self.data_dict['bluetooth_beacons'] = BluetoothDecoder.read_folder(folder_name)
-        if use_mkv:
-            self.data_dict = {**self.data_dict, **MKVDecoder.read_folder(folder_name)}
+        self.data_dict: Dict[RecordingEntry, np.ndarray] = dict()
+        self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
 
-        else:
-            # self.data_csv: Dict[str, List[List]] = self.read_folder(folder_name)
-            # self.data_dict['Acceleration'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Acceleration']))
-            # self.data_dict['Gyroscope'] = self.sort_data_array(self.data_to_np_array(self.data_csv['Gyroscope']))
-            # self.data_dict['time_stamps'] = self.sort_data_array(self.time_stamps_to_np_array(self.data_csv['time_stamps']))
+        if init_all:
+            for entry in RecordingEntry:
+                self.read_entry(entry)
 
-            self.data_dict['Acceleration'] = self.sensor_decoder.read_data('acc')
-            self.data_dict['Gyroscope'] = self.sensor_decoder.read_data('gyro')
-            # self.data_dict['time_stamps'] = self.sensor_decoder.time_stamps
-            self.data_dict['Acceleration'] = align_array(self.data_dict['Acceleration'],
-                                                         self.sensor_decoder.min_time_stamp)
-            self.data_dict['Gyroscope'] = align_array(self.data_dict['Gyroscope'],
-                                                         self.sensor_decoder.min_time_stamp)
-            # self.data_dict['time_stamps'] = align_array(self.data_dict['time_stamps'],
-            #                                              self.sensor_decoder.min_time_stamp)
+    def read_entry(self, entry: RecordingEntry):
+        if entry == RecordingEntry.MICTIMESTAMPS:
+            self.read_mic_ts()
+        if entry == RecordingEntry.BATTERY:
+            self.read_battery()
+        if entry == RecordingEntry.MANUALWHTS:
+            self.read_manual_hw_ts()
+        if entry == RecordingEntry.MARKERS:
+            self.read_marker()
+        if entry == RecordingEntry.PREDICTIONS:
+            self.read_predictions()
+        if entry == RecordingEntry.EVALUATIONS:
+            self.read_evaluations()
+        if entry == RecordingEntry.BLUETOOTHBEACONS:
+            self.read_bluetooth_beacons()
+        if entry == RecordingEntry.ACCELERATION:
+            self.read_acceleration()
+        if entry == RecordingEntry.GYROSCOPE:
+            self.read_gyroscope()
 
-            self.data_dict['time_stamps'] = align_array(self.data_dict['time_stamps'],
+    def read_acceleration(self):
+        self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.read_data('acc')
+        self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
+                                                     self.sensor_decoder.min_time_stamp)
+
+    def read_gyroscope(self):
+        self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.read_data('gyro')
+        self.data_dict[RecordingEntry.GYROSCOPE] = align_array(self.data_dict[RecordingEntry.GYROSCOPE],
+                                                  self.sensor_decoder.min_time_stamp)
+
+    def read_mic_ts(self):
+        self.data_dict[RecordingEntry.MICTIMESTAMPS] = MicDecoder.read_folder(self.folder_name)
+        self.data_dict[RecordingEntry.MICTIMESTAMPS] = align_array(self.data_dict[RecordingEntry.MICTIMESTAMPS],
                                                         self.sensor_decoder.min_time_stamp)
 
-            self.data_dict['markers'] = align_array(self.data_dict['markers'],
-                                                        self.sensor_decoder.min_time_stamp)
+    def read_battery(self):
+        self.data_dict[RecordingEntry.BATTERY] = BatteryDecoder.read_folder(self.folder_name)
+        self.data_dict[RecordingEntry.BATTERY] = BatteryDecoder.extend_battery_values(self.sensor_decoder.min_time_stamp,
+                                                                         self.sensor_decoder.max_time_stamp,
+                                                                         self.data_dict[RecordingEntry.BATTERY])
+        self.data_dict[RecordingEntry.BATTERY] = align_array(self.data_dict[RecordingEntry.BATTERY], self.sensor_decoder.min_time_stamp)
 
-            self.data_dict['mic_time_stamps'] = align_array(self.data_dict['mic_time_stamps'],
-                                                            self.sensor_decoder.min_time_stamp)
-            self.data_dict['battery'] = BatteryDecoder.extend_battery_values(self.sensor_decoder.min_time_stamp,
-                                                                             self.sensor_decoder.max_time_stamp,
-                                                                             self.data_dict['battery'])
+    def read_manual_hw_ts(self):
+        self.data_dict[RecordingEntry.MANUALWHTS] = HandwashDecoder.read_data(self.folder_name)
+        self.data_dict[RecordingEntry.MANUALWHTS] = align_array(self.data_dict[RecordingEntry.MANUALWHTS],
+                                                    self.sensor_decoder.min_time_stamp)
 
-            self.data_dict['battery'] = align_array(self.data_dict['battery'], self.sensor_decoder.min_time_stamp)
-            self.data_dict['predictions'] = align_array(self.data_dict['predictions'], self.sensor_decoder.min_time_stamp)
-            self.data_dict['evaluations'] = align_array(self.data_dict['evaluations'],
-                                                        self.sensor_decoder.min_time_stamp)
-            self.data_dict['bluetooth_beacons'] = align_array(self.data_dict['bluetooth_beacons'],
-                                                        self.sensor_decoder.min_time_stamp)
+    def read_marker(self):
+        self.data_dict[RecordingEntry.MARKERS] = MarkerDecoder.read_data(self.folder_name)
+        self.data_dict[RecordingEntry.MARKERS] = align_array(self.data_dict[RecordingEntry.MARKERS],
+                                                self.sensor_decoder.min_time_stamp)
+
+    def read_predictions(self):
+        self.data_dict[RecordingEntry.PREDICTIONS] = PredictionDecoder.read_folder(self.folder_name)
+        self.data_dict[RecordingEntry.PREDICTIONS] = align_array(self.data_dict[RecordingEntry.PREDICTIONS],
+                                                                 self.sensor_decoder.min_time_stamp)
+
+    def read_evaluations(self):
+        self.data_dict[RecordingEntry.EVALUATIONS] = EvaluationDecoder.read_folder(self.folder_name)
+
+        self.data_dict[RecordingEntry.EVALUATIONS] = align_array(self.data_dict[RecordingEntry.EVALUATIONS],
+                                                    self.sensor_decoder.min_time_stamp)
+
+    def read_bluetooth_beacons(self):
+        self.data_dict[RecordingEntry.BLUETOOTHBEACONS] = BluetoothDecoder.read_folder(self.folder_name)
+        self.data_dict[RecordingEntry.BLUETOOTHBEACONS] = align_array(self.data_dict[RecordingEntry.BLUETOOTHBEACONS],
+                                                          self.sensor_decoder.min_time_stamp)
 
 
-        # self.clean_data()
 
     def plot_hand_wash_events(self, dims, ax=None, scaling: float=1.0):
         if ax is None:
             ax = plt.gca()
-        for ts in self.data_dict['time_stamps']:
+        for ts in self.data_dict[RecordingEntry.MANUALWHTS]:
             # rect = plt.Rectangle([ts[0], dims[1]], 20, dims[1], facecolor='blue', alpha=0.5)
             # ax.add_patch(rect)
             # print(ts[0]*nano_sec)
             ax.add_patch(plt.Rectangle((ts[0]*nano_sec*scaling - 50*scaling, dims[0]), 50*scaling, (dims[1] * 1.2) - dims[0], facecolor='blue', alpha=0.3))
-        ax.vlines(self.data_dict['time_stamps'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='black')
+        ax.vlines(self.data_dict[RecordingEntry.MANUALWHTS][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='black')
 
     def plot_markers(self, dims, ax, scaling: float=1.0):
-        ax.vlines(self.data_dict['markers'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='indigo')
+        ax.vlines(self.data_dict[RecordingEntry.MARKERS][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='indigo')
 
     def plot_mic_events(self, dims, ax=None, scaling: float=1.0):
         if ax is None:
             ax = plt.gca()
         # print(self.data_dict['mic_time_stamps'].shape)
         # print(self.data_dict['mic_time_stamps'][:, 0])
-        ax.vlines(self.data_dict['mic_time_stamps'][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='pink')
+        ax.vlines(self.data_dict[RecordingEntry.MICTIMESTAMPS][:, 0]*nano_sec*scaling, dims[0], dims[1] * 1.2, color='pink')
 
     def sub_predictions(self, data, ax, add_time_stamps=True):
         x = data[:, 0]*nano_sec
@@ -114,7 +158,7 @@ class DataProcessor:
         ax.scatter(x, data[:, 2] * 100, c='red', alpha=0.8, label='handwash')
         ax.plot(x, data[:, 3] * 100, c='orange', label='mean')
 
-        data = self.data_dict['evaluations']
+        data = self.data_dict[RecordingEntry.EVALUATIONS]
         data[:, 0] *= nano_sec
         pos_data = data[data[:, 1] == 1]
         neg_data = data[data[:, 1] == 0]
@@ -123,7 +167,7 @@ class DataProcessor:
         ax.scatter(neg_data[:, 0], np.full(neg_data.shape[0], -5), c='purple', s=200, marker='^', alpha=1, label='no')
         ax.scatter(pos_data[:, 0], np.full(pos_data.shape[0], 105), c='green', s=200, marker='v', alpha=1, label='yes')
 
-        data = self.data_dict['bluetooth_beacons']
+        data = self.data_dict[RecordingEntry.BLUETOOTHBEACONS]
         data[:, 0] *= nano_sec
         ax.scatter(data[:, 0], np.full(data.shape[0], 50), c='royalblue', s=100, marker='d', alpha=0.8,
                    label='bluetooth')
@@ -152,10 +196,10 @@ class DataProcessor:
 
         fig, axs = plt.subplots(4, 1, sharex=True, figsize=(20, 15))
 
-        self.sub_plot_data(self.data_dict['Acceleration'], axs[0])
-        self.sub_plot_data(self.data_dict['Gyroscope'], axs[1])
-        self.sub_plot_data(self.data_dict['battery'], axs[2], 'percentage', False)
-        self.sub_predictions(self.data_dict['predictions'], axs[3])
+        self.sub_plot_data(self.data_dict[RecordingEntry.ACCELERATION], axs[0])
+        self.sub_plot_data(self.data_dict[RecordingEntry.GYROSCOPE], axs[1])
+        self.sub_plot_data(self.data_dict[RecordingEntry.BATTERY], axs[2], 'percentage', False)
+        self.sub_predictions(self.data_dict[RecordingEntry.PREDICTIONS], axs[3])
         axs[2].set_ylim([0, 105])
 
         axs[0].set_title('Acceleration')
@@ -163,11 +207,11 @@ class DataProcessor:
         axs[2].set_title('Battery')
         axs[3].set_title('Predictions')
 
-        self.plot_markers((np.amin(self.data_dict['Acceleration'][:, 1:]), np.amax(self.data_dict['Acceleration'][:, 1:])), axs[0])
+        self.plot_markers((np.amin(self.data_dict[RecordingEntry.ACCELERATION][:, 1:]), np.amax(self.data_dict[RecordingEntry.ACCELERATION][:, 1:])), axs[0])
         self.plot_markers((-1, 110), axs[3])
 
 
-        plt.xlim([0, self.data_dict['Acceleration'][-1, 0]*nano_sec])
+        plt.xlim([0, self.data_dict[RecordingEntry.ACCELERATION][-1, 0]*nano_sec])
 
         formatter = mpl.ticker.FuncFormatter(lambda s, x: time.strftime('%H:%M:%S', time.gmtime(s + self.time_offset)))
         axs[0].xaxis.set_major_formatter(formatter)
@@ -180,7 +224,7 @@ class DataProcessor:
         plt.show()
 
     def plot_timings(self, generate_image=False):
-        data = self.data_dict['Acceleration']
+        data = self.data_dict[RecordingEntry.ACCELERATION]
         y = np.zeros(data.shape[0])
         for i, timing in enumerate(data[1:,0]):
             y[i] = data[i, 0] - data[i-1, 0]
@@ -205,38 +249,38 @@ class DataProcessor:
     def calc_idle_time(self):
         #print(self.data_dict['Acceleration'][-100:, 0]*nano_sec)
         # print(np.diff(self.data_dict['Acceleration'][:, 0])*nano_sec)
-        idle_time = np.sum(np.diff(self.data_dict['Acceleration'][:, 0]) * nano_sec)
+        idle_time = np.sum(np.diff(self.data_dict[RecordingEntry.ACCELERATION][:, 0]) * nano_sec)
         # print("sum:", idle_time, '-', '0.02 *', self.data_dict['Acceleration'].shape[0], '=', 0.02 * self.data_dict['Acceleration'].shape[0])
-        idle_time -= 0.02 * self.data_dict['Acceleration'].shape[0]
+        idle_time -= 0.02 * self.data_dict[RecordingEntry.ACCELERATION].shape[0]
         return idle_time
 
 
     def calc_total_time(self):
-        return (np.max(self.data_dict['Acceleration'][:, 0]) - np.min(self.data_dict['Acceleration'][:, 0])) * nano_sec
+        return (np.max(self.data_dict[RecordingEntry.ACCELERATION][:, 0]) - np.min(self.data_dict[RecordingEntry.ACCELERATION][:, 0])) * nano_sec
 
 
     def calc_prediction_ratio(self):
-        pos_pred = self.data_dict['predictions'][:, 2] >= 0.5
-        neg_pred = self.data_dict['predictions'][:, 2] < 0.5
+        pos_pred = self.data_dict[RecordingEntry.PREDICTIONS][:, 2] >= 0.5
+        neg_pred = self.data_dict[RecordingEntry.PREDICTIONS][:, 2] < 0.5
         print(pos_pred, neg_pred, np.sum(pos_pred), np.sum(neg_pred), np.sum(pos_pred)/len(pos_pred))
 
     def get_acceleration_data(self, as_json=False):
         if not as_json:
-            return self.data_dict['Acceleration']
+            return self.data_dict[RecordingEntry.ACCELERATION]
         else:
-            return json.dumps(self.data_dict['Acceleration'])
+            return json.dumps(self.data_dict[RecordingEntry.ACCELERATION])
 
 
     def export_numpy_array(self):
-        print("Acc shape:", self.data_dict['Acceleration'].shape[0])
-        print("Gyroscope shape:", self.data_dict['Gyroscope'].shape[0])
+        print("Acc shape:", self.data_dict[RecordingEntry.ACCELERATION].shape[0])
+        print("Gyroscope shape:", self.data_dict[RecordingEntry.GYROSCOPE].shape[0])
 
-        data_size = min(self.data_dict['Acceleration'].shape[0], self.data_dict['Gyroscope'].shape[0])
+        data_size = min(self.data_dict[RecordingEntry.ACCELERATION].shape[0], self.data_dict[RecordingEntry.GYROSCOPE].shape[0])
         export_data = np.ndarray((data_size, 6))
 
         print(export_data.shape)
-        export_data[:data_size, :3] = self.data_dict['Acceleration'][:data_size, 1:]
-        export_data[:data_size, 3:] = self.data_dict['Gyroscope'][:data_size, 1:]
+        export_data[:data_size, :3] = self.data_dict[RecordingEntry.ACCELERATION][:data_size, 1:]
+        export_data[:data_size, 3:] = self.data_dict[RecordingEntry.GYROSCOPE][:data_size, 1:]
 
         plt.plot(np.arange(data_size), export_data[:, 5])
         plt.show()
@@ -250,14 +294,15 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         if sys.argv[2] == 'mkv':
             use_mkv = True
-    data_processor = DataProcessor(sys.argv[1], use_mkv, 10000)
+    data_processor = DataProcessor(sys.argv[1], 10000, init_all=False)
+    print(data_processor.sensor_decoder.min_time_stamp)
     # data_processor.plot_data()
     # data_processor.plot_timings()
     # data_processor.export_numpy_array()
-    data_processor.calc_prediction_ratio()
-    print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
-          data_processor.calc_total_time()/60, " min \t -> ",
-          (data_processor.calc_idle_time() / data_processor.calc_total_time())*100, "% lost")
+    #data_processor.calc_prediction_ratio()
+    # print("Idle time:", data_processor.calc_idle_time()/60, " min\t Total time:",
+    #       data_processor.calc_total_time()/60, " min \t -> ",
+    #       (data_processor.calc_idle_time() / data_processor.calc_total_time())*100, "% lost")
 
 
     

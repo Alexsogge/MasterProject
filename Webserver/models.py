@@ -40,6 +40,9 @@ class Participant(db.Model):
                                  backref=db.backref('participants', lazy=True),
                                  order_by='-Recording.last_changed')
 
+    stats_id = db.Column(db.Integer, db.ForeignKey('participant_stats.id'), nullable=True)
+    stats = db.relationship('ParticipantStats', backref=db.backref('participants', lazy=True), cascade="all,delete")
+
     def get_name(self):
         if self.alias is not None:
             return self.alias
@@ -111,6 +114,16 @@ class RecordingStats(db.Model):
 
     recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
 
+    def get_stats(self):
+        stat_dict = dict()
+        stat_dict['recorded hours'] = f'{(self.duration/60)/60:.2f}'
+        stat_dict['total hand washes'] = self.count_hand_washes_total
+        stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual
+        stat_dict['detected hand washes'] = self.count_hand_washes_detected_total
+        stat_dict['evaluated yes'] = self.count_evaluation_yes
+        stat_dict['evaluated no'] = self.count_evaluation_no
+        return stat_dict
+
 
 class MetaInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -143,3 +156,40 @@ class MetaInfo(db.Model):
             self.run_number = int(info_dict['run_number'])
         if 'android_id' in info_dict:
             self.android_id = info_dict['android_id']
+
+
+class ParticipantStats(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    duration = db.Column(db.Integer, default=0)
+    count_hand_washes_total = db.Column(db.Integer, default=0)
+    count_hand_washes_manual = db.Column(db.Integer, default=0)
+    count_hand_washes_detected_total = db.Column(db.Integer, default=0)
+    count_evaluation_yes = db.Column(db.Integer, default=0)
+    count_evaluation_no = db.Column(db.Integer, default=0)
+
+    def clean(self):
+        self.duration = 0
+        self.count_hand_washes_total = 0
+        self.count_hand_washes_manual = 0
+        self.count_hand_washes_detected_total = 0
+        self.count_evaluation_yes = 0
+        self.count_evaluation_no = 0
+
+    def get_stats(self):
+        stat_dict = dict()
+        stat_dict['recorded hours'] = f'{(self.duration/60)/60:.2f}'
+        stat_dict['total hand washes'] = self.count_hand_washes_total
+        stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual
+        stat_dict['detected hand washes'] = self.count_hand_washes_detected_total
+        stat_dict['evaluated yes'] = self.count_evaluation_yes
+        stat_dict['evaluated no'] = self.count_evaluation_no
+        return stat_dict
+
+    def calc_new_stats(self, stats: RecordingStats):
+        self.duration += stats.duration
+        self.count_hand_washes_total += stats.count_hand_washes_total
+        self.count_hand_washes_manual += stats.count_hand_washes_manual
+        self.count_hand_washes_detected_total += stats.count_hand_washes_detected_total
+        self.count_evaluation_yes += stats.count_evaluation_yes
+        self.count_evaluation_no += stats.count_evaluation_no
+

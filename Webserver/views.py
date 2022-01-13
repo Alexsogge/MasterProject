@@ -20,7 +20,7 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
-from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo
+from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats
 
 
 
@@ -251,11 +251,6 @@ def list_recordings():
     else:
         recordings = all_recordings
 
-
-    print(recordings)
-
-
-
     # recording_directories = [x[0] for x in os.walk(RECORDINGS_FOLDER)]
 
     return render_template('list_recordings.html', recordings=recordings, sorting=None,
@@ -475,12 +470,10 @@ def recording_data(recording_id):
     end_point = float(request.args.get('end'))
 
     series = plot_data.get_series(start_point, end_point)
-    print("Markers:", series['marker'])
 
     series['start'] = get_time_offset(recording)
     offset_date = series['start']
-    for tmp_marker in plot_data.marker_time_stamps:
-        print("marker times: ", offset_date + timedelta(milliseconds=tmp_marker[0]))
+
     # series.append(plot_data.annotations)
     # series.append(plot_data.time_stamp_series)
 
@@ -592,6 +585,66 @@ def delete_numpy_data(recording_id):
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
+def generate_recording_stats(recording):
+    rec_stats = RecordingStats()
+    recording.stats.append(rec_stats)
+    data_factory = DataFactory(recording, init_all=False)
+    data_factory.read_stat_files()
+    duration = data_factory.data_processor.sensor_decoder.max_time_stamp - data_factory.data_processor.sensor_decoder.min_time_stamp
+    duration *= 0.000000001
+
+    evaluations = data_factory.get_evaluations()
+    manual_ts = data_factory.get_manual_hw_ts()
+
+    count_hand_washes_manual = manual_ts.shape[0]
+    count_hand_washes_detected_total = 0
+    count_evaluation_yes = 0
+    count_evaluation_no = 0
+
+    for i in range(evaluations.shape[0]):
+        skip = False
+        for manual in manual_ts:
+            if evaluations[i][0] == manual[0]:
+                skip = True
+                break
+        if skip:
+            continue
+        count_hand_washes_detected_total += 1
+        if evaluations[i][1] == 1:
+            count_evaluation_yes += 1
+            # if i > 1 and evaluations[i][0] - evaluations[i-1][0] < 25000000000 and evaluations[i-1][1] == 0:
+            #     count_hand_washes_detected_total -= 1
+        if evaluations[i][1] == -1:
+            count_evaluation_no += 1
+            # if i > 1 and evaluations[i][0] - evaluations[i - 1][0] < 25000000000 and evaluations[i-1][1] == 0:
+            #     count_hand_washes_detected_total -= 1
+
+    count_hand_washes_total = count_evaluation_yes + count_hand_washes_manual
+
+    rec_stats.duration = duration
+    rec_stats.count_hand_washes_total = count_hand_washes_total
+    rec_stats.count_hand_washes_manual = count_hand_washes_manual
+    rec_stats.count_hand_washes_detected_total = count_hand_washes_detected_total
+    rec_stats.count_evaluation_yes = count_evaluation_yes
+    rec_stats.count_evaluation_no = count_evaluation_no
+
+    db.session.add(rec_stats)
+    return rec_stats
+
+@view.route('/recording/statsupdate/<int:recording_id>/')
+@basic_auth.login_required
+def update_recording_stats(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    if len(recording.stats) == 0:
+        generate_recording_stats(recording)
+    else:
+        rect_stat = recording.stats[0]
+        recording.stats.remove(rect_stat)
+        db.session.delete(rect_stat)
+        generate_recording_stats(recording)
+    db.session.commit()
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
 @view.route('/participant/list/')
 @basic_auth.login_required
 def list_participants():
@@ -612,7 +665,6 @@ def update_participant(participant_id=None):
     if participant_id is not None:
         participant = Participant.query.filter_by(id=participant_id).first_or_404()
     if request.method == 'POST':
-        print('Save participant')
         if participant is None:
             participant = Participant()
             db.session.add(participant)
@@ -654,6 +706,31 @@ def assign_recordings_to_participant(participant_id):
                 old_participant.recordings.remove(recording)
         participant.recordings.append(recording)
 
+    db.session.commit()
+
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
+
+
+@view.route('/participant/statsupdate/<int:participant_id>/')
+@basic_auth.login_required
+def update_participant_stats(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    if participant.stats_id is None:
+        stats = ParticipantStats()
+        participant.stats = stats
+        db.session.add(stats)
+    else:
+        stats = participant.stats
+
+    stats.clean()
+
+    for recording in participant.recordings:
+        if len(recording.stats) == 0:
+            rec_stats = generate_recording_stats(recording)
+        else:
+            rec_stats = recording.stats[0]
+        stats.calc_new_stats(rec_stats)
     db.session.commit()
 
     return redirect(url_for('views.get_participant', participant_id=participant.id))

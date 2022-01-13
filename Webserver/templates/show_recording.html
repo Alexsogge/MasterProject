@@ -48,6 +48,33 @@
                     </div>
                 </div>
 
+                <div class="row mb-2">
+                    <div class="col">
+                        <div class="row">
+                            <h4>Statistics</h4>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                {% if recording.stats %}
+                                    {% for key, val in recording.stats[0].get_stats().items() %}
+                                        <div class="row">
+                                            <div class="col">{{ key }}:</div>
+                                            <div class="col">{{ val }}</div>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <button id="button_update_stats" class="btn btn-primary btn-sm" onclick="update_stats()">update</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row"><h3>Data</h3></div>
                 <div class="row mb-1">
                     <div class="col">
@@ -80,7 +107,7 @@
         </div>
         <div class="row mt-2">
             <h3>Files
-            <small class="text-muted">{{ total_size }}</small>
+                <small class="text-muted">{{ total_size }}</small>
             </h3>
         </div>
 
@@ -98,6 +125,11 @@
 
             button.innerHTML = "Generating plot...";
             window.location.href = '{{url_for('views.plot_recording', recording_id=recording.id)}}';
+        }
+
+        function update_stats(){
+            document.getElementById('button_update_stats').innerText = 'loading...';
+            document.location.href = "{{ url_for('views.update_recording_stats', recording_id=recording.id) }}";
         }
 
         function filterRecordings(filter_arg, filter_val){

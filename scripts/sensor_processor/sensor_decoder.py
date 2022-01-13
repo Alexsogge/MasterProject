@@ -34,6 +34,11 @@ class SensorDecoder:
         if test_min < self.min_time_stamp:
             self.min_time_stamp = test_min
 
+    def find_min_max_cheap(self, data_names):
+        for data_name in data_names:
+            value_array = read_first_last_line(self.folder_name, data_name, 4)
+            self.find_new_min_max_time_stamp(value_array)
+
     def add_time_stamps(self, new_data):
         self.time_stamps = np.union1d(self.time_stamps, new_data)
 

@@ -23,6 +23,20 @@ def read_csv(filename: str, limit=None) -> List[List]:
         #         data.append(row)
     return data
 
+def read_first_last_line_in_csv(filename: str, limit=None) -> List[List]:
+    data = []
+    with open(filename, 'rb') as csvfile:
+        first_row = csvfile.readline()
+        values = list(first_row.strip(b'\n').split(b'\t'))
+        data.append(values[:limit])
+        csvfile.seek(-2, 2)
+        while csvfile.read(1) != b"\n":
+            csvfile.seek(-2, 1)
+        last_row = csvfile.read()
+        values = list(last_row.strip(b'\n').split(b'\t'))
+        data.append(values[:limit])
+    return data
+
 
 def read_zip(filename: str, data_name) -> List[List]:
     with ZipFile(filename) as myzip:
@@ -36,6 +50,22 @@ def read_zip(filename: str, data_name) -> List[List]:
                     for row in reader:
                         if len(row) > 0:
                             data.append(row)
+                return data
+    return []
+
+def read_first_last_line_in_zip(filename: str, data_name) -> List[List]:
+    with ZipFile(filename) as myzip:
+        for f in myzip.namelist():
+            if data_name in f and splitext(f)[1] == '.csv':
+                data = []
+                with myzip.open(f, mode='r') as csvbytes:
+                    string_list = [x.decode('utf-8') for x in csvbytes]
+                    first_row = string_list[0]
+                    values = list(first_row.strip('\n').split('\t'))
+                    data.append(values)
+                    last_row = string_list[-1]
+                    values = list(last_row.strip('\n').split('\t'))
+                    data.append(values)
                 return data
     return []
 
@@ -91,4 +121,31 @@ def read_csvs_in_folder(folder_name, data_name, entries_per_line, open_zips=True
         value_array[offset: offset+entry.shape[0], :] = entry
         offset += entry.shape[0]
 
+    return value_array
+
+def read_first_last_line(folder_name, data_name, entries_per_line, open_zips=True, limit=None):
+    overall_entries = []
+    overall_entries_length = 0
+
+    for f in listdir(folder_name):
+        path = join(folder_name, f)
+        if isfile(path):
+            if data_name in f and f[0] != '.':
+                data = None
+                if splitext(f)[1] == '.csv':
+                    data = read_first_last_line_in_csv(path, limit=limit)
+                elif splitext(f)[1] == '.zip' and open_zips:
+                    data = read_first_last_line_in_zip(path, data_name)
+                if data is not None:
+                    data_array = data_list_to_2d_array(data, entries_per_line)
+                    overall_entries_length += data_array.shape[0]
+                    overall_entries.append(data_array)
+    if overall_entries_length == 0:
+        return np.ndarray([0, entries_per_line])
+
+    value_array = np.zeros([overall_entries_length, overall_entries[0].shape[1]])
+    offset = 0
+    for entry in overall_entries:
+        value_array[offset: offset+entry.shape[0], :] = entry
+        offset += entry.shape[0]
     return value_array

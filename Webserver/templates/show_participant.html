@@ -19,7 +19,30 @@
     </div>
 
     <div class="row mb-2">
-        <h1>Statistics</h1>
+        <div class="col">
+            <div class="row">
+                <h1>Statistics</h1>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    {% if participant.stats_id %}
+                        {% for key, val in participant.stats.get_stats().items() %}
+                            <div class="row">
+                                <div class="col">{{ key }}:</div>
+                                <div class="col">{{ val }}</div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <button id="button_update_stats" class="btn btn-primary btn-sm" onclick="update_stats()">update</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row mb-1">
@@ -60,6 +83,11 @@
                 todayHighlight: true
             });
         };
+
+        function update_stats(){
+            document.getElementById('button_update_stats').innerText = 'loading...';
+            document.location.href = "{{ url_for('views.update_participant_stats', participant_id=participant.id) }}";
+        }
 
         function assign_recordings(){
             const start_date = document.getElementById('input_start_date').value;

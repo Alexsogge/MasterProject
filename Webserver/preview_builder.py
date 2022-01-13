@@ -1,6 +1,6 @@
 import os
 
-from sensor_processor.process_data import DataProcessor
+from sensor_processor.process_data import DataProcessor, RecordingEntry
 import numpy as np
 import json
 import dateutil.parser as dp
@@ -33,19 +33,19 @@ def get_data_array(folder_name):
     data_array: np.ndarray = processor.get_acceleration_data()
     data_array[:, 0] /= 1000000
 
-    hand_wash_time_stamps = processor.data_dict['time_stamps']
+    hand_wash_time_stamps = processor.data_dict[RecordingEntry.MANUALWHTS]
     hand_wash_time_stamps /= 1000000
 
-    marker_time_stamps = processor.data_dict['markers']
+    marker_time_stamps = processor.data_dict[RecordingEntry.MARKERS]
     marker_time_stamps /= 1000000
 
-    predictions = processor.data_dict['predictions']
+    predictions = processor.data_dict[RecordingEntry.PREDICTIONS]
     predictions[:, 0] /= 1000000
 
-    evaluations = processor.data_dict['evaluations']
+    evaluations = processor.data_dict[RecordingEntry.EVALUATIONS]
     evaluations[:, 0] /= 1000000
 
-    bluetooth = processor.data_dict['bluetooth_beacons']
+    bluetooth = processor.data_dict[RecordingEntry.BLUETOOTHBEACONS]
     bluetooth[:, 0] /= 1000000
 
     return data_array, hand_wash_time_stamps, marker_time_stamps, predictions, evaluations, bluetooth
