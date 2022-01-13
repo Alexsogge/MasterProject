@@ -298,10 +298,15 @@ def get_recording(recording_id):
 
     total_size = convert_size(total_size)
     generated_data_size = convert_size(generated_data_size)
+
+    participants = recording.participants
+
+
     return render_template('show_recording.html', recording=recording,
                            files=recording_files, total_size=total_size, sensor_data_file=sensor_data_file,
                            sensor_data_flattened_file=sensor_data_flattened_file,
-                           generated_data_size=generated_data_size, meta_info=meta_info)
+                           generated_data_size=generated_data_size, meta_info=meta_info,
+                           participants=participants)
 
 
 @view.route('/recording/plot/<int:recording_id>/')

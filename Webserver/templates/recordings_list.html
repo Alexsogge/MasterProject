@@ -1,0 +1,85 @@
+<div class="row mb-3">
+    <div class="col"><input type="checkbox" autocomplete="off" class="form-check-input me-1" value="null" onclick="select_all(this);"> <span id="selected_recordings" class="mr-1"></span> Recordings <span id="bulk_action" class="ml-2" style="display: none;"><button type="button" class="btn btn-danger btn-sm" onclick="delete_bulk();">Delete</button></span></div>
+</div>
+{% for recording in recordings %}
+    <div class="row rec-entry">
+        <div class="col-md-4"><input type="checkbox" autocomplete="off" class="form-check-input me-1" name="bulk_select" value="{{ recording.id }}" onclick="update_selection(this);"><a href="{{url_for('views.get_recording', recording_id=recording.id)}}">{{ recording.get_name() }}</a></div>
+        <div class="col-md-2">{{ recording.description }}</div>
+        <div class="col-md-2 text-end" style="color: {{ recording.get_file_size_color() }}">{{ recording.get_file_size() }}</div>
+        <div class="col-md-2 mr-auto">{{ recording.get_last_changed() }}</div>
+        <div class="col-md-1 mr-auto"><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_path())}}">Download</a></div>
+        <div class="col-md-1 mr-auto"><a class="btn btn-danger" href="{{url_for('views.delete_recording', recording_id=recording.id)}}">Delete</a></div>
+    </div>
+{% endfor %}
+
+
+ <script>
+        let deletion_buffer = 0;
+
+        function update_selection(box){
+            let selected_boxes = 0;
+            let checkboxes = document.getElementsByName('bulk_select');
+            for(var i=0, n=checkboxes.length;i<n;i++) {
+                if (checkboxes[i].checked)
+                    selected_boxes++;
+            }
+             if (selected_boxes === 0) {
+                 document.getElementById("selected_recordings").innerHTML = "";
+                 show_bulk_action(false);
+             } else {
+                 document.getElementById("selected_recordings").innerHTML = selected_boxes;
+                 show_bulk_action(true);
+             }
+        }
+
+        function select_all(box){
+
+            let checkboxes = document.getElementsByName('bulk_select');
+            for(var i=0, n=checkboxes.length;i<n;i++) {
+                checkboxes[i].checked = box.checked;
+            }
+            if (box.checked === false) {
+                document.getElementById("selected_recordings").innerHTML = "";
+                show_bulk_action(false);
+            } else {
+                document.getElementById("selected_recordings").innerHTML = checkboxes.length;
+                show_bulk_action(true);
+            }
+        }
+
+        function show_bulk_action(visible){
+            if (visible)
+                document.getElementById("bulk_action").style.display = 'inline';
+            else
+                document.getElementById("bulk_action").style.display = 'none';
+        }
+
+        function delete_bulk(){
+            let checkboxes = document.getElementsByName('bulk_select');
+            let to_delete = [];
+            for(let i=0, n=checkboxes.length;i<n;i++) {
+                if (checkboxes[i].checked){
+                    to_delete.push(checkboxes[i].value);
+                }
+            }
+            deletion_buffer = to_delete.length;
+            for (let i=0; i < to_delete.length; i++){
+                fetch(`{{url_for('views.delete_recording')}}${to_delete[i]}/`)
+                    .then(function (){
+                        deletion_buffer--;
+                        check_empty_deletion_buffer();
+                    });
+            }
+        }
+
+        function check_empty_deletion_buffer(){
+            if (deletion_buffer === 0)
+                location.reload();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            update_filter_field();
+        }, false);
+
+
+    </script>

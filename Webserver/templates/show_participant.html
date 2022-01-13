@@ -48,16 +48,7 @@
     </div>
     <div class="row">
         <div class="col">
-            {% for recording in recordings %}
-                <div class="row rec-entry">
-                    <div class="col-md-4"><a href="{{url_for('views.get_recording', recording_id=recording.id)}}">{{ recording.get_name() }}</a></div>
-                    <div class="col-md-2">{{ recording.description }}</div>
-                    <div class="col-md-2 text-end" style="color: {{ recording.get_file_size_color() }}">{{ recording.get_file_size() }}</div>
-                    <div class="col-md-2 mr-auto">{{ recording.get_last_changed() }}</div>
-                    <div class="col-md-1 mr-auto"><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_path())}}">Download</a></div>
-                    <div class="col-md-1 mr-auto"><a class="btn btn-danger" href="{{url_for('views.delete_recording', recording_id=recording.id)}}">Delete</a></div>
-                </div>
-            {% endfor %}
+            {% include 'recordings_list.html' %}
         </div>
     </div>
 
