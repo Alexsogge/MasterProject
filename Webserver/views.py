@@ -1,7 +1,7 @@
 import json
 import os
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 import numpy as np
 from dateutil import parser
@@ -9,7 +9,7 @@ from dateutil import parser
 from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for
 
 from werkzeug.utils import secure_filename
-from sqlalchemy import desc
+from sqlalchemy import desc, and_
 import uuid
 import shutil
 
@@ -586,6 +586,7 @@ def delete_numpy_data(recording_id):
     os.remove(os.path.join(path, DataFactory.sensor_data_flattened_file_name))
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
+
 @view.route('/participant/list/')
 @basic_auth.login_required
 def list_participants():
@@ -595,7 +596,8 @@ def list_participants():
 @basic_auth.login_required
 def get_participant(participant_id):
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
-    return render_template('show_participant.html', participant=participant)
+    recordings = participant.recordings
+    return render_template('show_participant.html', participant=participant, recordings=recordings)
 
 @view.route('/participant/update/', methods=['GET', 'POST'])
 @view.route('/participant/update/<int:participant_id>/', methods=['GET', 'POST'])
@@ -613,6 +615,7 @@ def update_participant(participant_id=None):
         participant.android_id = request.form.get('android_id')
         participant.alias = request.form.get('alias')
         db.session.commit()
+        return redirect(url_for('views.get_participant', participant_id=participant.id))
 
     alias = ''
     android_id = ''
@@ -622,6 +625,33 @@ def update_participant(participant_id=None):
         android_id = participant.android_id
 
     return render_template('edit_participant.html', participant_id=participant_id, alias=alias, android_id=android_id)
+
+
+@view.route('/participant/assign/<int:participant_id>/')
+@basic_auth.login_required
+def assign_recordings_to_participant(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    start = datetime.strptime(start, '%d/%m/%Y')
+    end = datetime.strptime(end, '%d/%m/%Y')
+    end = datetime.combine(end, time.max)
+
+    recordings = db.session.query(Recording).filter(
+        and_(Recording.last_changed >= start, Recording.last_changed <= end)
+    ).all()
+
+    for recording in recordings:
+        for old_participant in recording.participants:
+            if old_participant != participant:
+                old_participant.recordings.remove(recording)
+        participant.recordings.append(recording)
+
+    db.session.commit()
+
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
 @view.route('/tfmodel/get/latest/')

@@ -2,6 +2,9 @@
 
 {% block head %}
     <link  href="{{ url_for('views.static', filename='list_recordings.css') }}" rel="stylesheet">
+    <link  href="{{ url_for('views.static', filename='bootstrap-datepicker3.standalone.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('views.static', filename='jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('views.static', filename='bootstrap-datepicker.min.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -22,9 +25,30 @@
     <div class="row mb-1">
         <h1>Recordings</h1>
     </div>
+
+    <div class="row mb-1">
+        <div class="col">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    Assign recordings:
+                </div>
+
+                <div id="add_recording_date_picker">
+                    <div class="input-daterange input-group" id="datepicker">
+                        <input id="input_start_date" type="text" class="input-sm form-control" name="start" />
+                        <span class="input-group-addon">to</span>
+                        <input id="input_end_date" type="text" class="input-sm form-control" name="end" />
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" onclick="assign_recordings()">assign</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col">
-            {% for recording in participant.recordings %}
+            {% for recording in recordings %}
                 <div class="row rec-entry">
                     <div class="col-md-4"><a href="{{url_for('views.get_recording', recording_id=recording.id)}}">{{ recording.get_name() }}</a></div>
                     <div class="col-md-2">{{ recording.description }}</div>
@@ -37,4 +61,21 @@
         </div>
     </div>
 
+    <script>
+        window.onload = function () {
+            $('#add_recording_date_picker .input-daterange').datepicker({
+                format: "dd/mm/yyyy",
+                weekStart: 1,
+                todayHighlight: true
+            });
+        };
+
+        function assign_recordings(){
+            const start_date = document.getElementById('input_start_date').value;
+            const end_date = document.getElementById('input_end_date').value;
+            console.log('assign:', start_date, end_date);
+            document.location.href = `{{ url_for('views.assign_recordings_to_participant', participant_id=participant.id) }}?start=${start_date}&end=${end_date}`;
+        }
+
+    </script>
 {% endblock %}
