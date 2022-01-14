@@ -106,6 +106,18 @@ class Recording(db.Model):
     def update_last_changed(self):
         self.last_changed = datetime.datetime.utcnow()
 
+    def get_evaluation_dict(self):
+        eva_dict = dict()
+        eva_dict['compulsive'] = 0
+        eva_dict['tense'] = [0, 0, 0, 0, 0]
+        eva_dict['urge'] = [0, 0, 0, 0, 0]
+        for evaluation in self.evaluations:
+            eva_dict['compulsive'] += evaluation.compulsive
+            eva_dict['tense'][evaluation.tense-1] += 1
+            eva_dict['urge'][evaluation.urge-1] += 1
+
+        return eva_dict
+
 
 class RecordingStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)

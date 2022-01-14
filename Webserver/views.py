@@ -20,7 +20,7 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
-from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats
+from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats, RecordingEvaluation
 
 
 
@@ -588,6 +588,12 @@ def delete_numpy_data(recording_id):
 def generate_recording_stats(recording):
     rec_stats = RecordingStats()
     recording.stats = rec_stats
+
+    for evaluation in recording.evaluations[:]:
+        recording.evaluations.remove(evaluation)
+        db.session.delete(evaluation)
+
+
     data_factory = DataFactory(recording, init_all=False)
     data_factory.read_stat_files()
     duration = data_factory.data_processor.sensor_decoder.max_time_stamp - data_factory.data_processor.sensor_decoder.min_time_stamp
@@ -627,6 +633,15 @@ def generate_recording_stats(recording):
     rec_stats.count_hand_washes_detected_total = count_hand_washes_detected_total
     rec_stats.count_evaluation_yes = count_evaluation_yes
     rec_stats.count_evaluation_no = count_evaluation_no
+
+    for evaluation in evaluations:
+        if evaluation[1] == 1:
+            rec_evaluation = RecordingEvaluation()
+            rec_evaluation.compulsive = bool(evaluation[2])
+            rec_evaluation.tense = int(evaluation[3])
+            rec_evaluation.urge = int(evaluation[4])
+            recording.evaluations.append(rec_evaluation)
+            db.session.add(rec_evaluation)
 
     db.session.add(rec_stats)
     return rec_stats

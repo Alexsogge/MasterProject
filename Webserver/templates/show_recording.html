@@ -73,6 +73,24 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col">
+                        <div class="row">
+                            <h4>Evaluations</h4>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                {% if recording.stats %}
+                                    {% for key, val in recording.get_evaluation_dict().items() %}
+                                        <div class="row">
+                                            <div class="col">{{ key }}:</div>
+                                            <div class="col">{{ val }}</div>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row"><h3>Data</h3></div>
