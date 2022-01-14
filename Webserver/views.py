@@ -232,8 +232,8 @@ def list_recordings():
             skip = False
             for key, value in filter_args.items():
                 meta_info = None
-                if len(recording.meta_info) > 0:
-                    meta_info = recording.meta_info[0]
+                if recording.meta_info is not None:
+                    meta_info = recording.meta_info
 
                 if hasattr(recording, key):
                     if str(value) not in str(getattr(recording, key)):
@@ -396,7 +396,7 @@ def new_recording():
                         meta_info = json.load(json_file)
                 meta_info_m = MetaInfo()
                 meta_info_m.load_from_dict(meta_info)
-                recording.meta_info.append(meta_info_m)
+                recording.meta_info = meta_info_m
                 print('Metainfo:', meta_info_m)
                 if 'android_id' in meta_info:
                     participant = Participant.query.filter_by(android_id=meta_info['android_id']).order_by(Participant.id.desc()).first()
@@ -510,7 +510,7 @@ def add_marker(recording_id):
 
     # print("new tartget times: ", offset_date + timedelta(milliseconds=millis))
 
-    meta_data = recording.my_meta_info
+    meta_data = recording.meta_info
     nanos += meta_data.start_time_stamp
     #print("new nanos:", nanos)
 
@@ -587,7 +587,7 @@ def delete_numpy_data(recording_id):
 
 def generate_recording_stats(recording):
     rec_stats = RecordingStats()
-    recording.stats.append(rec_stats)
+    recording.stats = rec_stats
     data_factory = DataFactory(recording, init_all=False)
     data_factory.read_stat_files()
     duration = data_factory.data_processor.sensor_decoder.max_time_stamp - data_factory.data_processor.sensor_decoder.min_time_stamp
@@ -635,11 +635,11 @@ def generate_recording_stats(recording):
 @basic_auth.login_required
 def update_recording_stats(recording_id):
     recording = Recording.query.filter_by(id=recording_id).first_or_404()
-    if len(recording.stats) == 0:
+    if recording.stats is None:
         generate_recording_stats(recording)
     else:
-        rect_stat = recording.stats[0]
-        recording.stats.remove(rect_stat)
+        rect_stat = recording.stats
+        recording.stats = None
         db.session.delete(rect_stat)
         generate_recording_stats(recording)
     db.session.commit()
@@ -691,6 +691,8 @@ def assign_recordings_to_participant(participant_id):
 
     start = request.args.get('start')
     end = request.args.get('end')
+    ignore_id = request.args.get('ignoreid') == 'true'
+
 
     start = datetime.strptime(start, '%d/%m/%Y')
     end = datetime.strptime(end, '%d/%m/%Y')
@@ -701,6 +703,9 @@ def assign_recordings_to_participant(participant_id):
     ).all()
 
     for recording in recordings:
+        if recording.meta_info is not None:
+            if not ignore_id and recording.meta_info.android_id != participant.android_id:
+                continue
         for old_participant in recording.participants:
             if old_participant != participant:
                 old_participant.recordings.remove(recording)
@@ -726,10 +731,10 @@ def update_participant_stats(participant_id):
     stats.clean()
 
     for recording in participant.recordings:
-        if len(recording.stats) == 0:
+        if recording.stats is None:
             rec_stats = generate_recording_stats(recording)
         else:
-            rec_stats = recording.stats[0]
+            rec_stats = recording.stats
         stats.calc_new_stats(rec_stats)
     db.session.commit()
 
@@ -822,7 +827,7 @@ def index_recordings():
         recording_m.session_size = session_size
         meta_info_m = MetaInfo()
         meta_info_m.load_from_dict(meta_info)
-        recording_m.meta_info.append(meta_info_m)
+        recording_m.meta_info = meta_info_m
         if participant is not None:
             participant.recordings.append(recording_m)
 
@@ -847,8 +852,8 @@ def update_recordings():
             with open(meta_info_file) as json_file:
                 meta_info = json.load(json_file)
 
-        if len(recording.meta_info)>0:
-            recording.meta_info[0].load_from_dict(meta_info)
+        if recording.meta_info is not None:
+            recording.meta_info.load_from_dict(meta_info)
 
     db.session.commit()
     return redirect(url_for('views.settings'))

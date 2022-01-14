@@ -50,6 +50,13 @@ class Participant(db.Model):
             return self.android_id
         return self.id
 
+    def get_stat_entries(self):
+        if self.stats_id is None:
+            return dict()
+        else:
+            return self.stats.get_entries(len(self.recordings))
+
+
 class Recording(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(256), nullable=False)
@@ -59,18 +66,17 @@ class Recording(db.Model):
     last_changed = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     session_size = db.Column(db.Integer, default=0)
 
-    stats = db.relationship('RecordingStats', backref='recording', lazy=True, cascade="all,delete")
-    meta_info = db.relationship('MetaInfo', backref='recording', lazy=True, cascade="all,delete")
+    stats_id = db.Column(db.Integer, db.ForeignKey('recording_stats.id'), nullable=True)
+    stats = db.relationship('RecordingStats', backref=db.backref('recording', lazy=True), cascade="all,delete")
+
+    meta_info_id = db.Column(db.Integer, db.ForeignKey('meta_info.id'), nullable=True)
+    meta_info = db.relationship('MetaInfo', backref=db.backref('recording', lazy=True), cascade="all,delete")
+
+    evaluations = db.relationship('RecordingEvaluation', backref='recording', lazy=True, cascade="all,delete")
 
     @property
     def base_name(self) -> str:
         return os.path.basename(os.path.normpath(self.path))
-
-    @property
-    def my_meta_info(self) -> Union[None, 'MetaInfo']:
-        if len(self.meta_info) > 0:
-            return self.meta_info[0]
-        return None
 
     def get_name(self):
         if self.alias is not None:
@@ -101,8 +107,6 @@ class Recording(db.Model):
         self.last_changed = datetime.datetime.utcnow()
 
 
-
-
 class RecordingStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     duration = db.Column(db.Integer, default=0)
@@ -112,7 +116,6 @@ class RecordingStats(db.Model):
     count_evaluation_yes = db.Column(db.Integer, default=0)
     count_evaluation_no = db.Column(db.Integer, default=0)
 
-    recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
 
     def get_stats(self):
         stat_dict = dict()
@@ -137,7 +140,6 @@ class MetaInfo(db.Model):
     run_number = db.Column(db.Integer, nullable=True)
     android_id = db.Column(db.String(256), nullable=True)
 
-    recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
 
     def load_from_dict(self, info_dict):
         if 'ml_model' in info_dict:
@@ -158,6 +160,14 @@ class MetaInfo(db.Model):
             self.android_id = info_dict['android_id']
 
 
+class RecordingEvaluation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    compulsive = db.Column(db.Boolean, default=False)
+    tense = db.Column(db.Integer, default=0)
+    urge = db.Column(db.Integer, default=0)
+
+    recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
+
 class ParticipantStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     duration = db.Column(db.Integer, default=0)
@@ -177,7 +187,7 @@ class ParticipantStats(db.Model):
 
     def get_stats(self):
         stat_dict = dict()
-        stat_dict['recorded hours'] = f'{(self.duration/60)/60:.2f}'
+        stat_dict['recorded hours'] = (self.duration/60)/60
         stat_dict['total hand washes'] = self.count_hand_washes_total
         stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual
         stat_dict['detected hand washes'] = self.count_hand_washes_detected_total
@@ -192,4 +202,25 @@ class ParticipantStats(db.Model):
         self.count_hand_washes_detected_total += stats.count_hand_washes_detected_total
         self.count_evaluation_yes += stats.count_evaluation_yes
         self.count_evaluation_no += stats.count_evaluation_no
+
+
+    def get_averages(self, count_total):
+        stat_dict = dict()
+        stat_dict['recorded hours'] = ((self.duration/count_total)/60)/60
+        stat_dict['total hand washes'] = self.count_hand_washes_total/count_total
+        stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual/count_total
+        stat_dict['detected hand washes'] = self.count_hand_washes_detected_total/count_total
+        stat_dict['evaluated yes'] = self.count_evaluation_yes/count_total
+        stat_dict['evaluated no'] = self.count_evaluation_no/count_total
+        return stat_dict
+
+    def get_entries(self, count_total):
+        stat_dict = dict()
+        all_stats = self.get_stats()
+        avg_stats = self.get_averages(count_total)
+
+        for key in all_stats.keys():
+            stat_dict[key] = (f'{all_stats[key]:.2f}', f'{avg_stats[key]:.2f}')
+
+        return  stat_dict
 

@@ -166,7 +166,7 @@ def check_valid_ort_model(file):
 
 def get_time_offset(recording: 'Recording'):
     time_offset = "1970-01-01T00:00:00.000Z"
-    meta_info = recording.my_meta_info
+    meta_info = recording.meta_info
     if meta_info is not None and meta_info.date is not None:
         time_offset = meta_info.date
     return time_offset
