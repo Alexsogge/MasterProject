@@ -669,7 +669,7 @@ def list_participants():
 @basic_auth.login_required
 def get_participant(participant_id):
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
-    recordings = participant.recordings
+    recordings = participant.get_sorted_recordings()
     return render_template('show_participant.html', participant=participant, recordings=recordings)
 
 @view.route('/participant/update/', methods=['GET', 'POST'])

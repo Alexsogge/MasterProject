@@ -5,6 +5,7 @@ from typing import Union
 from dateutil import parser
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import desc
 
 from tools import get_session_size, convert_size, get_size_color
 
@@ -38,7 +39,7 @@ class Participant(db.Model):
     alias = db.Column(db.String(256), nullable=True)
     recordings = db.relationship('Recording', secondary=participant_to_recording, lazy='subquery',
                                  backref=db.backref('participants', lazy=True),
-                                 order_by='-Recording.last_changed')
+                                 order_by='Recording.last_changed')
 
     stats_id = db.Column(db.Integer, db.ForeignKey('participant_stats.id'), nullable=True)
     stats = db.relationship('ParticipantStats', backref=db.backref('participants', lazy=True), cascade="all,delete")
@@ -55,6 +56,10 @@ class Participant(db.Model):
             return dict()
         else:
             return self.stats.get_entries(len(self.recordings))
+
+    def get_sorted_recordings(self):
+        records = Recording.query.filter(Recording.participants.contains(self)).order_by(desc(Recording.last_changed)).all()
+        return records
 
 
 class Recording(db.Model):
