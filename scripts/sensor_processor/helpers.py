@@ -60,6 +60,8 @@ def read_first_last_line_in_zip(filename: str, data_name) -> List[List]:
                 data = []
                 with myzip.open(f, mode='r') as csvbytes:
                     string_list = [x.decode('utf-8') for x in csvbytes]
+                    if len(string_list) < 2:
+                        continue
                     first_row = string_list[0]
                     values = list(first_row.strip('\n').split('\t'))
                     data.append(values)
@@ -72,7 +74,9 @@ def read_first_last_line_in_zip(filename: str, data_name) -> List[List]:
 
 def data_list_to_2d_array(data: List[List], expected_size=None) -> np.ndarray:
     if len(data) == 0:
-        return np.zeros([0, 0])
+        if expected_size is None:
+            expected_size = 0
+        return np.zeros([0, expected_size])
     if expected_size is None:
         expected_size = len(data[0])
     data_arr = np.zeros([len(data), expected_size])

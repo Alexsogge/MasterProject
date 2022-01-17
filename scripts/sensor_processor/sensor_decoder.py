@@ -27,6 +27,10 @@ class SensorDecoder:
         return value_array
 
     def find_new_min_max_time_stamp(self, data_array):
+        if data_array.shape[0] < 2:
+            self.max_time_stamp = 0
+            self.min_time_stamp = 0
+            return
         test_max = data_array[-1, 0]
         test_min = data_array[0, 0]
         if test_max > self.max_time_stamp:
