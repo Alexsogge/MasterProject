@@ -586,6 +586,7 @@ def delete_numpy_data(recording_id):
 
 
 def generate_recording_stats(recording):
+    print('Generate stats for recording:', recording.get_name())
     rec_stats = RecordingStats()
     recording.stats = rec_stats
 
