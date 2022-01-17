@@ -83,6 +83,10 @@ class Recording(db.Model):
     def base_name(self) -> str:
         return os.path.basename(os.path.normpath(self.path))
 
+
+    def __repr__(self):
+        return f'<Recording {self.id}> {self.base_name}'
+
     def get_name(self):
         if self.alias is not None:
             return self.alias

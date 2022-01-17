@@ -76,6 +76,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item" onclick="assign_recordings(false)">Assign</a></li>
                     <li><a class="dropdown-item" onclick="assign_recordings(true)">Ignore android id</a></li>
+                    <li><a class="dropdown-item" onclick="unassign_recordings()">Unassign</a></li>
                 </ul>
             </div>
         </div>
@@ -106,6 +107,14 @@
             console.log('assign:', start_date, end_date, ignore_id);
             if (start_date && end_date)
                 document.location.href = `{{ url_for('views.assign_recordings_to_participant', participant_id=participant.id) }}?start=${start_date}&end=${end_date}&ignoreid=${ignore_id}`;
+        }
+
+        function unassign_recordings(){
+            const start_date = document.getElementById('input_start_date').value;
+            const end_date = document.getElementById('input_end_date').value;
+            console.log('assign:', start_date, end_date,);
+            if (start_date && end_date)
+                document.location.href = `{{ url_for('views.unassign_recordings_to_participant', participant_id=participant.id) }}?start=${start_date}&end=${end_date}`;
         }
 
     </script>

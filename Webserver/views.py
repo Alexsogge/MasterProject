@@ -732,6 +732,31 @@ def assign_recordings_to_participant(participant_id):
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
+@view.route('/participant/unassign/<int:participant_id>/')
+@basic_auth.login_required
+def unassign_recordings_to_participant(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    start = datetime.strptime(start, '%d/%m/%Y')
+    end = datetime.strptime(end, '%d/%m/%Y')
+    end = datetime.combine(end, time.max)
+
+    recordings = db.session.query(Recording).filter(
+        and_(Recording.last_changed >= start, Recording.last_changed <= end)
+    ).filter(Recording.participants.contains(participant)).all()
+
+    for recording in recordings:
+        participant.recordings.remove(recording)
+
+    db.session.commit()
+
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
+
+
+
 @view.route('/participant/statsupdate/<int:participant_id>/')
 @basic_auth.login_required
 def update_participant_stats(participant_id):
