@@ -45,7 +45,7 @@ class Participant(db.Model):
     stats = db.relationship('ParticipantStats', backref=db.backref('participants', lazy=True), cascade="all,delete")
 
     def get_name(self):
-        if self.alias is not None:
+        if self.alias is not None and not '':
             return self.alias
         if self.android_id is not None:
             return self.android_id
