@@ -35,6 +35,7 @@
                         <div class="col"><strong>name</strong></div>
                         <div class="col"><strong>overall</strong></div>
                         <div class="col"><strong>average</strong></div>
+                        <div class="col"><strong>daily</strong></div>
                     </div>
                     {% if participant.stats_id %}
                         {% for key, val in participant.get_stat_entries().items() %}
@@ -42,6 +43,7 @@
                                 <div class="col">{{ key }}:</div>
                                 <div class="col">{{ val[0] }}</div>
                                 <div class="col">{{ val[1] }}</div>
+                                <div class="col">{{ val[2] }}</div>
                             </div>
                         {% endfor %}
                     {% endif %}

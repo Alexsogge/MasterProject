@@ -2,6 +2,7 @@ import json
 import os
 import traceback
 from datetime import datetime, timedelta, time
+from typing import List
 
 import numpy as np
 from dateutil import parser
@@ -788,12 +789,21 @@ def update_participant_stats(participant_id):
 
     stats.clean()
 
+    stats_per_day: Dict[datetime.date, List[RecordingStats]] = dict()
+
     for recording in participant.recordings:
         if recording.stats is None:
             rec_stats = generate_recording_stats(recording)
         else:
             rec_stats = recording.stats
         stats.calc_new_stats(rec_stats)
+        if recording.meta_info is not None:
+            date = recording.meta_info.date.date()
+            if date not in stats_per_day:
+                stats_per_day[date] = []
+            stats_per_day[date].append(recording.stats)
+
+    stats.calc_daily_stats(stats_per_day)
     db.session.commit()
 
     return redirect(url_for('views.get_participant', participant_id=participant.id))
@@ -922,6 +932,9 @@ def update_recordings():
 def reindex_participants():
     for participant in Participant.query.all():
         participant.check_for_set_active()
+        if participant.stats is not None:
+            db.session.delete(participant.stats)
+            participant.stats = None
     db.session.commit()
     return redirect(url_for('views.settings'))
 

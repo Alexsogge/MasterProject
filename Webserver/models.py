@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Union
+from typing import Union, Dict, List
 
 from dateutil import parser
 
@@ -209,6 +209,14 @@ class ParticipantStats(db.Model):
     count_evaluation_yes = db.Column(db.Integer, default=0)
     count_evaluation_no = db.Column(db.Integer, default=0)
 
+    daily_duration = db.Column(db.Integer, default=0)
+    daily_count_hand_washes_total = db.Column(db.Integer, default=0)
+    daily_count_hand_washes_manual = db.Column(db.Integer, default=0)
+    daily_count_hand_washes_detected_total = db.Column(db.Integer, default=0)
+    daily_count_evaluation_yes = db.Column(db.Integer, default=0)
+    daily_count_evaluation_no = db.Column(db.Integer, default=0)
+
+
     def clean(self):
         self.duration = 0
         self.count_hand_washes_total = 0
@@ -216,6 +224,13 @@ class ParticipantStats(db.Model):
         self.count_hand_washes_detected_total = 0
         self.count_evaluation_yes = 0
         self.count_evaluation_no = 0
+
+        self.daily_duration = 0
+        self.daily_count_hand_washes_total = 0
+        self.daily_count_hand_washes_manual = 0
+        self.daily_count_hand_washes_detected_total = 0
+        self.daily_count_evaluation_yes = 0
+        self.daily_count_evaluation_no = 0
 
     def get_stats(self):
         stat_dict = dict()
@@ -246,13 +261,42 @@ class ParticipantStats(db.Model):
         stat_dict['evaluated no'] = self.count_evaluation_no/count_total
         return stat_dict
 
+    def get_daily_averages(self):
+        stat_dict = dict()
+        stat_dict['recorded hours'] = (self.daily_duration/60)/60
+        stat_dict['total hand washes'] = self.daily_count_hand_washes_total
+        stat_dict['manual tagged hand washes'] = self.daily_count_hand_washes_manual
+        stat_dict['detected hand washes'] = self.daily_count_hand_washes_detected_total
+        stat_dict['evaluated yes'] = self.daily_count_evaluation_yes
+        stat_dict['evaluated no'] = self.daily_count_evaluation_no
+        return stat_dict
+
+
     def get_entries(self, count_total):
         stat_dict = dict()
         all_stats = self.get_stats()
         avg_stats = self.get_averages(count_total)
+        avg_daily = self.get_daily_averages()
 
         for key in all_stats.keys():
-            stat_dict[key] = (f'{all_stats[key]:.2f}', f'{avg_stats[key]:.2f}')
+            stat_dict[key] = (f'{all_stats[key]:.2f}', f'{avg_stats[key]:.2f}', f'{avg_daily[key]:.2f}')
 
-        return  stat_dict
+        return stat_dict
+
+    def calc_daily_stats(self, stats_per_day: Dict[datetime.date, List[RecordingStats]]):
+        for day in stats_per_day.keys():
+            for stat in stats_per_day[day]:
+                self.daily_duration += stat.duration
+                self.daily_count_hand_washes_total += stat.count_hand_washes_total
+                self.daily_count_hand_washes_manual += stat.count_hand_washes_manual
+                self.daily_count_hand_washes_detected_total += stat.count_hand_washes_detected_total
+                self.daily_count_evaluation_yes += stat.count_evaluation_yes
+                self.daily_count_evaluation_no += stat.count_evaluation_no
+
+        self.daily_duration /= len(stats_per_day.keys())
+        self.daily_count_hand_washes_total /= len(stats_per_day.keys())
+        self.daily_count_hand_washes_manual /= len(stats_per_day.keys())
+        self.daily_count_hand_washes_detected_total /= len(stats_per_day.keys())
+        self.daily_count_evaluation_yes /= len(stats_per_day.keys())
+        self.daily_count_evaluation_no /= len(stats_per_day.keys())
 
