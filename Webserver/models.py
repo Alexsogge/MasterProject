@@ -41,6 +41,8 @@ class Participant(db.Model):
                                  backref=db.backref('participants', lazy=True),
                                  order_by='Recording.last_changed')
 
+    is_active = db.Column(db.Boolean, default=False)
+
     stats_id = db.Column(db.Integer, db.ForeignKey('participant_stats.id'), nullable=True)
     stats = db.relationship('ParticipantStats', backref=db.backref('participants', lazy=True), cascade="all,delete")
 
@@ -60,6 +62,15 @@ class Participant(db.Model):
     def get_sorted_recordings(self):
         records = Recording.query.filter(Recording.participants.contains(self)).order_by(desc(Recording.last_changed)).all()
         return records
+
+    def check_for_set_active(self):
+        if Participant.query.filter_by(android_id=self.android_id, is_active=True).first() is None:
+            self.is_active = True
+
+    def get_active_color(self):
+        if self.is_active:
+            return 'green'
+        return 'black'
 
 
 class Recording(db.Model):

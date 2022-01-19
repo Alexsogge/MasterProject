@@ -388,7 +388,6 @@ def new_recording():
             recording.update_last_changed()
 
             if os.path.splitext(filename)[1] == '.json' and 'metaInfo' in filename:
-                print('recived metainfo')
                 meta_info_file = os.path.join(upload_path, filename)
                 meta_info = {}
                 if meta_info_file is not None:
@@ -397,15 +396,13 @@ def new_recording():
                 meta_info_m = MetaInfo()
                 meta_info_m.load_from_dict(meta_info)
                 recording.meta_info = meta_info_m
-                print('Metainfo:', meta_info_m)
                 if 'android_id' in meta_info:
-                    participant = Participant.query.filter_by(android_id=meta_info['android_id']).order_by(Participant.id.desc()).first()
-                    print('load participant')
+                    participant = Participant.query.filter_by(android_id=meta_info['android_id'], is_active=True).order_by(Participant.id.desc()).first()
                     if participant is None:
                         participant = Participant(android_id=meta_info['android_id'])
+                        participant.check_for_set_active()
                         db.session.add(participant)
                     if participant is not None:
-                        print('add recording to participant')
                         participant.recordings.append(recording)
 
                 db.session.add(meta_info_m)
@@ -429,6 +426,7 @@ def delete_recording(recording_id=None):
     db.session.delete(recording)
     db.session.commit()
     return redirect(url_for('views.list_recordings'))
+
 
 
 @view.route('/recordingfile/delete/<int:recording_id>/<string:file_name>/')
@@ -682,7 +680,8 @@ def update_participant(participant_id=None):
         participant = Participant.query.filter_by(id=participant_id).first_or_404()
     if request.method == 'POST':
         if participant is None:
-            participant = Participant()
+            participant = Participant(android_id=request.form.get('android_id'))
+            participant.check_for_set_active()
             db.session.add(participant)
 
         participant.android_id = request.form.get('android_id')
@@ -755,6 +754,24 @@ def unassign_recordings_to_participant(participant_id):
 
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
+
+@view.route('/participant/activate/<int:participant_id>/')
+@basic_auth.login_required
+def activate_participant(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    for parti in Participant.query.filter_by(android_id=participant.android_id, is_active=True):
+        parti.is_active = False
+    participant.is_active = True
+    db.session.commit()
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
+
+@view.route('/participant/inactivate/<int:participant_id>/')
+@basic_auth.login_required
+def inactivate_participant(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    participant.is_active = False
+    db.session.commit()
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
 @view.route('/participant/statsupdate/<int:participant_id>/')
@@ -861,6 +878,7 @@ def index_recordings():
             participant = Participant.query.filter_by(android_id=meta_info['android_id']).first()
             if participant is None:
                 participant = Participant(android_id=meta_info['android_id'])
+                participant.check_for_set_active()
                 db.session.add(participant)
 
 
@@ -896,6 +914,14 @@ def update_recordings():
         if recording.meta_info is not None:
             recording.meta_info.load_from_dict(meta_info)
 
+    db.session.commit()
+    return redirect(url_for('views.settings'))
+
+
+@view.route('/trigger/reindex_participants/')
+def reindex_participants():
+    for participant in Participant.query.all():
+        participant.check_for_set_active()
     db.session.commit()
     return redirect(url_for('views.settings'))
 

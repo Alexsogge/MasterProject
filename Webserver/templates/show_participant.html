@@ -15,6 +15,11 @@
     <div class="row mb-3">
         <div class="col">
             <a class="btn btn-primary" href="{{ url_for('views.update_participant', participant_id=participant.id) }}">Edit participant</a>
+            {% if not participant.is_active %}
+                <a class="btn btn-success" href="{{ url_for('views.activate_participant', participant_id=participant.id) }}">Set active</a>
+            {% else %}
+                <a class="btn btn-danger" href="{{ url_for('views.inactivate_participant', participant_id=participant.id) }}">Set inactive</a>
+            {% endif %}
         </div>
     </div>
 
