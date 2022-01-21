@@ -14,9 +14,17 @@ class EvaluationDecoder:
 
     @classmethod
     def read_folder(cls, folder_name: str) -> np.ndarray:
-        predictions = read_csvs_in_folder(folder_name, 'evaluation', 5)
+        evaluations = read_csvs_in_folder(folder_name, 'evaluation', 5)
+        evaluations = evaluations.astype(int)
+        clean_evaluations = dict()
+        for evaluation in evaluations:
+            if evaluation[1] == -1:
+                if evaluation[0] not in clean_evaluations:
+                    clean_evaluations[evaluation[0]] = evaluation
+            else:
+                clean_evaluations[evaluation[0]] = evaluation
 
-        return predictions
+        return np.asarray(list(clean_evaluations.values()), dtype=np.float)
 
 
 if __name__ == '__main__':

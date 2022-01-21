@@ -300,3 +300,11 @@ class ParticipantStats(db.Model):
         self.daily_count_evaluation_yes /= len(stats_per_day.keys())
         self.daily_count_evaluation_no /= len(stats_per_day.keys())
 
+
+class RecordingTag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128))
+    icon_name = db.Column(db.String(128))
+    icon_color = db.Column(db.String(256), default='black')
+
+    consider_for_stats = db.Column(db.Boolean, default=True)

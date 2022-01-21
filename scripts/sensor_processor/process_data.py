@@ -78,6 +78,11 @@ class DataProcessor:
         if entry == RecordingEntry.GYROSCOPE:
             self.read_gyroscope()
 
+    def __getitem__(self, key: RecordingEntry):
+        if isinstance(key, RecordingEntry):
+            return self.data_dict[key]
+        return None
+
     def read_acceleration(self):
         self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.read_data('acc')
         self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
