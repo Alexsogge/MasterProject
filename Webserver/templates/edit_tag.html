@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row mb-3">
+        {% if tag_id %}
+            <h1>Edit tag: {{ name }}</h1>
+        {% else %}
+            <h1>Create tag</h1>
+        {% endif %}
+    </div>
+    <div class="row">
+        <form action="{{url_for('views.update_tag', tag_id=tag_id)}}" method="post">
+            <div class="form-group mt-2">
+                <label for="input_name">name</label>
+                <input type="text" class="form-control" name="name" id="input_name" value="{{ name }}">
+            </div>
+            <div class="form-group mt-2">
+                <label for="input_icon_name">icon_name</label>
+                <input type="text" class="form-control" name="icon_name" id="input_icon_name" value="{{ icon_name }}">
+            </div>
+            <div class="form-group mt-2">
+                <label for="input_icon_color">icon_color</label>
+                <input type="text" class="form-control" name="icon_color" id="input_icon_color" value="{{ icon_color }}">
+            </div>
+            <div class="form-group mt-2">
+                <label for="input_description">description</label>
+                <input type="text" class="form-control" name="description" id="input_description" value="{{ description }}">
+            </div>
+            <div class="form-group mt-2">
+                <input type="checkbox" class="form-check-input" id="input_default_include_for_statistics" {% if default_include_for_statistics %}checked{% endif %}>
+                <label for="input_default_include_for_statistics">default_include_for_statistics</label>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Submit</button>
+        </form>
+    </div>
+
+
+
+{% endblock %}

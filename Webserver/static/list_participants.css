@@ -1,3 +1,7 @@
 .part-entry:hover{
     background-color: #d6d6d6;
 }
+
+.table-hover tbody tr:hover td, .table-hover tbody tr:hover th {
+  background-color: #97e2fc;
+}

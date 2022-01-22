@@ -32,6 +32,13 @@ participant_to_recording = db.Table('participant_to_recording',
                                               db.ForeignKey('participant.id', primary_key=True))
                                     )
 
+recording_to_tag = db.Table('recording_to_tag',
+                            db.Column('recording_tag_id', db.Integer,
+                                      db.ForeignKey('recording_tag.id', primary_key=True)),
+                            db.Column('recording_id', db.Integer,
+                                      db.ForeignKey('recording.id', primary_key=True))
+                            )
+
 
 class Participant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,6 +52,8 @@ class Participant(db.Model):
 
     stats_id = db.Column(db.Integer, db.ForeignKey('participant_stats.id'), nullable=True)
     stats = db.relationship('ParticipantStats', backref=db.backref('participants', lazy=True), cascade="all,delete")
+
+    tag_settings = db.relationship('ParticipantsTagSetting', backref='participant', lazy=True, cascade="all,delete")
 
     def get_name(self):
         if self.alias is not None and not '':
@@ -60,7 +69,8 @@ class Participant(db.Model):
             return self.stats.get_entries(len(self.recordings))
 
     def get_sorted_recordings(self):
-        records = Recording.query.filter(Recording.participants.contains(self)).order_by(desc(Recording.last_changed)).all()
+        records = Recording.query.filter(Recording.participants.contains(self)).order_by(
+            desc(Recording.last_changed)).all()
         return records
 
     def check_for_set_active(self):
@@ -71,6 +81,18 @@ class Participant(db.Model):
         if self.is_active:
             return 'green'
         return 'black'
+
+    def update_tag_settings(self):
+        all_tags = RecordingTag.query.all()
+        for tag in all_tags:
+            tag_setting = ParticipantsTagSetting.query.filter_by(participant=self, recording_tag=tag).first()
+            if tag_setting is None:
+                tag_setting = ParticipantsTagSetting(recording_tag=tag,
+                                                     include_for_statistics=tag.default_include_for_statistics)
+                self.tag_settings.append(tag_setting)
+                db.session.add(tag_setting)
+        db.session.commit()
+
 
 
 class Recording(db.Model):
@@ -90,10 +112,12 @@ class Recording(db.Model):
 
     evaluations = db.relationship('RecordingEvaluation', backref='recording', lazy=True, cascade="all,delete")
 
+    tags = db.relationship('RecordingTag', secondary=recording_to_tag, lazy='subquery',
+                           backref=db.backref('recordings', lazy=True))
+
     @property
     def base_name(self) -> str:
         return os.path.basename(os.path.normpath(self.path))
-
 
     def __repr__(self):
         return f'<Recording {self.id}> {self.base_name}'
@@ -133,8 +157,8 @@ class Recording(db.Model):
         eva_dict['urge'] = [0, 0, 0, 0, 0]
         for evaluation in self.evaluations:
             eva_dict['compulsive'] += evaluation.compulsive
-            eva_dict['tense'][evaluation.tense-1] += 1
-            eva_dict['urge'][evaluation.urge-1] += 1
+            eva_dict['tense'][evaluation.tense - 1] += 1
+            eva_dict['urge'][evaluation.urge - 1] += 1
 
         return eva_dict
 
@@ -148,10 +172,9 @@ class RecordingStats(db.Model):
     count_evaluation_yes = db.Column(db.Integer, default=0)
     count_evaluation_no = db.Column(db.Integer, default=0)
 
-
     def get_stats(self):
         stat_dict = dict()
-        stat_dict['recorded hours'] = f'{(self.duration/60)/60:.2f}'
+        stat_dict['recorded hours'] = f'{(self.duration / 60) / 60:.2f}'
         stat_dict['total hand washes'] = self.count_hand_washes_total
         stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual
         stat_dict['detected hand washes'] = self.count_hand_washes_detected_total
@@ -171,7 +194,6 @@ class MetaInfo(db.Model):
     start_time_stamp = db.Column(db.Integer, nullable=True)
     run_number = db.Column(db.Integer, nullable=True)
     android_id = db.Column(db.String(256), nullable=True)
-
 
     def load_from_dict(self, info_dict):
         if 'ml_model' in info_dict:
@@ -200,6 +222,7 @@ class RecordingEvaluation(db.Model):
 
     recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
 
+
 class ParticipantStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     duration = db.Column(db.Integer, default=0)
@@ -215,7 +238,6 @@ class ParticipantStats(db.Model):
     daily_count_hand_washes_detected_total = db.Column(db.Integer, default=0)
     daily_count_evaluation_yes = db.Column(db.Integer, default=0)
     daily_count_evaluation_no = db.Column(db.Integer, default=0)
-
 
     def clean(self):
         self.duration = 0
@@ -234,7 +256,7 @@ class ParticipantStats(db.Model):
 
     def get_stats(self):
         stat_dict = dict()
-        stat_dict['recorded hours'] = (self.duration/60)/60
+        stat_dict['recorded hours'] = (self.duration / 60) / 60
         stat_dict['total hand washes'] = self.count_hand_washes_total
         stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual
         stat_dict['detected hand washes'] = self.count_hand_washes_detected_total
@@ -250,27 +272,25 @@ class ParticipantStats(db.Model):
         self.count_evaluation_yes += stats.count_evaluation_yes
         self.count_evaluation_no += stats.count_evaluation_no
 
-
     def get_averages(self, count_total):
         stat_dict = dict()
-        stat_dict['recorded hours'] = ((self.duration/count_total)/60)/60
-        stat_dict['total hand washes'] = self.count_hand_washes_total/count_total
-        stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual/count_total
-        stat_dict['detected hand washes'] = self.count_hand_washes_detected_total/count_total
-        stat_dict['evaluated yes'] = self.count_evaluation_yes/count_total
-        stat_dict['evaluated no'] = self.count_evaluation_no/count_total
+        stat_dict['recorded hours'] = ((self.duration / count_total) / 60) / 60
+        stat_dict['total hand washes'] = self.count_hand_washes_total / count_total
+        stat_dict['manual tagged hand washes'] = self.count_hand_washes_manual / count_total
+        stat_dict['detected hand washes'] = self.count_hand_washes_detected_total / count_total
+        stat_dict['evaluated yes'] = self.count_evaluation_yes / count_total
+        stat_dict['evaluated no'] = self.count_evaluation_no / count_total
         return stat_dict
 
     def get_daily_averages(self):
         stat_dict = dict()
-        stat_dict['recorded hours'] = (self.daily_duration/60)/60
+        stat_dict['recorded hours'] = (self.daily_duration / 60) / 60
         stat_dict['total hand washes'] = self.daily_count_hand_washes_total
         stat_dict['manual tagged hand washes'] = self.daily_count_hand_washes_manual
         stat_dict['detected hand washes'] = self.daily_count_hand_washes_detected_total
         stat_dict['evaluated yes'] = self.daily_count_evaluation_yes
         stat_dict['evaluated no'] = self.daily_count_evaluation_no
         return stat_dict
-
 
     def get_entries(self, count_total):
         stat_dict = dict()
@@ -301,10 +321,40 @@ class ParticipantStats(db.Model):
         self.daily_count_evaluation_no /= len(stats_per_day.keys())
 
 
+class ParticipantsTagSetting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    participant_id = db.Column(db.Integer, db.ForeignKey('participant.id'), nullable=False)
+
+    recording_tag_id = db.Column(db.Integer, db.ForeignKey('recording_tag.id'))
+    recording_tag = db.relationship('RecordingTag')
+
+    include_for_statistics = db.Column(db.Boolean)
+
+
 class RecordingTag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
     icon_name = db.Column(db.String(128))
     icon_color = db.Column(db.String(256), default='black')
+    description = db.Column(db.String(512), default='')
 
-    consider_for_stats = db.Column(db.Boolean, default=True)
+    default_include_for_statistics = db.Column(db.Boolean)
+
+
+default_recording_tags = {'no data': {'icon_name': 'fas fa-exclamation', 'icon_color': 'red',
+                                      'default_include_for_statistics': False,
+                                      'description': 'Short or to less movement'},
+                          'false trigger': {'icon_name': 'fas fa-hand-holding-water', 'icon_color': 'red',
+                                            'default_include_for_statistics': False,
+                                            'description': 'Manual hand wash marker at obviously wrong spots'},
+                          'faulty parts': {'icon_name': 'fas fa-thumbs-down', 'icon_color': 'orange',
+                                           'default_include_for_statistics': True,
+                                           'description': 'There are some parts where data seems wrong'},
+                          'good': {'icon_name': 'fas fa-thumbs-up', 'icon_color': 'green',
+                                   'default_include_for_statistics': True,
+                                   'description': 'Everything ok'},
+                          'default': {'icon_name': 'fas fa-bookmark', 'icon_color': 'grey',
+                                   'default_include_for_statistics': True,
+                                   'description': 'Default tag for each recording'}
+                          }

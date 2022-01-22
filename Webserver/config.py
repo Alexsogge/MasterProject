@@ -5,7 +5,6 @@ import random
 import string
 import os
 
-
 version = 1.6
 secret_key_iterations = 42
 
@@ -22,6 +21,7 @@ config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix'
                  'available_optypes': ['Gather', 'Shape', 'Gemm', 'Unsqueeze', 'Concat', 'Reshape', 'FusedGemm',
                                        'Squeeze', 'Expand', 'Softmax', 'LSTM', 'Div', 'Sub', 'Add', 'MatMul',
                                        'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv']}
+
 
 
 class Config:
@@ -104,4 +104,3 @@ class Config:
 
 
 config = Config()
-

@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <div class="row mb-2">
+    <div class="row mb-4">
         <div class="col">
             <div class="row">
                 <h1>Statistics</h1>
@@ -49,10 +49,18 @@
                     {% endif %}
                 </div>
             </div>
-
-            <div class="row">
+            <hr/>
+            <div class="row mt-2">
                 <div class="col">
-                    <button id="button_update_stats" class="btn btn-primary btn-sm" onclick="update_stats()">update</button>
+                    <div class="form-group">
+                        <button id="button_update_stats" class="btn btn-primary btn-sm" onclick="update_stats()">update</button>
+                        {% for tag_setting in participant.tag_settings %}
+                            <input class="form-check-input" type="checkbox" value="" name="tag_setting_{{ tag_setting.id }}" onclick="update_tag_setting({{ tag_setting.id }}, this)" id="input_tag_setting_{{ tag_setting.id }}" autocomplete="off" {% if tag_setting.include_for_statistics %} checked {% endif %}>
+                            <label class="form-check-label" for="input_tag_setting_{{ tag_setting.id }}">
+                                {{ tag_setting.recording_tag.name}}
+                            </label>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -122,6 +130,10 @@
             console.log('assign:', start_date, end_date,);
             if (start_date && end_date)
                 document.location.href = `{{ url_for('views.unassign_recordings_to_participant', participant_id=participant.id) }}?start=${start_date}&end=${end_date}`;
+        }
+
+        function update_tag_setting(tag_setting, check_box){
+            fetch(`{{ url_for('views.update_tag_setting') }}/?setting_id=${tag_setting}&state=${check_box.checked}`);
         }
 
     </script>

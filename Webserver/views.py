@@ -21,7 +21,7 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
-from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats, RecordingEvaluation
+from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats, RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags
 
 
 
@@ -670,6 +670,7 @@ def list_participants():
 def get_participant(participant_id):
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
     recordings = participant.get_sorted_recordings()
+    participant.update_tag_settings()
     return render_template('show_participant.html', participant=participant, recordings=recordings)
 
 @view.route('/participant/update/', methods=['GET', 'POST'])
@@ -809,6 +810,62 @@ def update_participant_stats(participant_id):
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
+@view.route('/tag/list/')
+@basic_auth.login_required
+def list_tags():
+    return render_template('list_tags.html', tags=RecordingTag.query.all())
+
+@view.route('/tag/update/', methods=['GET', 'POST'])
+@view.route('/tag/update/<int:tag_id>/', methods=['GET', 'POST'])
+@basic_auth.login_required
+def update_tag(tag_id=None):
+    tag = None
+    if tag_id is not None:
+        tag = RecordingTag.query.filter_by(id=tag_id).first_or_404()
+    if request.method == 'POST':
+        if tag is None:
+            tag = RecordingTag(name=request.form.get('name'), icon_name=request.form.get('icon_name'),
+                               icon_color=request.form.get('icon_color'), description=request.form.get('description'),
+                               default_include_for_statistics=request.form.get('default_include_for_statistics'))
+            db.session.add(tag)
+
+        tag.name = request.form.get('name')
+        tag.icon_name = request.form.get('icon_name')
+        tag.icon_color = request.form.get('icon_color')
+        tag.description = request.form.get('description')
+        tag.default_include_for_statistics = request.form.get('default_include_for_statistics')
+
+        db.session.commit()
+        return redirect(url_for('views.list_tags'))
+
+    name = ''
+    icon_name = ''
+    icon_color = ''
+    description = ''
+    default_include_for_statistics = True
+
+    if tag is not None:
+        name = tag.name
+        icon_name = tag.icon_name
+        icon_color = tag.icon_color
+        description = tag.description
+        default_include_for_statistics = tag.default_include_for_statistics
+
+    return render_template('edit_tag.html', tag_id=tag_id, name=name, icon_name=icon_name,
+                           icon_color=icon_color, description=description,
+                           default_include_for_statistics=default_include_for_statistics)
+
+
+@view.route('/tagsetting/update/')
+@basic_auth.login_required
+def update_tag_setting():
+    tag_setting_id = request.args.get('setting_id')
+    tag_setting = ParticipantsTagSetting.query.filter_by(id=tag_setting_id).first_or_404()
+    tag_setting.include_for_statistics = request.args.get('state') == 'true'
+    db.session.commit()
+
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+
 @view.route('/tfmodel/get/latest/')
 def get_latest_tf_model():
     if not os.path.exists(TFMODEL_FOLDER):
@@ -924,17 +981,35 @@ def update_recordings():
         if recording.meta_info is not None:
             recording.meta_info.load_from_dict(meta_info)
 
+        if RecordingTag.query.filter_by(name='default').filter(RecordingTag.recordings.contains(recording)).first() is None:
+            default_tag = RecordingTag.query.filter_by(name='default').first_or_404()
+            recording.tags.append(default_tag)
+
     db.session.commit()
     return redirect(url_for('views.settings'))
 
 
-@view.route('/trigger/reindex_participants/')
+@view.route('/trigger/reindex-participants/')
 def reindex_participants():
     for participant in Participant.query.all():
         participant.check_for_set_active()
         if participant.stats is not None:
             db.session.delete(participant.stats)
             participant.stats = None
+    db.session.commit()
+    return redirect(url_for('views.settings'))
+
+@view.route('/trigger/create-default-recording-tags/')
+def create_default_tags():
+
+    for tag_name, tag_vals in default_recording_tags.items():
+        tag = RecordingTag.query.filter_by(name=tag_name).first()
+        if tag is None:
+            tag = RecordingTag(name=tag_name, icon_name=tag_vals['icon_name'])
+            db.session.add(tag)
+        for value_name, value in tag_vals.items():
+            setattr(tag, value_name, value)
+
     db.session.commit()
     return redirect(url_for('views.settings'))
 

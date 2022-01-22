@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block content %}
+    <div class="row mb-1">
+        <h1>Tags</h1>
+    </div>
+    <div class="row mb-3">
+        <div class="col">
+            <a class="btn btn-primary" href="{{ url_for('views.update_tag') }}">New tag</a>
+        </div>
+    </div>
+     <div class="row">
+        <div class="col">
+            {% for tag in tags %}
+                <a href="{{ url_for('views.update_tag', tag_id=tag.id) }}" type="button" class="btn btn-light">{{ tag.name }} <i class="{{ tag.icon_name }}" style="color: {{ tag.icon_color }};"></i></a>
+            {% endfor %}
+        </div>
+     </div>
+{% endblock %}
