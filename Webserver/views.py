@@ -297,12 +297,14 @@ def get_recording(recording_id):
 
     participants = recording.participants
 
+    all_tags = RecordingTag.query.all()
+
 
     return render_template('show_recording.html', recording=recording,
                            files=recording_files, total_size=total_size, sensor_data_file=sensor_data_file,
                            sensor_data_flattened_file=sensor_data_flattened_file,
                            generated_data_size=generated_data_size, meta_info=meta_info,
-                           participants=participants)
+                           participants=participants, all_tags=all_tags)
 
 
 @view.route('/recording/plot/<int:recording_id>/')
@@ -660,6 +662,23 @@ def update_recording_stats(recording_id):
     db.session.commit()
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
+
+@view.route('/recording/toggle-tag/<int:recording_id>/')
+@basic_auth.login_required
+def toggle_recording_tag(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    tag_id = request.args.get('tag_id')
+    tag = RecordingTag.query.filter_by(id=tag_id).first_or_404()
+    if tag in recording.tags:
+        recording.tags.remove(tag)
+    else:
+        recording.tags.append(tag)
+
+    db.session.commit()
+
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
+
 @view.route('/participant/list/')
 @basic_auth.login_required
 def list_participants():
@@ -671,7 +690,12 @@ def get_participant(participant_id):
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
     recordings = participant.get_sorted_recordings()
     participant.update_tag_settings()
-    return render_template('show_participant.html', participant=participant, recordings=recordings)
+
+    for recording in participant.get_observed_recordings():
+        recording.highlight = True
+
+
+    return render_template('show_participant.html', participant=participant, recordings=recordings, highlight_tags=True)
 
 @view.route('/participant/update/', methods=['GET', 'POST'])
 @view.route('/participant/update/<int:participant_id>/', methods=['GET', 'POST'])
@@ -792,7 +816,8 @@ def update_participant_stats(participant_id):
 
     stats_per_day: Dict[datetime.date, List[RecordingStats]] = dict()
 
-    for recording in participant.recordings:
+
+    for recording in participant.get_observed_recordings():
         if recording.stats is None:
             rec_stats = generate_recording_stats(recording)
         else:
@@ -856,15 +881,15 @@ def update_tag(tag_id=None):
                            default_include_for_statistics=default_include_for_statistics)
 
 
-@view.route('/tagsetting/update/')
+@view.route('/participant/tagsetting-update/<int:participant_id>/')
 @basic_auth.login_required
-def update_tag_setting():
+def update_tag_setting(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
     tag_setting_id = request.args.get('setting_id')
-    tag_setting = ParticipantsTagSetting.query.filter_by(id=tag_setting_id).first_or_404()
-    tag_setting.include_for_statistics = request.args.get('state') == 'true'
-    db.session.commit()
+    tag_setting = ParticipantsTagSetting.query.filter_by(id=tag_setting_id, participant=participant).first_or_404()
+    tag_setting.next_state()
 
-    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+    return redirect(url_for('views.update_participant_stats', participant_id=participant.id))
 
 @view.route('/tfmodel/get/latest/')
 def get_latest_tf_model():

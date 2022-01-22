@@ -21,7 +21,7 @@
                     <th scope="col"><input type="checkbox" autocomplete="off" class="form-check-input me-1" name="bulk_select" value="{{ recording.id }}" onclick="update_selection(this);"></th>
                     <td><a href="{{url_for('views.get_recording', recording_id=recording.id)}}">{{ recording.get_name() }}</a></td>
                     <td>{{ recording.description }}</td>
-                    <td>
+                    <td {% if highlight_tags and recording.highlight %}style="background-color: #8aff97" {% endif %}>
                         {% for tag in recording.tags %}
                             <i class="{{ tag.icon_name }}" style="color: {{ tag.icon_color }}" title="{{ tag.description }}"></i>
                         {% endfor %}

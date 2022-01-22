@@ -66,7 +66,7 @@ class Participant(db.Model):
         if self.stats_id is None:
             return dict()
         else:
-            return self.stats.get_entries(len(self.recordings))
+            return self.stats.get_entries(len(self.get_observed_recordings()))
 
     def get_sorted_recordings(self):
         records = Recording.query.filter(Recording.participants.contains(self)).order_by(
@@ -87,12 +87,44 @@ class Participant(db.Model):
         for tag in all_tags:
             tag_setting = ParticipantsTagSetting.query.filter_by(participant=self, recording_tag=tag).first()
             if tag_setting is None:
+                include_for_statistics = False
+                not_include_for_statistics = False
+                if tag.default_include_for_statistics is not None:
+                    include_for_statistics = tag.default_include_for_statistics
+                    not_include_for_statistics = not include_for_statistics
                 tag_setting = ParticipantsTagSetting(recording_tag=tag,
-                                                     include_for_statistics=tag.default_include_for_statistics)
+                                                     include_for_statistics=include_for_statistics,
+                                                     not_include_for_statistics=not_include_for_statistics)
                 self.tag_settings.append(tag_setting)
                 db.session.add(tag_setting)
         db.session.commit()
 
+
+    def get_observed_recordings(self):
+        required_tags = []
+        forbidden_tags = []
+        for tag_setting in self.tag_settings:
+            if tag_setting.include_for_statistics:
+                required_tags.append(tag_setting.recording_tag)
+            if tag_setting.not_include_for_statistics:
+                forbidden_tags.append(tag_setting.recording_tag)
+
+        observed_recordings = []
+
+        for recording in self.recordings:
+            is_allowed = True
+            for tag in recording.tags:
+                if tag in forbidden_tags:
+                    is_allowed = False
+                    break
+            for tag in required_tags:
+                if tag not in recording.tags:
+                    is_allowed = False
+                    break
+            if is_allowed:
+                observed_recordings.append(recording)
+
+        return observed_recordings
 
 
 class Recording(db.Model):
@@ -114,6 +146,8 @@ class Recording(db.Model):
 
     tags = db.relationship('RecordingTag', secondary=recording_to_tag, lazy='subquery',
                            backref=db.backref('recordings', lazy=True))
+
+    highlight = False
 
     @property
     def base_name(self) -> str:
@@ -273,6 +307,8 @@ class ParticipantStats(db.Model):
         self.count_evaluation_no += stats.count_evaluation_no
 
     def get_averages(self, count_total):
+        if count_total == 0:
+            count_total = 1
         stat_dict = dict()
         stat_dict['recorded hours'] = ((self.duration / count_total) / 60) / 60
         stat_dict['total hand washes'] = self.count_hand_washes_total / count_total
@@ -304,21 +340,29 @@ class ParticipantStats(db.Model):
         return stat_dict
 
     def calc_daily_stats(self, stats_per_day: Dict[datetime.date, List[RecordingStats]]):
-        for day in stats_per_day.keys():
-            for stat in stats_per_day[day]:
-                self.daily_duration += stat.duration
-                self.daily_count_hand_washes_total += stat.count_hand_washes_total
-                self.daily_count_hand_washes_manual += stat.count_hand_washes_manual
-                self.daily_count_hand_washes_detected_total += stat.count_hand_washes_detected_total
-                self.daily_count_evaluation_yes += stat.count_evaluation_yes
-                self.daily_count_evaluation_no += stat.count_evaluation_no
+        if len(stats_per_day) > 0:
+            for day in stats_per_day.keys():
+                for stat in stats_per_day[day]:
+                    self.daily_duration += stat.duration
+                    self.daily_count_hand_washes_total += stat.count_hand_washes_total
+                    self.daily_count_hand_washes_manual += stat.count_hand_washes_manual
+                    self.daily_count_hand_washes_detected_total += stat.count_hand_washes_detected_total
+                    self.daily_count_evaluation_yes += stat.count_evaluation_yes
+                    self.daily_count_evaluation_no += stat.count_evaluation_no
 
-        self.daily_duration /= len(stats_per_day.keys())
-        self.daily_count_hand_washes_total /= len(stats_per_day.keys())
-        self.daily_count_hand_washes_manual /= len(stats_per_day.keys())
-        self.daily_count_hand_washes_detected_total /= len(stats_per_day.keys())
-        self.daily_count_evaluation_yes /= len(stats_per_day.keys())
-        self.daily_count_evaluation_no /= len(stats_per_day.keys())
+            self.daily_duration /= len(stats_per_day.keys())
+            self.daily_count_hand_washes_total /= len(stats_per_day.keys())
+            self.daily_count_hand_washes_manual /= len(stats_per_day.keys())
+            self.daily_count_hand_washes_detected_total /= len(stats_per_day.keys())
+            self.daily_count_evaluation_yes /= len(stats_per_day.keys())
+            self.daily_count_evaluation_no /= len(stats_per_day.keys())
+        else:
+            self.daily_duration = 0
+            self.daily_count_hand_washes_total = 0
+            self.daily_count_hand_washes_manual = 0
+            self.daily_count_hand_washes_detected_total = 0
+            self.daily_count_evaluation_yes = 0
+            self.daily_count_evaluation_no = 0
 
 
 class ParticipantsTagSetting(db.Model):
@@ -330,7 +374,28 @@ class ParticipantsTagSetting(db.Model):
     recording_tag = db.relationship('RecordingTag')
 
     include_for_statistics = db.Column(db.Boolean)
+    not_include_for_statistics = db.Column(db.Boolean, default=False)
 
+    def next_state(self):
+        if self.include_for_statistics:
+            self.include_for_statistics = False
+            self.not_include_for_statistics = True
+        elif self.not_include_for_statistics:
+            self.not_include_for_statistics = False
+        else:
+            self.include_for_statistics = True
+        db.session.commit()
+
+    def get_outline(self):
+        if self.include_for_statistics:
+            return 'btn-outline-success'
+        elif self.not_include_for_statistics:
+            return 'btn-outline-danger'
+        else:
+            return 'btn-outline-secondary'
+
+    def is_checked(self):
+        return self.include_for_statistics or self.not_include_for_statistics
 
 class RecordingTag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -339,20 +404,20 @@ class RecordingTag(db.Model):
     icon_color = db.Column(db.String(256), default='black')
     description = db.Column(db.String(512), default='')
 
-    default_include_for_statistics = db.Column(db.Boolean)
+    default_include_for_statistics = db.Column(db.Boolean, nullable=True)
 
 
 default_recording_tags = {'no data': {'icon_name': 'fas fa-exclamation', 'icon_color': 'red',
                                       'default_include_for_statistics': False,
                                       'description': 'Short or to less movement'},
                           'false trigger': {'icon_name': 'fas fa-hand-holding-water', 'icon_color': 'red',
-                                            'default_include_for_statistics': False,
+                                            'default_include_for_statistics': None,
                                             'description': 'Manual hand wash marker at obviously wrong spots'},
                           'faulty parts': {'icon_name': 'fas fa-thumbs-down', 'icon_color': 'orange',
-                                           'default_include_for_statistics': True,
+                                           'default_include_for_statistics': None,
                                            'description': 'There are some parts where data seems wrong'},
                           'good': {'icon_name': 'fas fa-thumbs-up', 'icon_color': 'green',
-                                   'default_include_for_statistics': True,
+                                   'default_include_for_statistics': None,
                                    'description': 'Everything ok'},
                           'default': {'icon_name': 'fas fa-bookmark', 'icon_color': 'grey',
                                    'default_include_for_statistics': True,

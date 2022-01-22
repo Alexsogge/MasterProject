@@ -53,11 +53,11 @@
             <div class="row mt-2">
                 <div class="col">
                     <div class="form-group">
-                        <button id="button_update_stats" class="btn btn-primary btn-sm" onclick="update_stats()">update</button>
+                        <button id="button_update_stats" class="btn btn-primary me-2" onclick="update_stats()">update</button>
                         {% for tag_setting in participant.tag_settings %}
-                            <input class="form-check-input" type="checkbox" value="" name="tag_setting_{{ tag_setting.id }}" onclick="update_tag_setting({{ tag_setting.id }}, this)" id="input_tag_setting_{{ tag_setting.id }}" autocomplete="off" {% if tag_setting.include_for_statistics %} checked {% endif %}>
-                            <label class="form-check-label" for="input_tag_setting_{{ tag_setting.id }}">
-                                {{ tag_setting.recording_tag.name}}
+                            <input class="btn-check" type="checkbox" value="" name="tag_setting_{{ tag_setting.id }}" onclick="update_tag_setting({{ tag_setting.id }}, this)" id="input_tag_setting_{{ tag_setting.id }}" autocomplete="off" {% if tag_setting.is_checked() %} checked {% endif %}>
+                            <label class="btn btn-sm {{ tag_setting.get_outline() }}" for="input_tag_setting_{{ tag_setting.id }}"  title="{{ tag_setting.recording_tag.description }}">
+                                {{ tag_setting.recording_tag.name}}<i class="ms-1 {{ tag_setting.recording_tag.icon_name }}" style="color: {{ tag_setting.recording_tag.icon_color }}"></i>
                             </label>
                         {% endfor %}
                     </div>
@@ -133,7 +133,7 @@
         }
 
         function update_tag_setting(tag_setting, check_box){
-            fetch(`{{ url_for('views.update_tag_setting') }}/?setting_id=${tag_setting}&state=${check_box.checked}`);
+            document.location.href = `{{ url_for('views.update_tag_setting', participant_id=participant.id) }}/?setting_id=${tag_setting}&state=${check_box.checked}`;
         }
 
     </script>
