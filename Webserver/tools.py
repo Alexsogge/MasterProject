@@ -213,5 +213,6 @@ def remove_row_in_csv(path, row_index):
         for row in old_lines:
             csv_writer.writerow(row)
 
+
 if __name__ == '__main__':
     check_valid_ort_model('/tmp/model_trained_lstm_16_09_21___12_49_08.all.ort')
