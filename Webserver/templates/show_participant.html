@@ -69,6 +69,12 @@
     <div class="row mb-1">
         <h1>Recordings</h1>
     </div>
+     <div class="row mb-1">
+        <div class="col">
+            <button id="button_tag_no_data" type="button" class="btn btn-primary" onclick="tag_no_data()">tag no data</button>
+        </div>
+     </div>
+
 
     <div class="row mb-1">
         <div class="col">
@@ -114,6 +120,11 @@
         function update_stats(){
             document.getElementById('button_update_stats').innerText = 'loading...';
             document.location.href = "{{ url_for('views.update_participant_stats', participant_id=participant.id) }}";
+        }
+
+        function tag_no_data(){
+            document.getElementById('button_tag_no_data').innerText = 'loading...';
+            document.location.href = "{{ url_for('views.participant_tag_no_data_recordings', participant_id=participant.id) }}";
         }
 
         function assign_recordings(ignore_id){

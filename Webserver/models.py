@@ -2,10 +2,12 @@ import datetime
 import os
 from typing import Union, Dict, List
 
+import numpy as np
 from dateutil import parser
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc
+import json
 
 from tools import get_session_size, convert_size, get_size_color
 
@@ -146,6 +148,9 @@ class Recording(db.Model):
 
     tags = db.relationship('RecordingTag', secondary=recording_to_tag, lazy='subquery',
                            backref=db.backref('recordings', lazy=True))
+
+    calculations_id = db.Column(db.Integer, db.ForeignKey('recording_calculations.id'), nullable=True)
+    calculations = db.relationship('RecordingCalculations', backref=db.backref('recording', lazy=True), cascade="all,delete")
 
     highlight = False
 
@@ -423,3 +428,18 @@ default_recording_tags = {'no data': {'icon_name': 'fas fa-exclamation', 'icon_c
                                    'default_include_for_statistics': True,
                                    'description': 'Default tag for each recording'}
                           }
+
+class RecordingCalculations(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    variance = db.Column(db.String(1024), nullable=True)
+
+
+    def store_variance(self, variance: np.ndarray):
+        variance_json = json.dumps(variance.tolist())
+        self.variance = variance_json
+        db.session.commit()
+
+    def get_variance(self) -> Union[None, np.ndarray]:
+        if self.variance is None:
+            return None
+        return np.asarray(json.loads(self.variance))

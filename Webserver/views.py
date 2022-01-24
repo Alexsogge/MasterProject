@@ -21,7 +21,8 @@ from data_factory import DataFactory
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 
-from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats, RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags
+from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats,\
+    RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags, RecordingCalculations
 
 
 
@@ -663,6 +664,32 @@ def update_recording_stats(recording_id):
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
+def create_recording_calculations(recording):
+    data_factory = DataFactory(recording, False)
+    variance = data_factory.calc_variance()
+    calculations = RecordingCalculations()
+    calculations.store_variance(variance)
+
+    recording.calculations = calculations
+
+    db.session.add(calculations)
+    db.session.commit()
+
+
+
+@view.route('/recording/calc-characteristics/<int:recording_id>/')
+@basic_auth.login_required
+def calc_recording_characteristics(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    if recording.calculations is None:
+        create_recording_calculations(recording)
+    else:
+        db.session.delete(recording.calculations)
+        create_recording_calculations(recording)
+
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
+
 @view.route('/recording/toggle-tag/<int:recording_id>/')
 @basic_auth.login_required
 def toggle_recording_tag(recording_id):
@@ -834,6 +861,22 @@ def update_participant_stats(participant_id):
 
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
+
+@view.route('/participant/tag-no-data/<int:participant_id>/')
+@basic_auth.login_required
+def participant_tag_no_data_recordings(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    for recording in participant.recordings:
+        if recording.calculations is None:
+            create_recording_calculations(recording)
+        if np.min(recording.calculations.get_variance()) < config.no_data_variance_threshold:
+            tag = RecordingTag.query.filter_by(name='no data').first_or_404()
+            if tag not in recording.tags:
+                recording.tags.append(tag)
+
+    db.session.commit()
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 @view.route('/tag/list/')
 @basic_auth.login_required

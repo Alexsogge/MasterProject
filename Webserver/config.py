@@ -5,7 +5,7 @@ import random
 import string
 import os
 
-version = 1.6
+version = 1.7
 secret_key_iterations = 42
 
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite', 'json', 'avi', 'ort'}
@@ -20,7 +20,8 @@ config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix'
                  'pack_mic_files': False, 'database_uri': 'sqlite:///sensor_recorder.db',
                  'available_optypes': ['Gather', 'Shape', 'Gemm', 'Unsqueeze', 'Concat', 'Reshape', 'FusedGemm',
                                        'Squeeze', 'Expand', 'Softmax', 'LSTM', 'Div', 'Sub', 'Add', 'MatMul',
-                                       'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv']}
+                                       'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv'],
+                 'no_data_variance_threshold': 3.5}
 
 
 
@@ -43,6 +44,7 @@ class Config:
     rename_mic_files: bool = None
     pack_mic_files: bool = None
     available_optypes: List = None
+    no_data_variance_threshold = None
 
     def __init__(self):
         print('load config')

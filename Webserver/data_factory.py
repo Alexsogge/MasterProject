@@ -46,6 +46,14 @@ class DataFactory:
     def get_manual_hw_ts(self):
         return self.data_processor.data_dict[RecordingEntry.MANUALWHTS]
 
+    def calc_variance(self):
+        if RecordingEntry.ACCELERATION not in self.data_processor.data_dict:
+            self.data_processor.read_entry(RecordingEntry.ACCELERATION)
+        acc_data = self.data_processor.data_dict[RecordingEntry.ACCELERATION]
+        print(acc_data.shape)
+        variance = np.var(acc_data[:, 1:], axis=0)
+        print(variance)
+        return variance
 
 
 
