@@ -1,6 +1,7 @@
 from app import db, app
 from data_factory import DataFactory
 from models import Recording, RecordingCalculations
+import numpy as np
 
 import sys
 
@@ -15,8 +16,12 @@ def calc_recording_characteristics():
         for recording in Recording.query.all():
             if recording.calculations is None:
                 print('Calc characteristics for', recording.get_name())
-                data_factory = DataFactory(recording, False)
-                variance = data_factory.calc_variance()
+                try:
+                    data_factory = DataFactory(recording, False)
+                    variance = data_factory.calc_variance()
+                except Exception as e:
+                    print('Error while reading file. Set Dummy entry')
+                    variance = np.array([0.0, 0.0, 0.0])
                 calculations = RecordingCalculations()
                 calculations.store_variance(variance)
 
