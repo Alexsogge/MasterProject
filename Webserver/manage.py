@@ -11,9 +11,10 @@ def create_db():
 
 def calc_recording_characteristics():
     with app.app_context():
+        print('Start calculation...')
         for recording in Recording.query.all():
             if recording.calculations is None:
-                print('Calc characteristics for ', recording.get_name())
+                print('Calc characteristics for', recording.get_name())
                 data_factory = DataFactory(recording, False)
                 variance = data_factory.calc_variance()
                 calculations = RecordingCalculations()
@@ -23,6 +24,8 @@ def calc_recording_characteristics():
 
                 db.session.add(calculations)
                 db.session.commit()
+            else:
+                print('skip', recording.get_name())
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
