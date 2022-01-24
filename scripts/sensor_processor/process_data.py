@@ -122,7 +122,6 @@ class DataProcessor:
 
     def read_evaluations(self):
         self.data_dict[RecordingEntry.EVALUATIONS] = EvaluationDecoder.read_folder(self.folder_name)
-
         self.data_dict[RecordingEntry.EVALUATIONS] = align_array(self.data_dict[RecordingEntry.EVALUATIONS],
                                                     self.sensor_decoder.min_time_stamp)
 
