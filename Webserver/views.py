@@ -781,7 +781,8 @@ def update_participant(participant_id=None):
         participant.is_active = request.form.get('is_active') is not None
         db.session.commit()
         if participant.is_active:
-            activate_participant(participant_id)
+            activate_participant(participant.id)
+        print('get participant:', participant.id)
         return redirect(url_for('views.get_participant', participant_id=participant.id))
 
     alias = ''

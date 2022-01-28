@@ -219,6 +219,9 @@ def remove_row_in_csv(path, row_index):
 def create_participant_evaluation_graph(directory, evaluations):
     fig, ax = plt.subplots(figsize=(20, 7))
 
+
+    if len(evaluations) < 2:
+        return
     day_range = sorted(evaluations)[-1] - sorted(evaluations)[0]
     day_range = int(day_range.days / 5)
 
@@ -251,6 +254,9 @@ def create_participant_evaluation_graph(directory, evaluations):
 
 
 def generate_recording_evaluations_plot(recording: 'Recording'):
+    if len(recording.evaluations) == 0:
+        return
+
     fig, ax = plt.subplots(figsize=(20, 7))
     time_formatter = mdates.DateFormatter('%H:%M')
     ax.xaxis.set_major_formatter(time_formatter)
