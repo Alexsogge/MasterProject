@@ -250,5 +250,37 @@ def create_participant_evaluation_graph(directory, evaluations):
     fig.savefig(os.path.join(directory, 'evaluation_graph.png'), dpi=400)
 
 
+def generate_recording_evaluations_plot(recording: 'Recording'):
+    fig, ax = plt.subplots(figsize=(20, 7))
+    time_formatter = mdates.DateFormatter('%H:%M')
+    ax.xaxis.set_major_formatter(time_formatter)
+    plt.rcParams.update({'font.size': 22})
+
+    x_vals = []
+    y_vals_compulsive = []
+    y_vals_tense = []
+    y_vals_urge = []
+
+    for evaluation in recording.evaluations:
+        x_vals.append(evaluation.timestamp)
+        y_vals_compulsive.append(evaluation.compulsive * 5)
+        y_vals_tense.append(evaluation.tense)
+        y_vals_urge.append(evaluation.urge)
+
+    ax.scatter(x_vals, y_vals_compulsive, label='compulsive * 5', s=300, marker='x')
+    ax.scatter(x_vals, y_vals_tense, label='tense', s=300, marker='p')
+    ax.scatter(x_vals, y_vals_urge, label='urge', s=300, marker='>')
+
+
+    for item in ax.get_xticklabels():
+        item.set_fontsize(22)
+    for item in ax.get_yticklabels():
+        item.set_fontsize(22)
+    ax.grid()
+    fig.tight_layout()
+    fig.legend()
+    plt.gcf().autofmt_xdate()
+    fig.savefig(os.path.join(recording.path, 'evaluation_graph.png'), dpi=400)
+
 if __name__ == '__main__':
     check_valid_ort_model('/tmp/model_trained_lstm_16_09_21___12_49_08.all.ort')

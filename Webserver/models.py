@@ -154,7 +154,7 @@ class Recording(db.Model):
     meta_info_id = db.Column(db.Integer, db.ForeignKey('meta_info.id'), nullable=True)
     meta_info = db.relationship('MetaInfo', backref=db.backref('recording', lazy=True), cascade="all,delete")
 
-    evaluations = db.relationship('RecordingEvaluation', backref='recording', lazy=True, cascade="all,delete")
+    evaluations = db.relationship('RecordingEvaluation', backref='recording', lazy=True, cascade="all,delete", order_by='RecordingEvaluation.timestamp')
 
     tags = db.relationship('RecordingTag', secondary=recording_to_tag, lazy='subquery',
                            backref=db.backref('recordings', lazy=True))
@@ -268,6 +268,7 @@ class RecordingEvaluation(db.Model):
     compulsive = db.Column(db.Boolean, default=False)
     tense = db.Column(db.Integer, default=0)
     urge = db.Column(db.Integer, default=0)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'), nullable=False)
 
@@ -354,7 +355,7 @@ class ParticipantStats(db.Model):
         for key in all_stats.keys():
             stat_dict[key] = (f'{all_stats[key]:.2f}', f'{avg_stats[key]:.2f}', f'{avg_daily[key]:.2f}')
 
-        stat_dict['amount'] = (count_total, count_total, self.amount_covered_days)
+        stat_dict['amount'] = (count_total, 1, self.amount_covered_days)
         return stat_dict
 
     def calc_daily_stats(self, stats_per_day: Dict[datetime.date, List[RecordingStats]]):

@@ -30,6 +30,7 @@ from models import db, AuthenticationRequest, Participant, Recording, RecordingS
 
 view = Blueprint('views', __name__, template_folder='templates', static_folder='static')
 
+nano_sec = 0.000000001
 
 @view.app_template_filter()
 def is_boolean(input):
@@ -320,12 +321,17 @@ def get_recording(recording_id):
 
     all_tags = RecordingTag.query.all()
 
+    evaluations_plot = None
+    evaluations_plot_path = os.path.join(recording.path, 'evaluation_graph.png')
+    if os.path.isfile(evaluations_plot_path):
+        evaluations_plot = os.path.join(recording.base_name, 'evaluation_graph.png')
+
 
     return render_template('show_recording.html', recording=recording,
                            files=recording_files, total_size=total_size, sensor_data_file=sensor_data_file,
                            sensor_data_flattened_file=sensor_data_flattened_file,
                            generated_data_size=generated_data_size, meta_info=meta_info,
-                           participants=participants, all_tags=all_tags)
+                           participants=participants, all_tags=all_tags, evaluations_plot=evaluations_plot)
 
 
 @view.route('/recording/plot/<int:recording_id>/')
@@ -663,11 +669,18 @@ def generate_recording_stats(recording):
             rec_evaluation.compulsive = bool(evaluation[2])
             rec_evaluation.tense = int(evaluation[3])
             rec_evaluation.urge = int(evaluation[4])
+            timestamp = (recording.meta_info.start_time_stamp - evaluation[0]) * nano_sec
+            timestamp = recording.meta_info.date + timedelta(seconds=timestamp)
+            rec_evaluation.timestamp = timestamp
             recording.evaluations.append(rec_evaluation)
             db.session.add(rec_evaluation)
 
     db.session.add(rec_stats)
+
+    generate_recording_evaluations_plot(recording)
+
     return rec_stats
+
 
 @view.route('/recording/statsupdate/<int:recording_id>/')
 @basic_auth.login_required
