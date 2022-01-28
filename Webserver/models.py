@@ -278,6 +278,8 @@ class ParticipantStats(db.Model):
     daily_count_evaluation_yes = db.Column(db.Integer, default=0)
     daily_count_evaluation_no = db.Column(db.Integer, default=0)
 
+    amount_covered_days = db.Column(db.Integer, default=0)
+
     def clean(self):
         self.duration = 0
         self.count_hand_washes_total = 0
@@ -342,7 +344,7 @@ class ParticipantStats(db.Model):
         for key in all_stats.keys():
             stat_dict[key] = (f'{all_stats[key]:.2f}', f'{avg_stats[key]:.2f}', f'{avg_daily[key]:.2f}')
 
-        stat_dict['number recordings'] = (count_total, '', '')
+        stat_dict['amount'] = (count_total, count_total, self.amount_covered_days)
         return stat_dict
 
     def calc_daily_stats(self, stats_per_day: Dict[datetime.date, List[RecordingStats]]):
@@ -362,6 +364,7 @@ class ParticipantStats(db.Model):
             self.daily_count_hand_washes_detected_total /= len(stats_per_day.keys())
             self.daily_count_evaluation_yes /= len(stats_per_day.keys())
             self.daily_count_evaluation_no /= len(stats_per_day.keys())
+            self.amount_covered_days = len(stats_per_day.keys())
         else:
             self.daily_duration = 0
             self.daily_count_hand_washes_total = 0
@@ -369,6 +372,7 @@ class ParticipantStats(db.Model):
             self.daily_count_hand_washes_detected_total = 0
             self.daily_count_evaluation_yes = 0
             self.daily_count_evaluation_no = 0
+            self.amount_covered_days = 0
 
 
 class ParticipantsTagSetting(db.Model):
