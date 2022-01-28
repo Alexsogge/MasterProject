@@ -9,15 +9,17 @@ import csv
 import re
 
 # from util.ort_format_model.utils import _extract_ops_and_types_from_ort_models as _extract_ops_and_types_from_ort_models
-import numpy
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from plot_data import PlotData
-from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, config
+from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, PARTICIPANT_FOLDER, config
 from ort_helpers import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from models import Recording
+    from models import Recording, Participant
 
 prepared_plot_data: Dict[int, PlotData] = dict()
 
@@ -182,7 +184,7 @@ def search_file_of_recording(recording: 'Recording', search_query):
     return None
 
 
-def save_csv(path, data: numpy.ndarray):
+def save_csv(path, data: np.ndarray):
     with open(path, 'w', newline='') as csvfile:
         csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
         csv_writer.writerows(data)
@@ -212,6 +214,40 @@ def remove_row_in_csv(path, row_index):
         csv_writer = csv.writer(csvfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
         for row in old_lines:
             csv_writer.writerow(row)
+
+
+def create_participant_evaluation_graph(directory, evaluations):
+    fig, ax = plt.subplots(figsize=(20, 7))
+
+    day_range = sorted(evaluations)[-1] - sorted(evaluations)[0]
+    day_range = int(day_range.days / 5)
+
+    if day_range < 1:
+        day_range = 1
+
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y'))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=day_range))
+    plt.rcParams.update({'font.size': 22})
+
+
+    compulsive = [evaluations[evaluation_key]['compulsive'] for evaluation_key in sorted(evaluations)]
+    tense = [evaluations[evaluation_key]['tense'] for evaluation_key in sorted(evaluations)]
+    urge = [evaluations[evaluation_key]['urge'] for evaluation_key in sorted(evaluations)]
+
+    ax.plot(sorted(evaluations), np.array(compulsive)*5, label='compulsive * 5')
+    ax.plot(sorted(evaluations), np.array(tense), label='tense')
+    ax.plot(sorted(evaluations), np.array(urge), label='urge')
+
+
+    for item in ax.get_xticklabels():
+        item.set_fontsize(22)
+    for item in ax.get_yticklabels():
+        item.set_fontsize(22)
+    ax.grid()
+    fig.tight_layout()
+    fig.legend()
+    plt.gcf().autofmt_xdate()
+    fig.savefig(os.path.join(directory, 'evaluation_graph.png'), dpi=400)
 
 
 if __name__ == '__main__':

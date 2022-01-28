@@ -128,6 +128,16 @@ class Participant(db.Model):
 
         return observed_recordings
 
+    def get_recordings_per_day(self):
+        recordings_per_day: Dict[datetime.date, List[RecordingStats]] = dict()
+        for recording in self.get_observed_recordings():
+            if recording.meta_info is not None:
+                date = recording.meta_info.date.date()
+                if date not in recordings_per_day:
+                    recordings_per_day[date] = []
+                recordings_per_day[date].append(recording)
+
+        return recordings_per_day
 
 class Recording(db.Model):
     id = db.Column(db.Integer, primary_key=True)

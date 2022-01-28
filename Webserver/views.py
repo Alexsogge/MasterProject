@@ -738,12 +738,17 @@ def get_participant(participant_id):
     recordings = participant.get_sorted_recordings()
     participant.update_tag_settings()
 
+    evaluations_plot = None
+    evaluations_plot_path = os.path.join(PARTICIPANT_FOLDER, os.path.join(str(participant.id), 'evaluation_graph.png'))
+    if os.path.isfile(evaluations_plot_path):
+        evaluations_plot = os.path.join(str(participant.id), 'evaluation_graph.png')
+
 
     for recording in participant.get_observed_recordings():
         recording.highlight = True
 
 
-    return render_template('show_participant.html', participant=participant, recordings=recordings, highlight_tags=True)
+    return render_template('show_participant.html', participant=participant, recordings=recordings, highlight_tags=True, evaluations_plot=evaluations_plot)
 
 @view.route('/participant/update/', methods=['GET', 'POST'])
 @view.route('/participant/update/<int:participant_id>/', methods=['GET', 'POST'])
@@ -894,6 +899,8 @@ def update_participant_stats(participant_id):
     stats.calc_daily_stats(stats_per_day)
     db.session.commit()
 
+    participant_update_evaluation_graph(participant.id)
+
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
@@ -911,6 +918,37 @@ def participant_tag_no_data_recordings(participant_id):
                 recording.tags.append(tag)
 
     db.session.commit()
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
+
+
+@view.route('/participant/update-evaluation-graph/<int:participant_id>/')
+@basic_auth.login_required
+def participant_update_evaluation_graph(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    evaluation_averages = dict()
+    for day, recordings in participant.get_recordings_per_day().items():
+        evaluation_sum = {'compulsive': 0, 'tense': 0, 'urge': 0}
+        count_evaluations = 0
+        for recording in recordings:
+            for evaluation in recording.evaluations:
+                evaluation_sum['compulsive'] += evaluation.compulsive
+                evaluation_sum['tense'] += evaluation.tense
+                evaluation_sum['urge'] += evaluation.urge
+                count_evaluations += 1
+
+        if count_evaluations > 0:
+            evaluation_sum['compulsive'] /= count_evaluations
+            evaluation_sum['tense'] /= count_evaluations
+            evaluation_sum['urge'] /= count_evaluations
+        evaluation_averages[day] = evaluation_sum
+
+    plot_directory = os.path.join(PARTICIPANT_FOLDER, str(participant.id))
+    if not os.path.exists(plot_directory):
+        os.mkdir(plot_directory)
+
+    create_participant_evaluation_graph(plot_directory, evaluation_averages)
+
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 @view.route('/tag/list/')
@@ -1137,6 +1175,9 @@ def send_js(path):
 def uploaded_recording_file(path):
     return send_from_directory(RECORDINGS_FOLDER, path)
 
+@view.route('/uploads/participants/<path:path>')
+def uploaded_participant_file(path):
+    return send_from_directory(PARTICIPANT_FOLDER, path)
 
 @view.route('/uploads/tf_models/<path:path>')
 def uploaded_tf_file(path):

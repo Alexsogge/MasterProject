@@ -66,6 +66,17 @@
         </div>
     </div>
 
+    {% if evaluations_plot %}
+    <div class="row mb-1">
+        <h3>Evaluations</h3>
+    </div>
+    <div class="row">
+        <div class="col">
+            <img src="{{url_for('views.uploaded_participant_file', path=evaluations_plot)}}" id="plot" class="img-fluid" alt="Average evaluations plot" style="display: block; max-width: 100%;">
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row mb-1">
         <h1>Recordings</h1>
     </div>

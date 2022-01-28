@@ -13,6 +13,7 @@ UPLOAD_FOLDER = 'uploads'
 
 RECORDINGS_FOLDER = os.path.join(UPLOAD_FOLDER, 'recordings')
 TFMODEL_FOLDER = os.path.join(UPLOAD_FOLDER, 'tf_models')
+PARTICIPANT_FOLDER = os.path.join(UPLOAD_FOLDER, 'participants')
 
 config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix': '',
                  'client_secret': '', 'user': 'admin', 'user_pw': 'admin', 'session_size_red': 100000,
