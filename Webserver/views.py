@@ -738,6 +738,7 @@ def get_participant(participant_id):
     recordings = participant.get_sorted_recordings()
     participant.update_tag_settings()
 
+
     for recording in participant.get_observed_recordings():
         recording.highlight = True
 
@@ -1113,6 +1114,8 @@ def create_default_tags():
             setattr(tag, value_name, value)
 
     db.session.commit()
+
+    update_recordings()
     return redirect(url_for('views.settings'))
 
 @view.route("/auth")

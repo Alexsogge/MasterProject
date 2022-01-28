@@ -342,6 +342,7 @@ class ParticipantStats(db.Model):
         for key in all_stats.keys():
             stat_dict[key] = (f'{all_stats[key]:.2f}', f'{avg_stats[key]:.2f}', f'{avg_daily[key]:.2f}')
 
+        stat_dict['number recordings'] = (count_total, '', '')
         return stat_dict
 
     def calc_daily_stats(self, stats_per_day: Dict[datetime.date, List[RecordingStats]]):
