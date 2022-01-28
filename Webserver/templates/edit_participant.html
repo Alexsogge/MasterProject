@@ -18,7 +18,13 @@
                 <label for="input_alias">alias</label>
                 <input type="text" class="form-control" name="alias" id="input_alias" value="{{ alias }}">
             </div>
+            <div class="form-check mt-2">
+                <input type="checkbox" class="form-check-input" name="is_active" id="input_is_active" {% if is_active %} checked {% endif %}>
+                <label class="form-check-label" for="input_is_active">is active</label>
+
+            </div>
             <button type="submit" class="btn btn-primary mt-2">Submit</button>
+            {% if participant_id %} <a href="{{ url_for('views.delete_participant', participant_id=participant_id) }}" class="btn btn-danger mt-2">Delete</a> {% endif %}
         </form>
     </div>
 

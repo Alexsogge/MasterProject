@@ -4,11 +4,31 @@
     <div class="row mb-3">
         <h1>Open requests</h1>
     </div>
-        {% for auth_request in open_requests %}
-            <div class="row">
-                <div class="col">{{ auth_request.identifier }}</div>
-                <div class="col">{{ auth_request.granted }}</div>
-                <div class="col"><a class="btn btn-primary" href="{{url_for('views.grant_auth_request', auth_id=auth_request.id)}}">Grant</a></div>
-            </div>
-        {% endfor %}
+    <div class="row">
+        <div class="col">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">Identifier</th>
+                    <th scope="col">Granted</th>
+                    <th scope="col">Received</th>
+                    <th scope="col">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for auth_request in open_requests %}
+                    <tr>
+                        <th scope="col">{{ auth_request.identifier }}</th>
+                        <td>{{ auth_request.granted }}</td>
+                        <td>{{ auth_request.used }}</td>
+                        <td>
+                            <a class="btn btn-primary" href="{{url_for('views.grant_auth_request', auth_id=auth_request.id)}}">Grant</a>
+                            <a class="btn btn-primary" href="{{url_for('views.grant_create_auth_request', auth_id=auth_request.id)}}">Create as new</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% endblock %}

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import traceback
 from datetime import datetime, timedelta, time
 from typing import List
@@ -99,6 +100,25 @@ def grant_auth_request(auth_id):
     if auth_request is not None:
         auth_request.granted = True
         db.session.commit()
+    return redirect(url_for('views.get_open_auth_requests'))
+
+@view.route('/tokenauth/grant-create/<int:auth_id>/')
+@basic_auth.login_required
+def grant_create_auth_request(auth_id):
+    auth_request = AuthenticationRequest.query.filter_by(id=auth_id).first()
+    if auth_request is not None:
+        auth_request.granted = True
+        db.session.commit()
+
+        part = r'(.*)?\[(.*)].*'
+        match = re.search(part, auth_request.identifier)
+        android_id = ''
+        alias = auth_request.identifier
+        if match is not None:
+            alias = match.group(1)
+            android_id = match.group(2)
+
+        return render_template('edit_participant.html', participant_id=None, alias=alias, android_id=android_id, is_active=True)
     return redirect(url_for('views.get_open_auth_requests'))
 
 @view.route('/settings/', methods=['GET', 'POST'])
@@ -739,18 +759,32 @@ def update_participant(participant_id=None):
 
         participant.android_id = request.form.get('android_id')
         participant.alias = request.form.get('alias')
+        participant.is_active = request.form.get('is_active') is not None
         db.session.commit()
+        if participant.is_active:
+            activate_participant(participant_id)
         return redirect(url_for('views.get_participant', participant_id=participant.id))
 
     alias = ''
     android_id = ''
+    is_active = True
     if participant is not None:
         participant_id = participant.id
         alias = participant.alias
         android_id = participant.android_id
+        is_active = participant.is_active
 
-    return render_template('edit_participant.html', participant_id=participant_id, alias=alias, android_id=android_id)
+    return render_template('edit_participant.html', participant_id=participant_id, alias=alias, android_id=android_id, is_active=is_active)
 
+
+@view.route('/participant/delete/<int:participant_id>/')
+@basic_auth.login_required
+def delete_participant(participant_id=None):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    db.session.delete(participant)
+    db.session.commit()
+
+    return redirect(url_for('views.list_participants'))
 
 @view.route('/participant/assign/<int:participant_id>/')
 @basic_auth.login_required
