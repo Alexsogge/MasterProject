@@ -43,7 +43,9 @@ public class EvaluationReceiver extends BroadcastReceiver {
                                 e.printStackTrace();
                             }
                         } else {
-                            this.createDummyYesEvaluation(timestamp);
+                            createDummyYesEvaluation(timestamp);
+                            NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                            mNotificationManager.cancel(NotificationSpawner.EVALUATION_REQUEST_CODE);
                         }
                     }
                 }
