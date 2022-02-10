@@ -27,9 +27,13 @@ public class OverallEvaluationReminder extends BroadcastReceiver {
         int numReminders = intent.getIntExtra("numCalls", 0);
 
         if (currentDate.get(Calendar.HOUR_OF_DAY) >= OverallEvaluationReminderStarter.REMINDER_HOUR) {
-            NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
-            if (numReminders < MAX_REMINDERS) {
-                setNextReminder(context, numReminders + 1);
+            SharedPreferences configs = context.getSharedPreferences(
+                    context.getString(R.string.configs), Context.MODE_PRIVATE);
+            if (configs.getBoolean(context.getString(R.string.conf_open_evaluation), true)) {
+                NotificationSpawner.showOverallEvaluationNotification(context.getApplicationContext());
+                if (numReminders < MAX_REMINDERS) {
+                    setNextReminder(context, numReminders + 1);
+                }
             }
         }
     }

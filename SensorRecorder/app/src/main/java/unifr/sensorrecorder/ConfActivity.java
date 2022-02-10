@@ -41,6 +41,7 @@ public class ConfActivity extends WearableActivity {
     private CheckBox autoUpdateTFCheckbox;
     private CheckBox updateTFCheckbox;
     private CheckBox scanBluetoothBeaconsCheckbox;
+    private CheckBox openEvaluationsCheckbox;
     private Switch multipleMicSwitch;
     private Button downloadTFModelButton;
     private Button deleteTokenButton;
@@ -73,6 +74,7 @@ public class ConfActivity extends WearableActivity {
         updateTFCheckbox = (CheckBox) findViewById(R.id.updateTFCheckbox);
         //multipleMicSwitch = (Switch) findViewById(R.id.multipleMicSwitch);
         scanBluetoothBeaconsCheckbox = (CheckBox) findViewById(R.id.scanBluetoothBeacons);
+        openEvaluationsCheckbox = (CheckBox) findViewById(R.id.openEvaluation);
 
         downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
@@ -107,6 +109,8 @@ public class ConfActivity extends WearableActivity {
             updateTFCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_check_for_tf_update), true));
         if(configs.contains(getString(R.string.conf_scan_bluetooth_beacons)))
             scanBluetoothBeaconsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_scan_bluetooth_beacons), false));
+        if(configs.contains(getString(R.string.conf_open_evaluation)))
+            openEvaluationsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_open_evaluation), true));
 
         /*
         if(ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){
@@ -192,6 +196,7 @@ public class ConfActivity extends WearableActivity {
                 configEditor.putBoolean(getString(R.string.conf_auto_update_tf), autoUpdateTFCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_check_for_tf_update), updateTFCheckbox.isChecked());
                 configEditor.putBoolean(getString(R.string.conf_scan_bluetooth_beacons), scanBluetoothBeaconsCheckbox.isChecked());
+                configEditor.putBoolean(getString(R.string.conf_open_evaluation), openEvaluationsCheckbox.isChecked());
                 Log.d("conf", "save settings");
                 configEditor.apply();
                 // configEditor.commit();

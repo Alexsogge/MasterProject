@@ -124,6 +124,15 @@
                 android:text="Scan bluetooth beacons"
                 android:textAlignment="center" />
 
+            <CheckBox
+                android:id="@+id/openEvaluation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:enabled="true"
+                android:text="Open evaluation"
+                android:textAlignment="center" />
+
             <TextView
                 android:id="@+id/textViewAndroidId"
                 android:layout_width="match_parent"
