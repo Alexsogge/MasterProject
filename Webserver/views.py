@@ -942,7 +942,7 @@ def participant_update_evaluation_graph(participant_id):
 
     evaluation_averages = dict()
     for day, recordings in participant.get_recordings_per_day().items():
-        evaluation_sum = {'compulsive': 0, 'tense': 0, 'urge': 0}
+        evaluation_sum = {'compulsive': 0, 'tense': 0, 'urge': 0, 'handwashes': 0}
         count_evaluations = 0
         for recording in recordings:
             for evaluation in recording.evaluations:
@@ -950,6 +950,7 @@ def participant_update_evaluation_graph(participant_id):
                 evaluation_sum['tense'] += evaluation.tense
                 evaluation_sum['urge'] += evaluation.urge
                 count_evaluations += 1
+            evaluation_sum['handwashes'] += recording.stats.count_hand_washes_total
 
         if count_evaluations > 0:
             evaluation_sum['compulsive'] /= count_evaluations

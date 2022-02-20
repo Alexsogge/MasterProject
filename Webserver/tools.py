@@ -237,9 +237,12 @@ def create_participant_evaluation_graph(directory, evaluations):
     tense = [evaluations[evaluation_key]['tense'] for evaluation_key in sorted(evaluations)]
     urge = [evaluations[evaluation_key]['urge'] for evaluation_key in sorted(evaluations)]
 
+    hand_washes = [evaluations[evaluation_key]['handwashes'] for evaluation_key in sorted(evaluations)]
+
     ax.plot(sorted(evaluations), np.array(compulsive)*5, label='compulsive * 5')
     ax.plot(sorted(evaluations), np.array(tense), label='tense')
     ax.plot(sorted(evaluations), np.array(urge), label='urge')
+    ax.plot(sorted(evaluations), np.array(hand_washes), label='hand washes', alpha=0.5)
 
 
     for item in ax.get_xticklabels():
