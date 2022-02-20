@@ -132,6 +132,21 @@ class DataProcessor:
 
 
 
+    def map_right_hand_to_left(self):
+        #tmp_x = self.data_dict[RecordingEntry.ACCELERATION][:, 1].copy()
+        #tmp_z = self.data_dict[RecordingEntry.ACCELERATION][:, 3].copy()
+
+        # self.data_dict[RecordingEntry.ACCELERATION][:, 1] = self.data_dict[RecordingEntry.ACCELERATION][:, 2]
+        # self.data_dict[RecordingEntry.ACCELERATION][:, 3] = tmp_x
+        # self.data_dict[RecordingEntry.ACCELERATION][:, 2] = tmp_z
+
+        self.data_dict[RecordingEntry.ACCELERATION][:, 1] *= -1
+        #self.data_dict[RecordingEntry.ACCELERATION][:, 3] *= -1
+        # self.data_dict[RecordingEntry.ACCELERATION][:, 2] *= -1
+        #
+        self.data_dict[RecordingEntry.GYROSCOPE][:, 1] *= -1
+        # self.data_dict[RecordingEntry.GYROSCOPE][:, 2] *= -1
+
     def plot_hand_wash_events(self, dims, ax=None, scaling: float=1.0):
         if ax is None:
             ax = plt.gca()
@@ -185,7 +200,7 @@ class DataProcessor:
     def sub_plot_data(self, data, ax, y_label='value', add_time_stamps=True):
         x = data[:, 0]*nano_sec
         for i in range(1, data.shape[1]):
-            ax.plot(x, data[:, i])
+            ax.plot(x, data[:, i], label=f'axes {i-1}')
 
         # ax.add_patch(plt.Rectangle((300, 15), 50, 10))
         ax.set_xlabel('time')
@@ -194,6 +209,7 @@ class DataProcessor:
         if add_time_stamps:
             self.plot_mic_events((np.amin(data[:, 1:]), np.amax(data[:, 1:])), ax)
             self.plot_hand_wash_events((np.amin(data[:, 1:]), np.amax(data[:, 1:])), ax)
+
 
 
     def plot_data(self, generate_image=False):
@@ -221,6 +237,7 @@ class DataProcessor:
         axs[0].xaxis.set_major_formatter(formatter)
         # plt.gcf().autofmt_xdate()
 
+        fig.legend()
         fig.tight_layout()
         if generate_image:
             fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=500)
@@ -295,12 +312,17 @@ class DataProcessor:
 
 if __name__ == "__main__":
     use_mkv = False
-    if len(sys.argv) > 2:
-        if sys.argv[2] == 'mkv':
-            use_mkv = True
-    data_processor = DataProcessor(sys.argv[1], 10000, init_all=False)
+    # if len(sys.argv) > 2:
+    #     if sys.argv[2] == 'mkv':
+    #         use_mkv = True
+    data_processor = DataProcessor(sys.argv[1], init_all=True)
     print(data_processor.sensor_decoder.min_time_stamp)
-    # data_processor.plot_data()
+    data_processor.plot_data()
+
+    data_processor = DataProcessor(sys.argv[2], init_all=True)
+    print(data_processor.sensor_decoder.min_time_stamp)
+    data_processor.map_right_hand_to_left()
+    data_processor.plot_data()
     # data_processor.plot_timings()
     # data_processor.export_numpy_array()
     #data_processor.calc_prediction_ratio()
