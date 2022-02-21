@@ -367,6 +367,8 @@ def plot_recording(recording_id):
 def clean_recording(recording_id=None):
     recording = Recording.query.filter_by(id=recording_id).first_or_404()
     clean_session_directory(recording.path)
+    if request.args.get('bulk'):
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
@@ -456,6 +458,8 @@ def delete_recording(recording_id=None):
         shutil.rmtree(file)
     db.session.delete(recording)
     db.session.commit()
+    if request.args.get('bulk'):
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
     return redirect(url_for('views.list_recordings'))
 
 

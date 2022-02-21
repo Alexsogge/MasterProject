@@ -110,7 +110,7 @@
         }
         deletion_buffer = to_delete.length;
         for (let i=0; i < to_delete.length; i++){
-            fetch(`{{url_for('views.delete_recording')}}${to_delete[i]}/`)
+            fetch(`{{url_for('views.delete_recording')}}${to_delete[i]}/?bulk=True`)
                 .then(function (){
                     deletion_buffer--;
                     check_empty_deletion_buffer();
@@ -128,7 +128,7 @@
         }
         deletion_buffer = to_delete.length;
         for (let i=0; i < to_delete.length; i++){
-            fetch(`{{url_for('views.clean_recording')}}${to_delete[i]}/`)
+            fetch(`{{url_for('views.clean_recording')}}${to_delete[i]}/?bulk=True`)
                 .then(function (){
                     deletion_buffer--;
                     check_empty_deletion_buffer();
