@@ -361,9 +361,10 @@ def plot_recording(recording_id):
     return render_template('error_show_recording_plot.html', recording=recording)
 
 
+@view.route('/recording/clean/')
 @view.route('/recording/clean/<int:recording_id>/')
 @basic_auth.login_required
-def clean_recording(recording_id):
+def clean_recording(recording_id=None):
     recording = Recording.query.filter_by(id=recording_id).first_or_404()
     clean_session_directory(recording.path)
     return redirect(url_for('views.get_recording', recording_id=recording.id))
