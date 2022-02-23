@@ -246,6 +246,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         chargeEventHandler = new ChargeEventHandler();
         IntentFilter filter2 = new IntentFilter(Intent.ACTION_POWER_CONNECTED);
         filter2.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        filter2.addAction(Intent.ACTION_BATTERY_CHANGED);
         this.registerReceiver(chargeEventHandler, filter2);
     }
 
