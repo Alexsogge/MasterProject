@@ -25,13 +25,16 @@ public class ChargeEventHandler extends BroadcastReceiver {
         int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
         boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL;
-        // Log.d("battery", "Trigger: " + action + "   Status:" + isCharging);
-        // Log.d("battery", "1. " + (action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging) + "   2. " + (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging));
+
+        int plugged = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean bCharging= plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB;
+        // Log.d("battery", "Trigger: " + action + "   Status:" + isCharging + "    Plugged: " + bCharging);
+        // Log.d("battery", "1. " + (action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) + "   2. " + (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && bCharging));
         if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
             // Do something when power connected
             StaticDataProvider.getNetworkManager().DoFileUpload();
         }
-        else if((action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging) || (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging)) {
+        else if((action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) || (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && !bCharging)) {
             // Do something when power disconnected
             // MainActivity.mainActivity.toggleStartRecording();
             Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
