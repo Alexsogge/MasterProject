@@ -126,7 +126,7 @@ public class HandWashDetection {
         // tfInterpreter = new Interpreter(loadModelFile(activity));
         this.context = context;
         vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-        initModel();
+        // initModel();
 
         Log.d("Tensorflow", "Created a Tensorflow Lite");
     }

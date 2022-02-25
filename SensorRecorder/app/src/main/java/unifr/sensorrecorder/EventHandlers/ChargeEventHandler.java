@@ -15,7 +15,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("charge", "charger event");
+        // Log.d("charge", "charger event");
 
         // SensorRecordingManager sensorRecordingManager = MainActivity.mainActivity.sensorService;
         
@@ -29,7 +29,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
         int plugged = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
         boolean bCharging= plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB;
         // Log.d("battery", "Trigger: " + action + "   Status:" + isCharging + "    Plugged: " + bCharging);
-        // Log.d("battery", "1. " + (action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) + "   2. " + (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && bCharging));
+        // Log.d("battery", "1. " + (action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) + "   2. " + (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && !bCharging) + "->" + ((action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) || (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && !bCharging)));
         if(action.equals(Intent.ACTION_POWER_CONNECTED)) {
             // Do something when power connected
             StaticDataProvider.getNetworkManager().DoFileUpload();
@@ -37,6 +37,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
         else if((action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) || (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && !bCharging)) {
             // Do something when power disconnected
             // MainActivity.mainActivity.toggleStartRecording();
+            // Log.d("battery", "startRecording");
             Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
             handwashIntent.putExtra("trigger", "startRecording");
             PendingIntent pintHandWash = PendingIntent.getService(context, 565, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);

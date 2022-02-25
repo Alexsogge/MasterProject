@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.media.MediaRecorder;
+import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Environment;
@@ -84,7 +85,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
 
     // handle main ui
     private Button startStopButton;
-    public static boolean isRunning = true;
+    public static boolean isRunning = false;
 
     // service stuff
     private Intent intent;
@@ -138,9 +139,11 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         if (intent != null && intent.getStringExtra("trigger") != null){
             // start recording
             if (intent.getStringExtra("trigger").equals("startRecording")) {
+                Log.d("recmgr", "Received start recording" + isRunning + initialized);
                 if(!isRunning && initialized) {
                     if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
                         NetworkManager.checkForTFModelUpdate(getApplicationContext());
+                    Log.d("recmgr", "Execute start recording");
                     startRecording();
                 }
             }
@@ -186,6 +189,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         // if there isn't a trigger we just start the service
         } else {
             if (!initialized && intent != null) {
+                Log.d("recmgr", "Initialize sensor recording manager");
                 initialized = true;
                 this.intent = intent;
                 startForeground(NotificationSpawner.FG_NOTIFICATION_ID, NotificationSpawner.createRecordingPausedNotification(this.getApplicationContext(), this.intent));
@@ -212,7 +216,6 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 registerReceivers();
 
                 // start recording at app startup
-                /*
                 // get charging state
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = this.registerReceiver(null, ifilter);
@@ -220,13 +223,14 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                 // if we're not charging, initial start recording
                 boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                         status == BatteryManager.BATTERY_STATUS_FULL;
-                Log.d("rec", "charge stuts: " + batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1));
-                if(!isCharging){
-                    Log.d("rec", "Start recording");
+                int plugged = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+                boolean bCharging = plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB;
+                Log.d("recmgr", "charge stuts: " + batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1));
+                if(!isCharging && !bCharging){
+                    Log.d("recmgr", "Start recording initial");
                     startRecording();
                 }
-                */
-                startRecording();
+                // startRecording();
             }
         }
         return START_STICKY;
