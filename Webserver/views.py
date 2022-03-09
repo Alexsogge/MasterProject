@@ -462,7 +462,24 @@ def delete_recording(recording_id=None):
         return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
     return redirect(url_for('views.list_recordings'))
 
+@view.route('/recording/update-zip/')
+@view.route('/recording/update-zip/<int:recording_id>/')
+@basic_auth.login_required
+def update_recording_zip(recording_id=None):
+    if recording_id is None:
+        return redirect(url_for('views.list_recordings'))
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    files = recording.get_files()
+    update_files = ('marker_time_stamps', )
+    for file in files:
+        for update_file in update_files:
+            if update_file in file:
+                remove_file_from_zip(recording.get_zip_path(), file)
+                add_file_to_zip(file, recording.path, recording.base_name)
 
+    if request.args.get('bulk'):
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 @view.route('/recordingfile/delete/<int:recording_id>/<string:file_name>/')
 @basic_auth.login_required

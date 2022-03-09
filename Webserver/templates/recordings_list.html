@@ -1,5 +1,13 @@
 <div class="row mb-3">
-    <div class="col"><input type="checkbox" autocomplete="off" class="form-check-input me-1" value="null" onclick="select_all(this);"> <span id="selected_recordings" class="mr-1"></span> Recordings <span id="bulk_action" class="ml-2" style="display: none;"><button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#bulk-delete-modal">Delete</button><button type="button" class="btn btn-warning btn-sm ms-1" onclick="clear_plot_bulk()">Clear plot data</button></span></div>
+    <div class="col">
+        <input type="checkbox" autocomplete="off" class="form-check-input me-1" value="null" onclick="select_all(this);">
+        <span id="selected_recordings" class="mr-1"></span>Recordings
+        <span id="bulk_action" class="ml-2" style="display: none;">
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#bulk-delete-modal">Delete</button>
+            <button type="button" class="btn btn-warning btn-sm ms-1" onclick="clear_plot_bulk()">Clear plot data</button>
+            <button type="button" class="btn btn-warning btn-sm ms-1" onclick="update_zip_bulk()">Update zips</button>
+        </span>
+    </div>
 </div>
 <div class="row">
     <th class="col">
@@ -29,7 +37,7 @@
                     <td style="color: {{ recording.get_file_size_color() }}">{{ recording.get_file_size() }}</td>
                     <td>{{ recording.get_last_changed() }}</td>
                     <td>
-                        <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_path())}}">Download</a>
+                        <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_name())}}">Download</a>
                         <a class="btn btn-danger" href="{{url_for('views.delete_recording', recording_id=recording.id)}}">Delete</a>
                     </td>
                 </tr>
@@ -118,6 +126,7 @@
         }
     }
 
+
     function clear_plot_bulk(){
         let checkboxes = document.getElementsByName('bulk_select');
         let to_delete = [];
@@ -129,6 +138,24 @@
         deletion_buffer = to_delete.length;
         for (let i=0; i < to_delete.length; i++){
             fetch(`{{url_for('views.clean_recording')}}${to_delete[i]}/?bulk=True`)
+                .then(function (){
+                    deletion_buffer--;
+                    check_empty_deletion_buffer();
+                });
+        }
+    }
+
+     function update_zip_bulk(){
+        let checkboxes = document.getElementsByName('bulk_select');
+        let to_delete = [];
+        for(let i=0, n=checkboxes.length;i<n;i++) {
+            if (checkboxes[i].checked){
+                to_delete.push(checkboxes[i].value);
+            }
+        }
+        deletion_buffer = to_delete.length;
+        for (let i=0; i < to_delete.length; i++){
+            fetch(`{{url_for('views.update_recording_zip')}}${to_delete[i]}/?bulk=True`)
                 .then(function (){
                     deletion_buffer--;
                     check_empty_deletion_buffer();

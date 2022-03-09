@@ -193,8 +193,11 @@ class Recording(db.Model):
     def get_last_changed(self):
         return self.last_changed.strftime('%d/%m/%Y, %H:%M:%S')
 
-    def get_zip_path(self):
+    def get_zip_name(self):
         return self.base_name + '/.' + self.base_name + '.zip'
+
+    def get_zip_path(self):
+        return self.path + '/.' + self.base_name + '.zip'
 
     def update_last_changed(self):
         self.last_changed = datetime.datetime.utcnow()
@@ -210,6 +213,13 @@ class Recording(db.Model):
             eva_dict['urge'][evaluation.urge - 1] += 1
 
         return eva_dict
+
+    def get_files(self):
+        files = []
+        for file in os.listdir(self.path):
+            if os.path.isfile(os.path.join(self.path, file)):
+                files.append(file)
+        return files
 
 
 class RecordingStats(db.Model):

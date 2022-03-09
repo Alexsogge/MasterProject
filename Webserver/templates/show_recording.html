@@ -143,7 +143,7 @@
             <div class="row mb-1">
                 <div class="col">
                     <button class="btn btn-primary" id="plot_button" onclick="loadPlot()">Data plot</button>
-                    <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_path())}}">Download data set</a>
+                    <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_name())}}">Download data set</a>
                 </div>
                 <div class="col"><a class="btn btn-danger" href="{{url_for('views.clean_recording', recording_id=recording.id)}}">Clean plot data</a></div>
             </div>

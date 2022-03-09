@@ -1,7 +1,9 @@
 import json
 import os
+import shutil
 import string
 import math
+import tempfile
 from random import random
 from zipfile import ZipFile
 from typing import Dict
@@ -74,7 +76,21 @@ def add_file_to_zip(file_name, directory, directory_uuid):
     with ZipFile(zip_file_name, 'a') as zip_file:
         sub_file = os.path.join(directory, file_name)
         zip_file.write(sub_file, file_name)
-        print('added', file_name, ' to archive')
+        # print('added', file_name, ' to archive')
+
+def remove_file_from_zip(zip_path, *filenames):
+    tempdir = tempfile.mkdtemp()
+    try:
+        tempname = os.path.join(tempdir, 'new.zip')
+        with ZipFile(zip_path, 'r') as zipread:
+            with ZipFile(tempname, 'w') as zipwrite:
+                for item in zipread.infolist():
+                    if item.filename not in filenames:
+                        data = zipread.read(item.filename)
+                        zipwrite.writestr(item, data)
+        shutil.move(tempname, zip_path)
+    finally:
+        shutil.rmtree(tempdir)
 
 
 def contains_mic_files(file, path):
