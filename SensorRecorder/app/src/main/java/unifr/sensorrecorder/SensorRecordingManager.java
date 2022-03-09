@@ -97,7 +97,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     // sensor recording stuff
     private android.hardware.SensorManager sensorManager;
     private Sensor[] activeSensors;
-    private SensorListenerService[] sensorServices;
+    private SensorListenerService[] sensorServices = new SensorListenerService[0];
     private int[] sensorDimensions;
     private long sensorStartTime;
 
