@@ -14,3 +14,10 @@ git+https://github.com/Alexsogge/MasterProject.git#subdirectory=scripts
 Werkzeug~=2.0.1
 flatbuffers~=2.0
 python-dateutil~=2.8.2
+
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==1.11.0
+onnxruntime
+scikit-learn
+tqdm
+pandas

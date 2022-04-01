@@ -1,18 +1,43 @@
 <div class="row mb-3">
     <div class="col">
-        <input type="checkbox" autocomplete="off" class="form-check-input me-1" value="null" onclick="select_all(this);">
+        <input type="checkbox" autocomplete="off" class="form-check-input me-1" value="null"
+               onclick="select_all(this);">
         <span id="selected_recordings" class="mr-1"></span>Recordings
         <span id="bulk_action" class="ml-2" style="display: none;">
-            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#bulk-delete-modal">Delete</button>
-            <button type="button" class="btn btn-warning btn-sm ms-1" onclick="clear_plot_bulk()">Clear plot data</button>
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                    data-bs-target="#bulk-delete-modal">Delete</button>
+            <button type="button" class="btn btn-warning btn-sm ms-1"
+                    onclick="clear_plot_bulk()">Clear plot data</button>
             <button type="button" class="btn btn-warning btn-sm ms-1" onclick="update_zip_bulk()">Update zips</button>
+            {% if participant %}
+                <button type="button" class="btn btn-warning btn-sm ms-1" onclick="unassign_bulk({{ participant.id }})">Unassign</button>
+            {% endif %}
+
+            <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" id="assignTagDropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                Assign Tag
+            </button>
+            <div class="dropdown-menu" aria-labelledby="assignTagDropdownMenuButton">
+                {% for tag in all_tags %}
+                    <li><a class="dropdown-item" onclick="assign_tag_bulk({{ tag.id }})">{{ tag.name }}</a></li>
+                {% endfor %}
+            </div>
+
+            <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" id="unassignTagDropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                Unassign Tag
+            </button>
+            <div class="dropdown-menu" aria-labelledby="unassignTagDropdownMenuButton">
+                {% for tag in all_tags %}
+                    <li><a class="dropdown-item" onclick="unassign_tag_bulk({{ tag.id }})">{{ tag.name }}</a></li>
+                {% endfor %}
+            </div>
+
         </span>
     </div>
 </div>
 <div class="row">
     <th class="col">
         <table class="table  table-striped table-hover">
-            <thead >
+            <thead>
             <tr>
                 <th scope="col">#</th>
                 <th scope="col">Name</th>
@@ -26,53 +51,60 @@
             <tbody>
             {% for recording in recordings %}
                 <tr>
-                    <th scope="col"><input type="checkbox" autocomplete="off" class="form-check-input me-1" name="bulk_select" value="{{ recording.id }}" onclick="update_selection(this);"></th>
-                    <td><a href="{{url_for('views.get_recording', recording_id=recording.id)}}">{{ recording.get_name() }}</a></td>
+                    <th scope="col"><input type="checkbox" autocomplete="off" class="form-check-input me-1"
+                                           name="bulk_select" value="{{ recording.id }}"
+                                           onclick="update_selection(this);"></th>
+                    <td>
+                        <a href="{{ url_for('views.get_recording', recording_id=recording.id) }}">{{ recording.get_name() }}</a>
+                    </td>
                     <td>{{ recording.description }}</td>
                     <td {% if highlight_tags and recording.highlight %}style="background-color: #8aff97" {% endif %}>
                         {% for tag in recording.tags %}
-                            <i class="{{ tag.icon_name }}" style="color: {{ tag.icon_color }}" title="{{ tag.description }}"></i>
+                            <i class="{{ tag.icon_name }}" style="color: {{ tag.icon_color }}"
+                               title="{{ tag.description }}"></i>
                         {% endfor %}
                     </td>
                     <td style="color: {{ recording.get_file_size_color() }}">{{ recording.get_file_size() }}</td>
                     <td>{{ recording.get_last_changed() }}</td>
                     <td>
-                        <a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=recording.get_zip_name())}}">Download</a>
-                        <a class="btn btn-danger" href="{{url_for('views.delete_recording', recording_id=recording.id)}}">Delete</a>
+                        <a class="btn btn-primary"
+                           href="{{ url_for('views.uploaded_recording_file', path=recording.get_zip_name()) }}">Download</a>
+                        <a class="btn btn-danger"
+                           href="{{ url_for('views.delete_recording', recording_id=recording.id) }}">Delete</a>
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
-    </div>
+</div>
 </div>
 
 
 <div class="modal fade" id="bulk-delete-modal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure that you want do delete <b id="selected-count"></b> recordings? </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="delete_bulk()">Yes</button>
-      </div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure that you want do delete <b id="selected-count"></b> recordings? </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="delete_bulk()">Yes</button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <script>
     let deletion_buffer = 0;
 
-    function update_selection(box){
+    function update_selection(box) {
         let selected_boxes = 0;
         let checkboxes = document.getElementsByName('bulk_select');
-        for(var i=0, n=checkboxes.length;i<n;i++) {
+        for (var i = 0, n = checkboxes.length; i < n; i++) {
             if (checkboxes[i].checked)
                 selected_boxes++;
         }
@@ -86,10 +118,10 @@
         }
     }
 
-    function select_all(box){
+    function select_all(box) {
 
         let checkboxes = document.getElementsByName('bulk_select');
-        for(var i=0, n=checkboxes.length;i<n;i++) {
+        for (var i = 0, n = checkboxes.length; i < n; i++) {
             checkboxes[i].checked = box.checked;
         }
         if (box.checked === false) {
@@ -101,25 +133,25 @@
         }
     }
 
-    function show_bulk_action(visible){
+    function show_bulk_action(visible) {
         if (visible)
             document.getElementById("bulk_action").style.display = 'inline';
         else
             document.getElementById("bulk_action").style.display = 'none';
     }
 
-    function delete_bulk(){
+    function delete_bulk() {
         let checkboxes = document.getElementsByName('bulk_select');
         let to_delete = [];
-        for(let i=0, n=checkboxes.length;i<n;i++) {
-            if (checkboxes[i].checked){
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
                 to_delete.push(checkboxes[i].value);
             }
         }
         deletion_buffer = to_delete.length;
-        for (let i=0; i < to_delete.length; i++){
+        for (let i = 0; i < to_delete.length; i++) {
             fetch(`{{url_for('views.delete_recording')}}${to_delete[i]}/?bulk=True`)
-                .then(function (){
+                .then(function () {
                     deletion_buffer--;
                     check_empty_deletion_buffer();
                 });
@@ -127,43 +159,97 @@
     }
 
 
-    function clear_plot_bulk(){
+    function clear_plot_bulk() {
         let checkboxes = document.getElementsByName('bulk_select');
         let to_delete = [];
-        for(let i=0, n=checkboxes.length;i<n;i++) {
-            if (checkboxes[i].checked){
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
                 to_delete.push(checkboxes[i].value);
             }
         }
         deletion_buffer = to_delete.length;
-        for (let i=0; i < to_delete.length; i++){
+        for (let i = 0; i < to_delete.length; i++) {
             fetch(`{{url_for('views.clean_recording')}}${to_delete[i]}/?bulk=True`)
-                .then(function (){
+                .then(function () {
                     deletion_buffer--;
                     check_empty_deletion_buffer();
                 });
         }
     }
 
-     function update_zip_bulk(){
+    function update_zip_bulk() {
         let checkboxes = document.getElementsByName('bulk_select');
         let to_delete = [];
-        for(let i=0, n=checkboxes.length;i<n;i++) {
-            if (checkboxes[i].checked){
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
                 to_delete.push(checkboxes[i].value);
             }
         }
         deletion_buffer = to_delete.length;
-        for (let i=0; i < to_delete.length; i++){
+        for (let i = 0; i < to_delete.length; i++) {
             fetch(`{{url_for('views.update_recording_zip')}}${to_delete[i]}/?bulk=True`)
-                .then(function (){
+                .then(function () {
                     deletion_buffer--;
                     check_empty_deletion_buffer();
                 });
         }
     }
 
-    function check_empty_deletion_buffer(){
+    function unassign_bulk(participant_id) {
+        let checkboxes = document.getElementsByName('bulk_select');
+        let to_delete = [];
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
+                to_delete.push(checkboxes[i].value);
+            }
+        }
+        deletion_buffer = to_delete.length;
+        for (let i = 0; i < to_delete.length; i++) {
+            fetch(`{{url_for('views.unassign_recording_from_participant')}}/${participant_id}/${to_delete[i]}/?bulk=True`)
+                .then(function () {
+                    deletion_buffer--;
+                    check_empty_deletion_buffer();
+                });
+        }
+    }
+
+    function assign_tag_bulk(tag_id) {
+        let checkboxes = document.getElementsByName('bulk_select');
+        let to_delete = [];
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
+                to_delete.push(checkboxes[i].value);
+            }
+        }
+        deletion_buffer = to_delete.length;
+        for (let i = 0; i < to_delete.length; i++) {
+            fetch(`{{url_for('views.assign_recording_tag')}}${to_delete[i]}/?tag_id=${tag_id}&bulk=True`)
+                .then(function () {
+                    deletion_buffer--;
+                    check_empty_deletion_buffer();
+                });
+        }
+    }
+
+    function unassign_tag_bulk(tag_id) {
+        let checkboxes = document.getElementsByName('bulk_select');
+        let to_delete = [];
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
+                to_delete.push(checkboxes[i].value);
+            }
+        }
+        deletion_buffer = to_delete.length;
+        for (let i = 0; i < to_delete.length; i++) {
+            fetch(`{{url_for('views.unassign_recording_tag')}}${to_delete[i]}/?tag_id=${tag_id}&bulk=True`)
+                .then(function () {
+                    deletion_buffer--;
+                    check_empty_deletion_buffer();
+                });
+        }
+    }
+
+    function check_empty_deletion_buffer() {
         if (deletion_buffer === 0)
             location.reload();
     }

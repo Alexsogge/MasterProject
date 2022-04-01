@@ -8,8 +8,15 @@ from dateutil import parser
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc
 import json
+import personalization as personalization_pipe
 
-from tools import get_session_size, convert_size, get_size_color
+from tools import get_session_size, convert_size, get_size_color, find_newest_torch_file
+from config import PARTICIPANT_FOLDER
+
+from typing import TYPE_CHECKING, List, Dict
+
+if TYPE_CHECKING:
+    from personalization_tools.dataset import Dataset
 
 db = SQLAlchemy()
 
@@ -42,6 +49,14 @@ recording_to_tag = db.Table('recording_to_tag',
                             )
 
 
+# personalization_to_recording = db.Table('personalization_to_recording',
+#                                     db.Column('recording_id', db.Integer,
+#                                               db.ForeignKey('recording.id', primary_key=True)),
+#                                     db.Column('personalization_id', db.Integer,
+#                                               db.ForeignKey('personalization.id', primary_key=True))
+#                                     )
+
+
 class Participant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     android_id = db.Column(db.String(256), nullable=True)
@@ -57,6 +72,11 @@ class Participant(db.Model):
 
     tag_settings = db.relationship('ParticipantsTagSetting', backref='participant', lazy=True, cascade="all,delete")
 
+    personalizations = db.relationship('Personalization', backref='participant', lazy=True, cascade="all,delete",
+                                       order_by='Personalization.version')
+
+    enable_personalization = db.Column(db.Boolean, default=False)
+
     def get_name(self):
         if self.alias is not None and not '':
             return self.alias
@@ -69,6 +89,12 @@ class Participant(db.Model):
             return dict()
         else:
             return self.stats.get_entries(len(self.get_observed_recordings()))
+
+    def get_path(self):
+        my_path = os.path.join(PARTICIPANT_FOLDER, str(self.id))
+        if not os.path.exists(my_path):
+            os.mkdir(my_path)
+        return my_path
 
     def get_sorted_recordings(self):
         records = Recording.query.filter(Recording.participants.contains(self)).order_by(
@@ -101,7 +127,6 @@ class Participant(db.Model):
                 db.session.add(tag_setting)
         db.session.commit()
 
-
     def get_observed_recordings(self):
         required_tags = []
         forbidden_tags = []
@@ -129,7 +154,7 @@ class Participant(db.Model):
         return observed_recordings
 
     def get_recordings_per_day(self):
-        recordings_per_day: Dict[datetime.date, List[RecordingStats]] = dict()
+        recordings_per_day: Dict[datetime.date, List['RecordingStats']] = dict()
         for recording in self.get_observed_recordings():
             if recording.meta_info is not None:
                 date = recording.meta_info.date.date()
@@ -138,6 +163,131 @@ class Participant(db.Model):
                 recordings_per_day[date].append(recording)
 
         return recordings_per_day
+
+    def get_current_personalization(self):
+        current_personalization: Union[None, 'Personalization'] = None
+        for personalization in self.personalizations:
+            if current_personalization is None or current_personalization.version < personalization.version:
+                current_personalization = personalization
+        return current_personalization
+
+    def create_personalization_quality_test_plots(self, personalization: 'Personalization',
+                                                  test_recordings: Dict['RecordingForPersonalization', 'Dataset'],
+                                                  base_model):
+        participant_path = self.get_path()
+        for recording, dataset in test_recordings.items():
+            fig_name = os.path.join(participant_path, f'quality_plot_test_{personalization.id}_{recording.id}.svg')
+            personalization_pipe.create_personalization_quality_test_plot(dataset, base_model,
+                                                                          personalization.model_torch_path,
+                                                                          personalization.mean_kernel_width,
+                                                                          personalization.mean_threshold,
+                                                                          fig_name)
+
+    def create_personalization_pseudo_plots(self, personalization: 'Personalization',
+                                                  recordings: Dict['RecordingForPersonalization', 'Dataset']):
+        participant_path = self.get_path()
+        for recording, dataset in recordings.items():
+            fig_name = os.path.join(participant_path, f'pseudo_labels_{personalization.id}_{recording.id}.svg')
+            personalization_pipe.create_personalization_pseudo_plot(dataset, fig_name)
+
+    def run_personalization(self, target_filter='alldeepconv_correctbyconvlstm3filter6'):
+        current_personalization: Union[None, 'Personalization'] = None
+        already_covered_recordings = []
+        test_recordings = []
+        for personalization in self.personalizations:
+            print()
+            if current_personalization is None or current_personalization.version < personalization.version:
+                current_personalization = personalization
+
+            for recording in personalization.recordings:
+                already_covered_recordings.append(recording.recording)
+                if recording.used_for_testing:
+                    test_recordings.append(recording)
+
+        current_iteration = 0
+        uncovered_recordings = []
+        print('already covered:', already_covered_recordings)
+        exclude_tag = RecordingTag.query.filter_by(name='exclude personalization').first()
+        for recording in self.recordings:
+            if recording not in already_covered_recordings and exclude_tag not in recording.tags:
+                print('add', recording)
+                uncovered_recordings.append(recording)
+
+        if len(uncovered_recordings) == 0:
+            print('nothing new')
+            return
+
+        general_model = find_newest_torch_file(full_path=True)
+        base_model = general_model
+        if current_personalization is not None:
+            base_model = current_personalization.model_torch_path
+            current_iteration = current_personalization.iteration
+
+        if current_personalization is None:
+            new_personalization = Personalization(version=0, iteration=0, participant=self)
+        else:
+            new_personalization = Personalization(version=current_personalization.version + 1,
+                                                  iteration=current_personalization.iteration,
+                                                  participant=self)
+        new_personalization.used_filter = target_filter
+
+        db.session.add(new_personalization)
+        for recording in uncovered_recordings:
+            recording_entry = RecordingForPersonalization(recording=recording)
+            db.session.add(recording_entry)
+            new_personalization.recordings.append(recording_entry)
+
+        collection = personalization_pipe.build_datasets_from_recordings(new_personalization.recordings)
+        personalization_pipe.clean_collection(collection)
+
+        usable_recordings = new_personalization.get_usable_recordings()
+        if len(usable_recordings) == 0:
+            print('cleaned all recordings')
+            db.session.rollback()
+            return
+
+        collection = {k: v for k, v in collection.items() if k in usable_recordings}
+
+        print('usable recordings:', collection.keys())
+        personalization_pipe.process_collection(list(collection.values()), base_model)
+
+        test_recordings_collection: Dict[
+            'RecordingForPersonalization', 'Dataset'] = personalization_pipe.build_datasets_from_recordings(
+            test_recordings)
+        test_recordings_collection = personalization_pipe.split_test_from_collection(collection, current_iteration,
+                                                                                     test_recordings_collection)
+        print('test recordings:', list(test_recordings_collection.keys()))
+        print('train recordings:', list(collection.keys()))
+
+        personalization_pipe.personalize_model(collection, base_model, new_personalization.model_torch_path,
+                                               target_filter=target_filter)
+        new_personalization.iteration += len(collection)
+
+        personalization_pipe.convert_pytorch_to_onnx(new_personalization.model_torch_path)
+        personalization_pipe.convert_onnx_to_ort(new_personalization.model_onnx_path)
+
+        best_model_settings = personalization_pipe.calc_model_settings(list(test_recordings_collection.values()),
+                                                                       general_model,
+                                                                       new_personalization.model_torch_path)
+
+        print('best setting', best_model_settings[0])
+        new_personalization.mean_kernel_width = best_model_settings[0][1][0]
+        new_personalization.mean_threshold = best_model_settings[0][1][1]
+        new_personalization.false_diff_relative = best_model_settings[0][1][2]
+        new_personalization.correct_diff_relative = best_model_settings[0][1][3]
+
+        print('create plots')
+        db.session.commit()
+        self.create_personalization_quality_test_plots(new_personalization, test_recordings_collection, general_model)
+        self.create_personalization_pseudo_plots(new_personalization, collection)
+
+
+    def get_personal_model(self):
+        if len(self.personalizations) == 0:
+            return None
+        else:
+            return self.personalizations[-1]
+
 
 class Recording(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -154,13 +304,15 @@ class Recording(db.Model):
     meta_info_id = db.Column(db.Integer, db.ForeignKey('meta_info.id'), nullable=True)
     meta_info = db.relationship('MetaInfo', backref=db.backref('recording', lazy=True), cascade="all,delete")
 
-    evaluations = db.relationship('RecordingEvaluation', backref='recording', lazy=True, cascade="all,delete", order_by='RecordingEvaluation.timestamp')
+    evaluations = db.relationship('RecordingEvaluation', backref='recording', lazy=True, cascade="all,delete",
+                                  order_by='RecordingEvaluation.timestamp')
 
     tags = db.relationship('RecordingTag', secondary=recording_to_tag, lazy='subquery',
                            backref=db.backref('recordings', lazy=True))
 
     calculations_id = db.Column(db.Integer, db.ForeignKey('recording_calculations.id'), nullable=True)
-    calculations = db.relationship('RecordingCalculations', backref=db.backref('recording', lazy=True), cascade="all,delete")
+    calculations = db.relationship('RecordingCalculations', backref=db.backref('recording', lazy=True),
+                                   cascade="all,delete")
 
     highlight = False
 
@@ -428,6 +580,7 @@ class ParticipantsTagSetting(db.Model):
     def is_checked(self):
         return self.include_for_statistics or self.not_include_for_statistics
 
+
 class RecordingTag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
@@ -451,14 +604,18 @@ default_recording_tags = {'no data': {'icon_name': 'fas fa-exclamation', 'icon_c
                                    'default_include_for_statistics': None,
                                    'description': 'Everything ok'},
                           'default': {'icon_name': 'fas fa-bookmark', 'icon_color': 'grey',
-                                   'default_include_for_statistics': True,
-                                   'description': 'Default tag for each recording'}
+                                      'default_include_for_statistics': True,
+                                      'description': 'Default tag for each recording'},
+                          'exclude personalization': {'icon_name': 'fa-solid fa-person-circle-xmark',
+                                                      'icon_color': 'red',
+                                                      'default_include_for_statistics': None,
+                                                      'description': 'Do not use this dataset for personalization'}
                           }
+
 
 class RecordingCalculations(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     variance = db.Column(db.String(1024), nullable=True)
-
 
     def store_variance(self, variance: np.ndarray):
         variance_json = json.dumps(variance.tolist())
@@ -469,3 +626,74 @@ class RecordingCalculations(db.Model):
         if self.variance is None:
             return None
         return np.asarray(json.loads(self.variance))
+
+
+class Personalization(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    version = db.Column(db.Integer, default=0)
+    iteration = db.Column(db.Integer, default=0)
+
+    participant_id = db.Column(db.Integer, db.ForeignKey('participant.id'), nullable=False)
+    recordings = db.relationship('RecordingForPersonalization', lazy='select', cascade="all,delete",
+                                 backref=db.backref('personalization', lazy='joined'))
+
+    mean_threshold = db.Column(db.Float, default=0.59)
+    mean_kernel_width = db.Column(db.Integer, default=20)
+    false_diff_relative = db.Column(db.Float, default=0)
+    correct_diff_relative = db.Column(db.Float, default=0)
+    used_filter = db.Column(db.String, default='alldeepconv_correctbyconvlstm3filter6')
+
+    @property
+    def model_base_path(self):
+        return os.path.join(self.participant.get_path(), 'personalized_model_' + str(self.version))
+
+    @property
+    def model_torch_path(self):
+        return self.model_base_path + '.pt'
+
+    @property
+    def model_onnx_path(self):
+        return self.model_base_path + '.onnx'
+
+    @property
+    def model_ort_path(self):
+        return self.model_base_path + '.all.ort'
+
+    @property
+    def ort_name(self):
+        return os.path.basename(self.model_ort_path)
+
+    @property
+    def settings_name(self):
+        return os.path.splitext(self.ort_name)[0] + '.json'
+
+    def get_settings(self):
+        torch_file = find_newest_torch_file(full_path=True)
+        settings_file = os.path.splitext(torch_file)[0] + '.json'
+        with open(settings_file) as json_file:
+            settings = json.load(json_file)
+        settings['mean_threshold'] = self.mean_threshold
+        settings['mean_kernel_size'] = self.mean_kernel_width
+        return settings
+
+    def get_usable_recordings(self) -> List['RecordingForPersonalization']:
+        usable_recordings = []
+        for recording in self.recordings:
+            if not recording.unusable:
+                usable_recordings.append(recording)
+        return usable_recordings
+
+
+class RecordingForPersonalization(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    personalization_id = db.Column(db.Integer, db.ForeignKey('personalization.id'), nullable=False)
+
+    recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'))
+    recording = db.relationship('Recording')
+
+    used_for_training = db.Column(db.Boolean, default=False)
+    used_for_testing = db.Column(db.Boolean, default=False)
+    unusable = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f'[{self.id}] {self.recording}'

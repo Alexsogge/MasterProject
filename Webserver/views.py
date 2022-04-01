@@ -3,17 +3,19 @@ import os
 import re
 import traceback
 from datetime import datetime, timedelta, time
+import time as plain_time
 from typing import List
 
 import numpy as np
 from dateutil import parser
 
-from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for
+from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for, make_response, Flask
 
 from werkzeug.utils import secure_filename
 from sqlalchemy import desc, and_
 import uuid
 import shutil
+import subprocess
 
 from auth_requests import *
 from preview_builder import generate_plot_data
@@ -21,9 +23,11 @@ from data_factory import DataFactory
 
 from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
+from personalization_tools.pseudo_model_settings import common_filters
 
 from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats,\
-    RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags, RecordingCalculations
+    RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags, RecordingCalculations,\
+    Personalization
 
 
 
@@ -209,11 +213,14 @@ def tfmodel():
                 upload_info_text = 'Saved new settings and model ' + filename
 
     newest_tf_file = find_newest_tf_file()
+    newest_torch_file = find_newest_torch_file()
+    print('tf file', newest_tf_file)
+    print('torch file', newest_torch_file)
     all_model_files = list()
     all_model_file_paths = list()
     all_model_settings = list()
     for file in os.listdir(TFMODEL_FOLDER):
-        if '.tflite' not in file and '.ort' not in file:
+        if '.tflite' not in file and '.ort' not in file and not '.pt' in file:
             continue
         all_model_files.append(file)
         all_model_file_paths.append(file)
@@ -223,7 +230,7 @@ def tfmodel():
     return render_template('tfmodel.html', upload_info_text=upload_info_text, upload_error_text=upload_error_text,
                            sensors=sensors, old_settings=old_settings, all_model_files=all_model_files,
                            all_model_file_paths=all_model_file_paths, all_model_settings=all_model_settings,
-                           newest_tf_file=newest_tf_file)
+                           newest_tf_file=newest_tf_file, newest_torch_file=newest_torch_file)
 
 
 @view.route('/tfmodel/select/<string:tf_model>/')
@@ -760,6 +767,36 @@ def toggle_recording_tag(recording_id):
 
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
+@view.route('/recording/assign-tag/')
+@view.route('/recording/assign-tag/<int:recording_id>/')
+@basic_auth.login_required
+def assign_recording_tag(recording_id=None):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    tag_id = request.args.get('tag_id')
+    tag = RecordingTag.query.filter_by(id=tag_id).first_or_404()
+    if tag not in recording.tags:
+        recording.tags.append(tag)
+
+    db.session.commit()
+    if request.args.get('bulk'):
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
+@view.route('/recording/unassign-tag/')
+@view.route('/recording/unassign-tag/<int:recording_id>/')
+@basic_auth.login_required
+def unassign_recording_tag(recording_id=None):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    tag_id = request.args.get('tag_id')
+    tag = RecordingTag.query.filter_by(id=tag_id).first_or_404()
+    if tag in recording.tags:
+        recording.tags.remove(tag)
+
+    db.session.commit()
+    if request.args.get('bulk'):
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
 
 @view.route('/participant/list/')
 @basic_auth.login_required
@@ -783,7 +820,9 @@ def get_participant(participant_id):
         recording.highlight = True
 
 
-    return render_template('show_participant.html', participant=participant, recordings=recordings, highlight_tags=True, evaluations_plot=evaluations_plot)
+    return render_template('show_participant.html', participant=participant, recordings=recordings,
+                           highlight_tags=True, evaluations_plot=evaluations_plot,
+                           all_tags=RecordingTag.query.all())
 
 @view.route('/participant/update/', methods=['GET', 'POST'])
 @view.route('/participant/update/<int:participant_id>/', methods=['GET', 'POST'])
@@ -801,6 +840,7 @@ def update_participant(participant_id=None):
         participant.android_id = request.form.get('android_id')
         participant.alias = request.form.get('alias')
         participant.is_active = request.form.get('is_active') is not None
+        participant.enable_personalization = request.form.get('enable_personalization') is not None
         db.session.commit()
         if participant.is_active:
             activate_participant(participant.id)
@@ -810,13 +850,16 @@ def update_participant(participant_id=None):
     alias = ''
     android_id = ''
     is_active = True
+    enable_personalization = False
     if participant is not None:
         participant_id = participant.id
         alias = participant.alias
         android_id = participant.android_id
         is_active = participant.is_active
+        enable_personalization = participant.enable_personalization
 
-    return render_template('edit_participant.html', participant_id=participant_id, alias=alias, android_id=android_id, is_active=is_active)
+    return render_template('edit_participant.html', participant_id=participant_id, alias=alias, android_id=android_id,
+                           is_active=is_active, enable_personalization=enable_personalization)
 
 
 @view.route('/participant/delete/<int:participant_id>/')
@@ -860,7 +903,7 @@ def assign_recordings_to_participant(participant_id):
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
-@view.route('/participant/unassign/<int:participant_id>/')
+@view.route('/participant/unassign-range/<int:participant_id>/')
 @basic_auth.login_required
 def unassign_recordings_to_participant(participant_id):
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
@@ -882,6 +925,21 @@ def unassign_recordings_to_participant(participant_id):
     db.session.commit()
 
     return redirect(url_for('views.get_participant', participant_id=participant.id))
+
+
+@view.route('/participant/unassign/')
+@view.route('/participant/unassign/<int:participant_id>/<int:recording_id>/')
+@basic_auth.login_required
+def unassign_recording_from_participant(participant_id=None, recording_id=None):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+
+    participant.recordings.remove(recording)
+    db.session.commit()
+
+    if request.args.get('bulk'):
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
 @view.route('/participant/activate/<int:participant_id>/')
@@ -988,6 +1046,102 @@ def participant_update_evaluation_graph(participant_id):
 
     return redirect(url_for('views.get_participant', participant_id=participant.id))
 
+@view.route('/participant/start-personalization/<int:participant_id>/')
+@basic_auth.login_required
+def participant_start_personalization(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    log_file = os.path.join(participant.get_path(), 'personalization.log')
+    err_file = os.path.join(participant.get_path(), 'personalization.err')
+    if os.path.exists(log_file):
+        if os.path.getmtime(log_file) + 60 > plain_time.time():
+            print('To many calls')
+            return jsonify({'status': 'error', 'msg': 'to many calls'})
+    print('write log to', log_file)
+    with open(log_file, "w") as outfile, open(err_file, "w") as erroutput:
+        script_parameters = ['python', 'manage.py', 'build_personalized_models', '-p' ,str(participant.id)]
+        if request.args.get('filter'):
+            script_parameters += ['-f', request.args.get('filter')]
+        subprocess.Popen(script_parameters,
+                         stdout=outfile, stderr=erroutput)
+    return jsonify({'status': 'success', 'msg': 'started process'})
+
+
+
+@view.route('/personalization/participant/<int:participant_id>/')
+@basic_auth.login_required
+def personalization_of_participant(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    current_personalization = participant.get_current_personalization()
+
+    test_recordings_per_personalization = []
+    for personalization in participant.personalizations:
+        test_recordings = set()
+        for recording in personalization.recordings:
+            if recording.used_for_testing:
+                test_recordings.add(recording)
+        if len(test_recordings_per_personalization) > 0:
+            test_recordings = test_recordings.union(test_recordings_per_personalization[-1])
+        test_recordings_per_personalization.append(test_recordings)
+        print(test_recordings_per_personalization)
+
+
+    return render_template('show_personalization.html', participant=participant,
+                           current_personalization=current_personalization,
+                           test_recordings_per_personalization=test_recordings_per_personalization,
+                           pseudo_model_settings=common_filters)
+
+
+@view.route('/participant/delete-personalization/<int:participant_id>/<int:personalization_id>/')
+@basic_auth.login_required
+def participant_delete_personalization(participant_id, personalization_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    personalization = Personalization.query.filter_by(id=personalization_id).first_or_404()
+
+    for recording in personalization.recordings:
+        db.session.delete(recording)
+
+    db.session.delete(personalization)
+
+    db.session.commit()
+
+    return redirect(url_for('views.personalization_of_participant', participant_id=participant.id))
+
+@view.route('/personalization/log/<int:participant_id>/')
+@basic_auth.login_required
+def personalization_log_of_participant(participant_id):
+    def generate(log_file):
+        with open(log_file) as f:
+            while True:
+                yield f.read()
+                plain_time.sleep(1)
+
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    log_file = os.path.join(participant.get_path(), 'personalization.log')
+    if not os.path.exists(log_file):
+        return jsonify({'status': 'error', 'msg': 'to process active'})
+
+    return Flask.response_class(generate(log_file), mimetype='text/plain')
+
+@view.route('/personalization/errlog/<int:participant_id>/')
+@basic_auth.login_required
+def personalization_errlog_of_participant(participant_id):
+    def generate(log_file):
+        with open(log_file) as f:
+            while True:
+                yield f.read()
+                plain_time.sleep(1)
+
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+
+    log_file = os.path.join(participant.get_path(), 'personalization.err')
+    if not os.path.exists(log_file):
+        return jsonify({'status': 'error', 'msg': 'to process active'})
+
+    return Flask.response_class(generate(log_file), mimetype='text/plain')
+
+
 @view.route('/tag/list/')
 @basic_auth.login_required
 def list_tags():
@@ -1049,21 +1203,58 @@ def get_latest_tf_model():
     if not os.path.exists(TFMODEL_FOLDER):
         abort(404, description="Resource not found")
 
-    latest_model = find_newest_tf_file()
+    android_id = request.args.get('androidid')
+    send_default = android_id is None
+    if android_id is not None:
+        participant = Participant.query.filter_by(android_id=android_id, is_active=True).first_or_404()
+        print('found participant', participant)
+        personalization = participant.get_personal_model()
+        if personalization is not None:
+            return send_from_directory('./', path=personalization.model_ort_path, as_attachment=True)
+        else:
+            send_default = True
+    if send_default:
+        latest_model = find_newest_tf_file()
+        print("found file ", latest_model)
+        if latest_model is not None:
+            return send_from_directory(TFMODEL_FOLDER, path=latest_model, as_attachment=True)
 
-    print("found file ", latest_model)
-    if latest_model is not None:
-        return send_from_directory(TFMODEL_FOLDER, path=latest_model, as_attachment=True)
     abort(404, description="Resource not found")
 
 
 @view.route('/tfmodel/get/settings/')
 def get_latest_tf_model_settings():
-    latest_model_settings = get_tf_model_settings_file()
+    android_id = request.args.get('androidid')
+    send_default = android_id is None
+    if android_id is not None:
+        participant = Participant.query.filter_by(android_id=android_id, is_active=True).first_or_404()
+        print('found participant', participant)
+        personalization = participant.get_personal_model()
+        if personalization is not None:
+            try:
+                new_settings = personalization.get_settings()
+                response = make_response(
+                    jsonify(new_settings),
+                    200
+                )
+                response.headers['Content-Disposition'] = 'attachment; filename=' + personalization.settings_name
+                response.headers['Cache-Control'] = 'no-cache'
+                return response
+            except Exception as e:
+                print(e)
+                send_default = True
 
-    print("found file ", latest_model_settings)
-    if latest_model_settings is not None:
-        return send_from_directory(TFMODEL_FOLDER, path=latest_model_settings, as_attachment=True)
+        else:
+            send_default = True
+
+    if send_default:
+        latest_model_settings = get_tf_model_settings_file()
+
+        print("found file ", latest_model_settings)
+        if latest_model_settings is not None:
+            return send_from_directory(TFMODEL_FOLDER, path=latest_model_settings, as_attachment=True)
+        else:
+            send_default = True
     abort(404, description="Resource not found")
 
 
@@ -1072,11 +1263,27 @@ def check_latest_tf_model():
     if not os.path.exists(TFMODEL_FOLDER):
         abort(404, description="Resource not found")
 
-    latest_model = find_newest_tf_file()
+    android_id = request.args.get('androidid')
+    send_default = android_id is None
+    if android_id is not None:
+        print('Get model for', android_id)
+        participant = Participant.query.filter_by(android_id=android_id, is_active=True).first_or_404()
+        print('found participant', participant)
+        personalization = participant.get_personal_model()
+        print('personal model', personalization)
+        if personalization is not None:
+            print('return:', jsonify({'activeModel': personalization.ort_name}))
+            return jsonify({'activeModel': personalization.ort_name})
+        else:
+            send_default = True
 
-    print("found file ", latest_model)
-    if latest_model is not None:
-        return jsonify({'activeModel': latest_model})
+    if send_default:
+        latest_model = find_newest_tf_file()
+
+        print("found file ", latest_model)
+        if latest_model is not None:
+            return jsonify({'activeModel': latest_model})
+
     abort(404, description="Resource not found")
 
 

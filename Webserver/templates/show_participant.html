@@ -19,6 +19,7 @@
             {% else %}
                 <a class="btn btn-danger" href="{{ url_for('views.inactivate_participant', participant_id=participant.id) }}">Set inactive</a>
             {% endif %}
+            <a class="btn btn-primary" href="{{ url_for('views.personalization_of_participant', participant_id=participant.id) }}">Personalization</a>
         </div>
     </div>
 

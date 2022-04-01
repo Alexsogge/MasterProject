@@ -49,6 +49,21 @@ def find_newest_tf_file():
                 latest_model = file
     return latest_model
 
+def find_newest_torch_file(full_path=False):
+    latest_model = None
+    latest_time_stamp = 0
+    for file in os.listdir(TFMODEL_FOLDER):
+        file_ext = os.path.splitext(file)[1]
+        if file_ext == '.pt':
+            tmp_c_time = os.stat(os.path.join(TFMODEL_FOLDER, file)).st_ctime
+            if tmp_c_time > latest_time_stamp:
+                latest_time_stamp = tmp_c_time
+                latest_model = file
+    if not full_path:
+        return latest_model
+    else:
+        return os.path.join(TFMODEL_FOLDER, latest_model)
+
 
 def get_tf_model_settings_file():
     latest_model_settings = None

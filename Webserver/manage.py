@@ -1,9 +1,30 @@
 from app import db, app
 from data_factory import DataFactory
-from models import Recording, RecordingCalculations
+from models import Recording, RecordingCalculations, Participant
 import numpy as np
 
 import sys
+import argparse
+
+arg_parser = argparse.ArgumentParser(description='Execute manual operations')
+
+arg_parser.add_argument('Action',
+                        metavar='action_name',
+                        type=str,
+                        help='name of action',
+                        choices=['create_db', 'calc_characteristics', 'build_personalized_models'])
+
+arg_parser.add_argument('-p', '--participants',
+                        dest='participants',
+                        nargs='+',
+                        help='specify participants')
+
+arg_parser.add_argument('-f', '--filter',
+                        dest='filter',
+                        default='alldeepconv_correctbyconvlstm3filter6',
+                        help='specify pseudo label filter setting')
+
+args = arg_parser.parse_args()
 
 def create_db():
     with app.app_context():
@@ -33,13 +54,33 @@ def calc_recording_characteristics():
                 print('skip', recording.get_name())
 
 
+def build_personalized_models():
+    with app.app_context():
+        if args.participants:
+            observed_participants = args.participants
+            observed_participants = [int(part_id) for part_id in observed_participants]
+            print('Start personalization for ', observed_participants)
+        else:
+            observed_participants = None
+            print('Start personalization...')
+
+        for participant in Participant.query.filter_by(is_active=True, enable_personalization=True):
+            if observed_participants is None or participant.id in observed_participants:
+                print(participant.get_name())
+                participant.run_personalization(target_filter=args.filter)
+
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('usage: manage.py <command>')
     else:
-        if sys.argv[1] == 'create_db':
+        print('execute:', sys.argv)
+        if args.Action == 'create_db':
             create_db()
 
-        if sys.argv[1] == 'calc_characteristics':
+        if args.Action == 'calc_characteristics':
             calc_recording_characteristics()
+
+        if args.Action == 'build_personalized_models':
+            build_personalized_models()

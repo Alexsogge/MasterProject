@@ -88,6 +88,8 @@
                 <div class="row">
                     {% if file == newest_tf_file %}
                         <div class="col text-primary">{{ file }}</div>
+                    {% elif file == newest_torch_file %}
+                        <div class="col text-info">{{ file }}</div>
                     {% else %}
                         <div class="col">{{ file }}</div>
                     {% endif %}
