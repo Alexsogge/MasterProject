@@ -165,6 +165,7 @@ public class NetworkManager {
 
     private void sendStartRecordingIntent(){
         Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
+        handwashIntent.setPackage(context.getPackageName());
         handwashIntent.putExtra("trigger", "startRecording");
         PendingIntent pintHandWash = PendingIntent.getService(context, 565, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         try {

@@ -101,6 +101,7 @@ public class NotificationSpawner {
          */
 
         Intent confirmHandWashIntent = new Intent(context, EvaluationReceiver.class);
+        confirmHandWashIntent.setPackage(context.getPackageName());
         confirmHandWashIntent.putExtra("trigger", "handWashConfirm");
         confirmHandWashIntent.putExtra("timestamp", timestamp);
         //TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
@@ -113,11 +114,13 @@ public class NotificationSpawner {
         //PendingIntent pintConfirmHandWash = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Intent declineHandWashIntent = new Intent(context, EvaluationReceiver.class);
+        declineHandWashIntent.setPackage(context.getPackageName());
         declineHandWashIntent.putExtra("trigger", "handWashDecline");
         declineHandWashIntent.putExtra("timestamp", timestamp);
         PendingIntent pintDeclineHandWash = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE+1, declineHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Intent closeHandWashIntent = new Intent(context, EvaluationReceiver.class);
+        closeHandWashIntent.setPackage(context.getPackageName());
         closeHandWashIntent.putExtra("trigger", "close");
         closeHandWashIntent.putExtra("timestamp", timestamp);
         PendingIntent pintClose = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE+2, closeHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);

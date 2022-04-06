@@ -45,6 +45,7 @@ public class ComplicationICONProvider extends ComplicationProviderService{
 
         Intent handwashIntent = new Intent(this, SensorRecordingManager.class);
         handwashIntent.putExtra("trigger", "handWash");
+        handwashIntent.setPackage(this.getPackageName());
         PendingIntent pintHandWash = PendingIntent.getService(this, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         ComplicationData complicationData = null;
