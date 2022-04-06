@@ -6,9 +6,9 @@ Flask-APScheduler
 
 PyYAML~=5.4.1
 gunicorn
-numpy~=1.21.2
-matplotlib
-git+https://github.com/Alexsogge/MasterProject.git#subdirectory=scripts
+#numpy~=1.21.2
+#matplotlib
+#git+https://github.com/Alexsogge/MasterProject.git#subdirectory=scripts
 
 
 Werkzeug~=2.0.1
@@ -17,7 +17,7 @@ python-dateutil~=2.8.2
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==1.11.0
-onnxruntime
-scikit-learn
+onnxruntime-tools
+#scikit-learn
 tqdm
-pandas
+#pandas
