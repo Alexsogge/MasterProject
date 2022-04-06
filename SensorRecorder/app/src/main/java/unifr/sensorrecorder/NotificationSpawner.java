@@ -44,7 +44,10 @@ public class NotificationSpawner {
     public static Notification createRecordingNotification(Context context, Intent recordingServiceIntent){
         Intent handwashIntent = new Intent(recordingServiceIntent);
         handwashIntent.putExtra("trigger", "handWash");
-        PendingIntent pintHandWash = PendingIntent.getService(context, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pintHandWash = PendingIntent.getService(context, 579, handwashIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, RECORDING_CHANNEL_ID)
                 .setContentTitle(context.getResources().getString(R.string.not_running))
@@ -62,7 +65,10 @@ public class NotificationSpawner {
     public static Notification createRecordingPausedNotification(Context context, Intent recordingServiceIntent){
         Intent handwashIntent = new Intent(recordingServiceIntent);
         handwashIntent.putExtra("trigger", "startRecording");
-        PendingIntent pintHandWash = PendingIntent.getService(context, 580, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pintHandWash = PendingIntent.getService(context, 580, handwashIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, RECORDING_CHANNEL_ID)
                 .setContentTitle(context.getResources().getString(R.string.not_paused))
@@ -110,20 +116,29 @@ public class NotificationSpawner {
 //                | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
 
-        PendingIntent pintConfirmHandWash = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE, confirmHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pintConfirmHandWash = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE, confirmHandWashIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
         //PendingIntent pintConfirmHandWash = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Intent declineHandWashIntent = new Intent(context, EvaluationReceiver.class);
         declineHandWashIntent.setPackage(context.getPackageName());
         declineHandWashIntent.putExtra("trigger", "handWashDecline");
         declineHandWashIntent.putExtra("timestamp", timestamp);
-        PendingIntent pintDeclineHandWash = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE+1, declineHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pintDeclineHandWash = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE+1, declineHandWashIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
 
         Intent closeHandWashIntent = new Intent(context, EvaluationReceiver.class);
         closeHandWashIntent.setPackage(context.getPackageName());
         closeHandWashIntent.putExtra("trigger", "close");
         closeHandWashIntent.putExtra("timestamp", timestamp);
-        PendingIntent pintClose = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE+2, closeHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pintClose = PendingIntent.getBroadcast(context, EVALUATION_REQUEST_CODE+2, closeHandWashIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
 
         /*
         Intent openIntent = new Intent(context, MainActivity.class);
@@ -158,7 +173,7 @@ public class NotificationSpawner {
     public static void showOverallEvaluationNotification(Context context){
         Intent startEvalIntent = new Intent(context, OverallEvaluation.class);
         startEvalIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(context, DAILY_REMINDER_REQUEST_CODE, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(context, DAILY_REMINDER_REQUEST_CODE, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, OverallEvaluation_CHANNEL_ID)
@@ -191,12 +206,12 @@ public class NotificationSpawner {
         // Log.d("not", "show update tf model notification");
         //Intent startUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
         Intent startUpdateIntent = new Intent(context, UpdateTFModelReceiver.class);
-        PendingIntent startUpdatePendingIntent = PendingIntent.getBroadcast(context, 43, startUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent startUpdatePendingIntent = PendingIntent.getBroadcast(context, 43, startUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Intent skipUpdateIntent = new Intent(UpdateTFModelReceiver.BROADCAST_ACTION);
         Intent skipUpdateIntent = new Intent(context, UpdateTFModelReceiver.class);
         skipUpdateIntent.putExtra("SKIP", modelName);
-        PendingIntent skipUpdatePendingIntent = PendingIntent.getBroadcast(context, 44, skipUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent skipUpdatePendingIntent = PendingIntent.getBroadcast(context, 44, skipUpdateIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, UPDATETFMODEL_CHANNEL_ID)
                 .setContentTitle( context.getResources().getString(R.string.not_update_tf_title))

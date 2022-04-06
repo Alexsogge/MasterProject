@@ -46,7 +46,10 @@ public class ComplicationMarkerProvider extends ComplicationProviderService{
         Intent markerIntent = new Intent(this, SensorRecordingManager.class);
         markerIntent.setPackage(this.getPackageName());
         markerIntent.putExtra("trigger", "marker");
-        PendingIntent pintMarker = PendingIntent.getService(this, 573, markerIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pintMarker = PendingIntent.getService(this, 573, markerIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
 
         ComplicationData complicationData = null;
 
