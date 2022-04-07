@@ -1209,7 +1209,7 @@ def get_latest_tf_model():
             print('found participant', participant)
             personalization = participant.get_personal_model()
             if personalization is not None:
-                return send_from_directory(PARTICIPANT_FOLDER, path=personalization.ort_download_path, as_attachment=True)
+                return send_from_directory('./', path=personalization.model_ort_path, as_attachment=True)
             else:
                 print('No personalization available')
                 send_default = True

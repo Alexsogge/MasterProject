@@ -658,7 +658,10 @@ class Personalization(db.Model):
 
     @property
     def model_ort_path(self):
-        return self.model_base_path + '.all.ort'
+        ort_path = self.model_base_path + '.ort'
+        if not os.path.exists(ort_path):
+            ort_path = self.model_base_path + '.all.ort'
+        return ort_path
 
     @property
     def ort_name(self):
