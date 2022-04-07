@@ -1204,12 +1204,17 @@ def get_latest_tf_model():
     android_id = request.args.get('androidid')
     send_default = android_id is None
     if android_id is not None:
-        participant = Participant.query.filter_by(android_id=android_id, is_active=True).first_or_404()
-        print('found participant', participant)
-        personalization = participant.get_personal_model()
-        if personalization is not None:
-            return send_from_directory('./', path=personalization.model_ort_path, as_attachment=True)
+        participant = Participant.query.filter_by(android_id=android_id, is_active=True).first()
+        if participant:
+            print('found participant', participant)
+            personalization = participant.get_personal_model()
+            if personalization is not None:
+                return send_from_directory('./', path=personalization.model_ort_path, as_attachment=True)
+            else:
+                print('No personalization available')
+                send_default = True
         else:
+            print('No such a participant')
             send_default = True
     if send_default:
         latest_model = find_newest_tf_file()
@@ -1217,6 +1222,7 @@ def get_latest_tf_model():
         if latest_model is not None:
             return send_from_directory(TFMODEL_FOLDER, path=latest_model, as_attachment=True)
 
+    print('found no file')
     abort(404, description="Resource not found")
 
 

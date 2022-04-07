@@ -111,7 +111,7 @@
 
     <div class="row">
         <div class="col">
-            <button class="btn btn-primary" onclick="get_log()">Refresh log</button>
+            <button id="refreshButton" class="btn btn-primary" onclick="get_log()">Refresh log</button>
         </div>
     </div>
 
@@ -172,6 +172,9 @@
             clearInterval(log_interval);
             clearInterval(err_interval);
             logging_is_active = false;
+            const button = document.getElementById("refreshButton");
+            button.classList.remove("btn-secondary");
+            button.classList.add("btn-primary");
         }
 
         function get_log(){
@@ -180,6 +183,9 @@
                 log_interval = setInterval(read_log_file, 5000);
                 err_interval = setInterval(read_err_file, 5000);
                 last_log_change = Date.now();
+                const button = document.getElementById("refreshButton");
+                button.classList.remove("btn-primary");
+                button.classList.add("btn-secondary");
             }
         }
 
