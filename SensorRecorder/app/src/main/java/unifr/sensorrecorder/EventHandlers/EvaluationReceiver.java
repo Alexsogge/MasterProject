@@ -36,7 +36,7 @@ public class EvaluationReceiver extends BroadcastReceiver {
                             startEvalIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                             startEvalIntent.putExtra("timestamp", timestamp);
                             // startActivity(startEvalIntent);
-                            PendingIntent resultPendingIntent = PendingIntent.getActivity(context, 12, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                            PendingIntent resultPendingIntent = PendingIntent.getActivity(context, 12, startEvalIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                             try {
                                 resultPendingIntent.send();
                             } catch (PendingIntent.CanceledException e) {

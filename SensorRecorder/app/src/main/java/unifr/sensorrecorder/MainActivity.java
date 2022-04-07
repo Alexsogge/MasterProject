@@ -273,7 +273,7 @@ public class MainActivity extends FragmentActivity
         //    targetDate.add(Calendar.DATE, 1);
 
         Intent reminderReceiver = new Intent(this, OverallEvaluationReminderStarter.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(this, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), reminderPint);
     }

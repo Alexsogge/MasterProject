@@ -46,14 +46,14 @@ public class OverallEvaluationReminderStarter extends BroadcastReceiver {
         // Log.e("alarm", "set new alarm for " + targetDate.get(Calendar.DATE) + "  " +targetDate.get(Calendar.HOUR_OF_DAY));
 
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminderStarter.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, targetDate.getTimeInMillis(), reminderPint);
     }
 
     public static void stopReminderAlarm(Context context){
         Intent reminderReceiver = new Intent(context, OverallEvaluationReminder.class);
-        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent reminderPint = PendingIntent.getBroadcast(context, NotificationSpawner.DAILY_REMINDER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         am.cancel(reminderPint);
     }

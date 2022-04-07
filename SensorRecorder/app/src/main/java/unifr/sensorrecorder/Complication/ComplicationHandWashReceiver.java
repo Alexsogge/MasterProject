@@ -37,7 +37,7 @@ public class ComplicationHandWashReceiver extends BroadcastReceiver {
         Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
         handwashIntent.putExtra("trigger", "handWash");
         handwashIntent.setPackage(context.getPackageName());
-        PendingIntent pintHandWash = PendingIntent.getService(context, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pintHandWash = PendingIntent.getService(context, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         try {
             pintHandWash.send();
         } catch (PendingIntent.CanceledException e) {
@@ -67,7 +67,7 @@ public class ComplicationHandWashReceiver extends BroadcastReceiver {
         // Pass complicationId as the requestCode to ensure that different complications get
         // different intents.
         return PendingIntent.getBroadcast(
-                context, complicationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, complicationId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /**

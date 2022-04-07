@@ -664,7 +664,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         Intent confirmHandWashIntent = new Intent(this, EvaluationReceiver.class);
         confirmHandWashIntent.putExtra("trigger", "handWashConfirm");
         confirmHandWashIntent.putExtra("timestamp", time_stamp);
-        PendingIntent pintConfirmHandWash = PendingIntent.getBroadcast(this, NotificationSpawner.EVALUATION_REQUEST_CODE, confirmHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pintConfirmHandWash = PendingIntent.getBroadcast(this, NotificationSpawner.EVALUATION_REQUEST_CODE, confirmHandWashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         try {
             pintConfirmHandWash.send();
         } catch (PendingIntent.CanceledException e) {

@@ -47,7 +47,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
                 Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
                 handwashIntent.setPackage(context.getPackageName());
                 handwashIntent.putExtra("trigger", "startRecording");
-                PendingIntent pintHandWash = PendingIntent.getService(context, 565, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pintHandWash = PendingIntent.getService(context, 565, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 try {
                     pintHandWash.send();
                 } catch (PendingIntent.CanceledException e) {
