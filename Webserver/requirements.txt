@@ -17,7 +17,11 @@ python-dateutil~=2.8.2
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==1.11.0
+onnx
 onnxruntime
 scikit-learn
 tqdm
 pandas
+
+
+git+https://gitlab.tf.uni-freiburg.de/henkela/handwashing_personalizer.git#subdirectory=src

@@ -833,10 +833,14 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     @Override
     public void onDestroy(){
         this.unregisterFromManager();
-        unregisterReceiver(batteryEventHandler);
-        batteryEventHandler = null;
-        unregisterReceiver(chargeEventHandler);
-        chargeEventHandler = null;
+        if (batteryEventHandler != null) {
+          unregisterReceiver(batteryEventHandler);
+          batteryEventHandler = null;
+        }
+        if (chargeEventHandler != null) {
+          unregisterReceiver(chargeEventHandler);
+          chargeEventHandler = null;
+        }
     }
 
 

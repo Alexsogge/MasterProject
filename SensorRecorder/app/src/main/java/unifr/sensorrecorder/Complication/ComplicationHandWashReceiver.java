@@ -36,6 +36,7 @@ public class ComplicationHandWashReceiver extends BroadcastReceiver {
         Log.d("CompRec", "Comlication hand wash on receive");
         Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
         handwashIntent.putExtra("trigger", "handWash");
+        handwashIntent.setPackage(context.getPackageName());
         PendingIntent pintHandWash = PendingIntent.getService(context, 578, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         try {
             pintHandWash.send();

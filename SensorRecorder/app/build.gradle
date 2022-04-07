@@ -4,17 +4,16 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.3"
 
     defaultConfig {
         applicationId "unifr.sensorrecorder"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 8
-        versionName "1.5"
+        versionCode 19
+        versionName "2.6"
 
     }
-/*
+
     signingConfigs {
      release {
        storeFile file(System.getenv('KEYSTORE'))
@@ -27,12 +26,11 @@ android {
        v2SigningEnabled true
       }
     }
-*/
 
 
     buildTypes {
         release {
-//            signingConfig signingConfigs.release
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

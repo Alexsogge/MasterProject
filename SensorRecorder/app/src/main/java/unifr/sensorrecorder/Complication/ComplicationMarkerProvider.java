@@ -44,6 +44,7 @@ public class ComplicationMarkerProvider extends ComplicationProviderService{
         Log.d(TAG, "onComplicationUpdate() id: " + complicationId);
 
         Intent markerIntent = new Intent(this, SensorRecordingManager.class);
+        markerIntent.setPackage(this.getPackageName());
         markerIntent.putExtra("trigger", "marker");
         PendingIntent pintMarker = PendingIntent.getService(this, 573, markerIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
