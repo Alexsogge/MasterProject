@@ -18,7 +18,7 @@
                 </button>
                 <ul class="dropdown-menu">
                     {% for setting_name in pseudo_model_settings %}
-                    <li><a class="dropdown-item" onclick="start_personalization('{{ setting_name }}')" title="{{ get_pseudo_label_filter_description(setting_name) }}">{{ setting_name }}</a></li>
+                        <li><a class="dropdown-item" onclick="start_personalization('{{ setting_name }}')" title="{{ get_pseudo_label_filter_description(setting_name) }}">{{ setting_name }}</a></li>
 
                     {% endfor %}
                 </ul>
@@ -68,7 +68,7 @@
                                         <div class="row">
                                             false_diff_relative: {{ personalization.false_diff_relative }} correct_diff_relative:{{ personalization.correct_diff_relative }}
                                         </div>
-                                         <div class="row">
+                                        <div class="row">
                                             pseudo label filter: {{ personalization.used_filter }}
                                         </div>
                                     </div>
@@ -77,8 +77,8 @@
                                             <div class="row"><a href="{{url_for('views.uploaded_participant_file', path=participant.id ~ '/quality_plot_test_' ~ personalization.id ~ '_' ~ test_recording.id ~ '.svg')}}">{{ test_recording.recording.get_name() }}</a></div>
                                         {% endfor %}
                                     </div>
-                                    <div class="col-1 border-start">
-                                        <a href="{{ url_for('views.participant_delete_personalization', participant_id=participant.id, personalization_id=personalization.id) }}" class="btn btn-block btn-danger ">X</a>
+                                    <div class="col-1">
+                                        <a href="{{ url_for('views.participant_delete_personalization', participant_id=participant.id, personalization_id=personalization.id) }}" class="btn btn-block btn-danger float-end">X</a>
                                     </div>
                                 </div>
                                 <div class="row border-top">
@@ -109,29 +109,78 @@
         </div>
     </div>
 
+    <div class="row">
+        <div class="col">
+            <button class="btn btn-primary" onclick="get_log()">Refresh log</button>
+        </div>
+    </div>
+
 
     <script>
         var output = document.getElementById('output');
         var erroutput = document.getElementById('erroutput');
+        var logging_is_active = false;
+        var log_interval = null;
+        var err_interval = null;
+
+        var last_log_change = 0;
 
         function read_log_file() {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', '{{ url_for('views.personalization_log_of_participant', participant_id=participant.id) }}');
-            xhr.send();
+            fetch('{{ url_for('views.personalization_log_of_participant', participant_id=participant.id) }}').then(
+                function(response) {
+                    if (!response.ok) {
+                        throw Error(response.statusText);
+                    }
+                    return response.text().then(function(text) {
+                        check_for_stop_logging(output.textContent, text);
+                        output.textContent = text;
+                    }).catch(function(error) {
+                        console.log(error);
+                        stop_logging();
+                    });
+                });
 
-            setInterval(function () {
-                output.textContent = xhr.responseText;
-            }, 1000);
         }
 
         function read_err_file() {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', '{{ url_for('views.personalization_errlog_of_participant', participant_id=participant.id) }}');
-            xhr.send();
+            fetch('{{ url_for('views.personalization_errlog_of_participant', participant_id=participant.id) }}').then(
+                function(response) {
+                    if (!response.ok) {
+                        throw Error(response.statusText);
+                    }
+                    return response.text().then(function(text) {
+                        check_for_stop_logging(erroutput.textContent, text.split(/\r?\n/).pop());
+                        erroutput.textContent = text.split(/\r?\n/).pop();
+                    }).catch(function(error) {
+                        console.log(error);
+                        stop_logging();
+                    });
+                });
+        }
 
-            setInterval(function () {
-                erroutput.textContent = xhr.responseText.split(/\r?\n/).pop();
-            }, 1000);
+        function check_for_stop_logging(current_text, new_text){
+            if (current_text == new_text){
+                if (Date.now() - last_log_change > 120 * 1000){
+                    stop_logging();
+                }
+            } else {
+                last_log_change = Date.now();
+            }
+        }
+
+        function stop_logging(){
+            clearInterval(log_interval);
+            clearInterval(err_interval);
+            logging_is_active = false;
+        }
+
+        function get_log(){
+            if (!logging_is_active){
+                logging_is_active = true;
+                log_interval = setInterval(read_log_file, 5000);
+                err_interval = setInterval(read_err_file, 5000);
+                last_log_change = Date.now();
+            }
         }
 
         function start_personalization(target_filter=null){
@@ -146,8 +195,7 @@
                     if (data.status == 'error'){
                         output.textContent = data.msg;
                     } else {
-                        read_log_file();
-                        read_err_file();
+                        get_log();
                     }
                 });
         }

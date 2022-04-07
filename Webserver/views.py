@@ -1054,13 +1054,14 @@ def participant_start_personalization(participant_id):
     err_file = os.path.join(participant.get_path(), 'personalization.err')
     if os.path.exists(log_file):
         if os.path.getmtime(log_file) + 60 > plain_time.time():
-            print('To many calls')
+            # print('To many calls')
             return jsonify({'status': 'error', 'msg': 'to many calls'})
-    print('write log to', log_file)
+    # print('write log to', log_file)
     with open(log_file, "w") as outfile, open(err_file, "w") as erroutput:
         script_parameters = ['python', 'manage.py', 'build_personalized_models', '-p' ,str(participant.id)]
         if request.args.get('filter'):
             script_parameters += ['-f', request.args.get('filter')]
+        print('run subprocess:', ' '.join(script_parameters))
         subprocess.Popen(script_parameters,
                          stdout=outfile, stderr=erroutput)
     return jsonify({'status': 'success', 'msg': 'started process'})
@@ -1110,11 +1111,7 @@ def participant_delete_personalization(participant_id, personalization_id):
 @view.route('/personalization/log/<int:participant_id>/')
 @basic_auth.login_required
 def personalization_log_of_participant(participant_id):
-    def generate(log_file):
-        with open(log_file) as f:
-            while True:
-                yield f.read()
-                plain_time.sleep(1)
+
 
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
 
@@ -1122,16 +1119,14 @@ def personalization_log_of_participant(participant_id):
     if not os.path.exists(log_file):
         return jsonify({'status': 'error', 'msg': 'to process active'})
 
-    return Flask.response_class(generate(log_file), mimetype='text/plain')
+    with open(log_file) as f:
+        text = f.readlines()
+
+    return Flask.response_class(text, mimetype='text/plain')
 
 @view.route('/personalization/errlog/<int:participant_id>/')
 @basic_auth.login_required
 def personalization_errlog_of_participant(participant_id):
-    def generate(log_file):
-        with open(log_file) as f:
-            while True:
-                yield f.read()
-                plain_time.sleep(1)
 
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
 
@@ -1139,7 +1134,10 @@ def personalization_errlog_of_participant(participant_id):
     if not os.path.exists(log_file):
         return jsonify({'status': 'error', 'msg': 'to process active'})
 
-    return Flask.response_class(generate(log_file), mimetype='text/plain')
+    with open(log_file) as f:
+        text = f.readlines()
+
+    return Flask.response_class(text, mimetype='text/plain')
 
 
 @view.route('/tag/list/')
