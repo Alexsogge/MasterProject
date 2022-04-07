@@ -1,5 +1,6 @@
 import datetime
 import os
+import pathlib
 from typing import Union, Dict, List
 
 import numpy as np
@@ -662,6 +663,11 @@ class Personalization(db.Model):
     @property
     def ort_name(self):
         return os.path.basename(self.model_ort_path)
+
+    @property
+    def ort_download_path(self):
+        path = pathlib.Path(self.model_ort_path)
+        return pathlib.Path(*path.parts[2:])
 
     @property
     def settings_name(self):
