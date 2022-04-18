@@ -131,7 +131,7 @@ public class DataContainer {
         File subdirectory;
         for (int i = 0; i < 999; i++){
             subdirectory = new File(recordingFilePath, recordSubDirectoryPrefix + "_" + i + "/");
-            if(subdirectory.exists()){
+            if(subdirectory.exists() && subdirectory.list() != null){
                 if(subdirectory.list().length >= 2) {
                     subdirectories.add(subdirectory);
                 } else if(subdirectory.list().length == 1 && subdirectory.list()[0].charAt(0) != '.'){

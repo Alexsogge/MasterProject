@@ -4,6 +4,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -111,6 +112,11 @@ public class ConfActivity extends WearableActivity {
             scanBluetoothBeaconsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_scan_bluetooth_beacons), false));
         if(configs.contains(getString(R.string.conf_open_evaluation)))
             openEvaluationsCheckbox.setChecked(configs.getBoolean(getString(R.string.conf_open_evaluation), true));
+
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null){
+            scanBluetoothBeaconsCheckbox.setEnabled(false);
+        }
 
         /*
         if(ContextCompat.checkSelfPermission(this, RECORD_AUDIO) == PERMISSION_DENIED){

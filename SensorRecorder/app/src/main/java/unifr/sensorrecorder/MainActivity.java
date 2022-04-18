@@ -221,6 +221,8 @@ public class MainActivity extends FragmentActivity
         WorkManager.getInstance(this)
                 .getWorkInfosByTagLiveData("serverTokenWorker")
                 .observe(this, new ServerTokenObserver(infoText, this));
+
+        startStopButton.setEnabled(writeExternalStorage);
     }
 
     private void askForPermission(){
@@ -341,15 +343,20 @@ public class MainActivity extends FragmentActivity
                 if(bluetooth && bluetoothAdmin && fineLocation && writeExternalStorage) {
                     startServices();
                 } else {
-                    askForPermission();
+                    boolean showRationale = shouldShowRequestPermissionRationale(permissions[3]);
+                    if (showRationale)
+                        askForPermission();
                     Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
                 }
             } else if(grantResults.length == 1){
                 boolean writeExternalStorage = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-                if(writeExternalStorage){
+                if(writeExternalStorage) {
                     startServices();
                 } else {
-                    askForPermission();
+                    boolean showRationale = shouldShowRequestPermissionRationale(permissions[0]);
+                    if (showRationale) {
+                        askForPermission();
+                    }
                     Toast.makeText(this, getResources().getString(R.string.toast_permission_den), Toast.LENGTH_SHORT).show();
                 }
             }

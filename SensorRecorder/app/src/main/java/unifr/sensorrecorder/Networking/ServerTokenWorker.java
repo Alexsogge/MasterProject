@@ -56,9 +56,15 @@ public class ServerTokenWorker extends NetworkWorker{
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        Request request = new Request.Builder()
-                .url(serverName + "/tokenauth/request/?identifier="+userIdentifier)
-                .build();
+        Request request;
+        try {
+            request = new Request.Builder()
+                    .url(serverName + "/tokenauth/request/?identifier=" + userIdentifier)
+                    .build();
+        } catch (IllegalArgumentException e){
+            makeToast(context.getString(R.string.toast_cant_conn_to_server));
+            return STATUS_ERROR;
+        }
         Log.d("http", "request token from " + serverName + "/tokenauth/request/?identifier="+userIdentifier);
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()){

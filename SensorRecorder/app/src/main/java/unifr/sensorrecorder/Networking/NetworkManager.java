@@ -67,11 +67,13 @@ public class NetworkManager {
     public void DoFileUpload(){
         // stop recording and create backup
         sensorStopLatch = new CountDownLatch(1);
-        sensorService.waitForStopRecording(sensorStopLatch);
-
-
-        // update info text
-        setInfoText(context.getString(R.string.btn_stopping));
+        if (sensorService != null) {
+            sensorService.waitForStopRecording(sensorStopLatch);
+            // update info text
+            setInfoText(context.getString(R.string.btn_stopping));
+        } else {
+            sensorStopLatch.countDown();
+        }
 
 
         // check if server was specified
