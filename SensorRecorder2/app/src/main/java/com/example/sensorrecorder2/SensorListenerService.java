@@ -313,8 +313,10 @@ public class SensorListenerService extends Service implements SensorEventListene
 
         Intent handwashIntent = new Intent(this.intent);
         handwashIntent.putExtra("trigger", "handWash");
-        PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        // Intent openIntent = new Intent(intent);
+        PendingIntent pintHandWash = PendingIntent.getService(this, 579, handwashIntent,
+                      PendingIntent.FLAG_UPDATE_CURRENT |
+                      (android.os.Build.VERSION.SDK_INT >= 23 ?
+                       PendingIntent.FLAG_IMMUTABLE : 0));
         Intent openIntent = new Intent(getApplicationContext(), MainActivity.class);
 
         openIntent.putExtra("trigger", "open");
