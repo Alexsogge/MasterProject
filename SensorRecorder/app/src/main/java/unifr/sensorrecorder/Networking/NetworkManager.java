@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -252,15 +253,16 @@ public class NetworkManager {
         @Override
         public void run() {
             String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
+            String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
             try {
                 if(!justSettings) {
-                    String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/", HandWashDetection.modelName);
+                    String tfFileName = downloadTFFile(serverName + "/tfmodel/get/latest/?androidid=" + androidId, HandWashDetection.modelName);
                     makeToast(context.getString(R.string.toast_downloaded_tf) + ":\n" + tfFileName, context);
                     SharedPreferences.Editor configEditor = configs.edit();
                     configEditor.putString(context.getApplicationContext().getString(R.string.val_current_tf_model), tfFileName);
                     configEditor.apply();
                 }
-                downloadTFFile(serverName + "/tfmodel/get/settings/", HandWashDetection.modelSettingsName);
+                downloadTFFile(serverName + "/tfmodel/get/settings/?androidid=" + androidId, HandWashDetection.modelSettingsName);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -312,8 +314,9 @@ public class NetworkManager {
         @Override
         public void run() {
             String serverName = configs.getString(context.getString(R.string.conf_serverName), "");
+            String androidId = Settings.Secure.getString( context.getContentResolver(), Settings.Secure.ANDROID_ID);
             try {
-                String tfFileName = getActiveTFFile(serverName + "/tfmodel/check/latest/");
+                String tfFileName = getActiveTFFile(serverName + "/tfmodel/check/latest/?androidid=" + androidId);
                 if(tfFileName.length() > 0){
                     String currentModel = configs.getString(context.getString(R.string.val_current_tf_model), "");
                     String doSkip = configs.getString(context.getString(R.string.val_do_skip_tf_model), "");
