@@ -27,7 +27,7 @@ from personalization_tools.pseudo_model_settings import common_filters
 
 from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats,\
     RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags, RecordingCalculations,\
-    Personalization
+    Personalization, ManualPrediction
 
 
 
@@ -1138,6 +1138,27 @@ def personalization_errlog_of_participant(participant_id):
         text = f.readlines()
 
     return Flask.response_class(text, mimetype='text/plain')
+
+
+@view.route('/personalization/manual-prediction/<int:participant_id>/<int:personalization_id>/<int:recording_id>/')
+@basic_auth.login_required
+def personalization_manual_prediction(participant_id, personalization_id, recording_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    personalization = Personalization.query.filter_by(id=personalization_id).first_or_404()
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+
+    print('Manual prediction of', participant, recording, personalization)
+
+    existing_prediction = ManualPrediction.query.filter_by(based_personalization=personalization, based_recording=recording).first()
+    if existing_prediction:
+        print('found prediction')
+        return send_from_directory('./', path=existing_prediction.get_path())
+    else:
+        print('create new prediction')
+        fig_name = participant.create_manual_prediction(recording, personalization)
+        return send_from_directory('./', path=fig_name)
+
+
 
 
 @view.route('/tag/list/')

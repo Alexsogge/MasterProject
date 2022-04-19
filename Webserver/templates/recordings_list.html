@@ -71,6 +71,18 @@
                            href="{{ url_for('views.uploaded_recording_file', path=recording.get_zip_name()) }}">Download</a>
                         <a class="btn btn-danger"
                            href="{{ url_for('views.delete_recording', recording_id=recording.id) }}">Delete</a>
+                        {% if participant %}
+                            <div class="dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="manualPredictionButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Manual prediction
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="manualPredictionButton">
+                                    {% for personalization in participant.personalizations %}
+                                        <li><a class="dropdown-item" href="{{url_for('views.personalization_manual_prediction', participant_id=participant.id, personalization_id=personalization.id, recording_id=recording.id)}}">{{ personalization.version }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}

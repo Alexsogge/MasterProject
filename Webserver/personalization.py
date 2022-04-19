@@ -18,7 +18,7 @@ from personalization_tools.pseudo_model_settings import pseudo_model_settings
 from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
-    from models import RecordingForPersonalization
+    from models import RecordingForPersonalization, Recording, Personalization, RecordingTag
 
 
 def build_datasets_from_recordings(recordings: List['RecordingForPersonalization']) -> Dict['RecordingForPersonalization', Dataset]:
@@ -43,11 +43,20 @@ def clean_collection(collection: Dict['RecordingForPersonalization', Dataset]):
 
 
 def split_test_from_collection(collection: Dict['RecordingForPersonalization', Dataset], current_iteration: int,
-                                   existing_test_recordings: Dict['RecordingForPersonalization', Dataset]) -> Dict['RecordingForPersonalization', Dataset]:
+                               existing_test_recordings: Dict['RecordingForPersonalization', Dataset],
+                               evaluation_tag: 'RecordingTag') -> Dict['RecordingForPersonalization', Dataset]:
     collection_keys: List['RecordingForPersonalization'] = list(collection.keys())
     test_recordings = existing_test_recordings
-    if (len(collection) + current_iteration) * 0.2 > len(existing_test_recordings):
-        target_part = int(len(collection) * 0.2)+1
+
+    for collection_key in collection_keys[:]:
+        if evaluation_tag in collection_key.recording.tags:
+            test_recordings[collection_key] = collection.pop(collection_key, None)
+            collection_key.used_for_testing = True
+            collection_keys.remove(collection_key)
+
+
+    if (len(collection_keys) + current_iteration) * 0.2 > len(test_recordings):
+        target_part = int(len(collection_keys) * 0.2)+1
         for i in range(0, target_part):
             if len(collection[collection_keys[i]].feedback_areas.labeled_regions_hw) > 1 and len(collection[collection_keys[i]].feedback_areas.labeled_regions_noise) > 1:
                 collection_keys[i].used_for_testing = True
@@ -108,6 +117,20 @@ def create_personalization_quality_test_plot(dataset, base_model, inc_model, ker
 def create_personalization_pseudo_plot(dataset, fig_name):
     fig = plot_hw_feedback_areas(dataset)
     fig.savefig(fig_name, format='svg', dpi=300)
+
+def create_manual_prediction(recording: 'Recording', personalization: 'Personalization', base_model_path: str, fig_name: str):
+    root_path = Path(recording.path).parent.absolute()
+    record_reader = SensorRecorderDataReader(root_path)
+    dataset = record_reader.get_data_set(recording.base_name)
+    fig = plot_quality_comparison(dataset, base_model_path, personalization.model_torch_path,
+                                  kernel_size=personalization.mean_kernel_width,
+                                  kernel_threshold=personalization.mean_threshold)
+
+    fig.savefig(fig_name, format='svg', dpi=300)
+
+
+
+
 
 
 

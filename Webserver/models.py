@@ -209,8 +209,9 @@ class Participant(db.Model):
         uncovered_recordings = []
         print('already covered:', already_covered_recordings)
         exclude_tag = RecordingTag.query.filter_by(name='exclude personalization').first()
+        evaluation_tag = RecordingTag.query.filter_by(name='use as evaluation').first()
         for recording in self.recordings:
-            if recording not in already_covered_recordings and exclude_tag not in recording.tags:
+            if recording not in already_covered_recordings and (exclude_tag not in recording.tags or evaluation_tag in recording.tags):
                 print('add', recording)
                 uncovered_recordings.append(recording)
 
@@ -250,13 +251,14 @@ class Participant(db.Model):
         collection = {k: v for k, v in collection.items() if k in usable_recordings}
 
         print('usable recordings:', collection.keys())
-        personalization_pipe.process_collection(list(collection.values()), base_model)
+        personalization_pipe.process_collection(list(collection.values()), general_model)
 
         test_recordings_collection: Dict[
             'RecordingForPersonalization', 'Dataset'] = personalization_pipe.build_datasets_from_recordings(
             test_recordings)
         test_recordings_collection = personalization_pipe.split_test_from_collection(collection, current_iteration,
-                                                                                     test_recordings_collection)
+                                                                                     test_recordings_collection,
+                                                                                     evaluation_tag)
         print('test recordings:', list(test_recordings_collection.keys()))
         print('train recordings:', list(collection.keys()))
 
@@ -281,6 +283,21 @@ class Participant(db.Model):
         db.session.commit()
         self.create_personalization_quality_test_plots(new_personalization, test_recordings_collection, general_model)
         self.create_personalization_pseudo_plots(new_personalization, collection)
+        print('finished')
+
+
+    def create_manual_prediction(self, recording: 'Recording', personalization: 'Personalization'):
+        manual_prediction = ManualPrediction(based_personalization=personalization, based_recording=recording)
+        db.session.add(manual_prediction)
+        db.session.commit()
+        print('new prediction', manual_prediction.id)
+
+        fig_name = manual_prediction.get_path()
+        general_model = find_newest_torch_file(full_path=True)
+        personalization_pipe.create_manual_prediction(recording, personalization, general_model, fig_name)
+        print('finished')
+        return fig_name
+
 
 
     def get_personal_model(self):
@@ -610,7 +627,11 @@ default_recording_tags = {'no data': {'icon_name': 'fas fa-exclamation', 'icon_c
                           'exclude personalization': {'icon_name': 'fa-solid fa-person-circle-xmark',
                                                       'icon_color': 'red',
                                                       'default_include_for_statistics': None,
-                                                      'description': 'Do not use this dataset for personalization'}
+                                                      'description': 'Do not use this dataset for personalization'},
+                          'use as evaluation': {'icon_name': 'fa-solid fa-chart-line',
+                                                      'icon_color': 'blue',
+                                                      'default_include_for_statistics': None,
+                                                      'description': 'Just use for evaluation of personalization'}
                           }
 
 
@@ -706,3 +727,23 @@ class RecordingForPersonalization(db.Model):
 
     def __repr__(self):
         return f'[{self.id}] {self.recording}'
+
+
+class ManualPrediction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    based_personalization_id = db.Column(db.Integer, db.ForeignKey('personalization.id'))
+    based_personalization = db.relationship('Personalization')
+
+    based_recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'))
+    based_recording = db.relationship('Recording')
+
+    false_diff_relative = db.Column(db.Float, default=0)
+    correct_diff_relative = db.Column(db.Float, default=0)
+
+    def get_path(self):
+        participant_path = self.based_personalization.participant.get_path()
+        manual_plots_path = os.path.join(participant_path, 'manual_predictions')
+        if not os.path.exists(manual_plots_path):
+            os.mkdir(manual_plots_path)
+        fig_name = os.path.join(manual_plots_path, f'manual_prediction_{self.id}.svg')
+        return fig_name
