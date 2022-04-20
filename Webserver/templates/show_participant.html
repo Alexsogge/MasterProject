@@ -49,6 +49,22 @@
                     {% endif %}
                 </div>
             </div>
+            <div class="row mt-3">
+                <div class="col">
+                    {% if participant.stats_id %}
+                        {% set metrics = participant.get_metrics() %}
+                        <div class="row">
+                            <div class="col-3">sensitivity, recall (true positive):</div><div class="col">{{ metrics[0] }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">precision (positive predictive):</div><div class="col">{{ metrics[1] }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">f1 (harmonic mean):</div><div class="col">{{ metrics[2] }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
             <hr/>
             <div class="row mt-2">
                 <div class="col">

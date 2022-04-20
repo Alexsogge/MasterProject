@@ -91,6 +91,13 @@ class Participant(db.Model):
         else:
             return self.stats.get_entries(len(self.get_observed_recordings()))
 
+    def get_metrics(self):
+        if self.stats_id is None:
+            return []
+        else:
+            print(self.stats.get_metrics())
+            return self.stats.get_metrics()
+
     def get_path(self):
         my_path = os.path.join(PARTICIPANT_FOLDER, str(self.id))
         if not os.path.exists(my_path):
@@ -564,6 +571,13 @@ class ParticipantStats(db.Model):
             self.daily_count_evaluation_yes = 0
             self.daily_count_evaluation_no = 0
             self.amount_covered_days = 0
+
+    def get_metrics(self):
+        sensitivity = self.count_evaluation_yes / (self.count_evaluation_yes + self.count_hand_washes_manual)
+        precision = self.count_evaluation_yes / (self.count_evaluation_yes + (self.count_hand_washes_detected_total - self.count_evaluation_yes))
+        f1 = 2 * ((precision * sensitivity)/(precision + sensitivity))
+
+        return sensitivity, precision, f1
 
 
 class ParticipantsTagSetting(db.Model):
