@@ -8,6 +8,7 @@ from typing import List
 
 import numpy as np
 from dateutil import parser
+import cv2
 
 from flask import jsonify, request, render_template, redirect, send_from_directory, abort, Blueprint, url_for, make_response, Flask
 
@@ -27,7 +28,7 @@ from personalization_tools.pseudo_model_settings import common_filters
 
 from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats,\
     RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags, RecordingCalculations,\
-    Personalization, ManualPrediction
+    Personalization, ManualPrediction, RecordEntryComment
 
 
 
@@ -333,12 +334,17 @@ def get_recording(recording_id):
     if os.path.isfile(evaluations_plot_path):
         evaluations_plot = os.path.join(recording.base_name, 'evaluation_graph.png')
 
+    comments = dict()
+    for comment in RecordEntryComment.query.filter_by(based_recording=recording):
+        comments[comment.file_name] = comment
+
 
     return render_template('show_recording.html', recording=recording,
                            files=recording_files, total_size=total_size, sensor_data_file=sensor_data_file,
                            sensor_data_flattened_file=sensor_data_flattened_file,
                            generated_data_size=generated_data_size, meta_info=meta_info,
-                           participants=participants, all_tags=all_tags, evaluations_plot=evaluations_plot)
+                           participants=participants, all_tags=all_tags, evaluations_plot=evaluations_plot,
+                           entry_comments=comments)
 
 
 @view.route('/recording/plot/<int:recording_id>/')
@@ -426,6 +432,16 @@ def new_recording():
                 db.session.add(recording)
             recording.update_session_size()
             recording.update_last_changed()
+
+            if os.path.splitext(filename)[1] == '.avi':
+                new_comment = RecordEntryComment(based_recording=recording, file_name=filename)
+                video = cv2.VideoCapture(os.path.join(upload_path, filename))
+                duration = video.get(cv2.CAP_PROP_POS_MSEC)
+                frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
+                fps = video.get(cv2.CAP_PROP_FPS)
+                new_comment.comment = f'duration: {plain_time.strftime("%M:%S", plain_time.gmtime(frame_count/fps))}'
+
+                db.session.add(new_comment)
 
             if os.path.splitext(filename)[1] == '.json' and 'metaInfo' in filename:
                 meta_info_file = os.path.join(upload_path, filename)
@@ -1383,6 +1399,18 @@ def update_recordings():
             if os.path.splitext(file)[1] == '.json' and 'metaInfo' in file:
                 meta_info_file = os.path.join(recording.path, file)
 
+            if os.path.splitext(file)[1] == '.avi':
+                new_comment = RecordEntryComment.query.filter_by(based_recording=recording, file_name=file).first()
+                if new_comment is None:
+                    new_comment = RecordEntryComment(based_recording=recording, file_name=file)
+                    db.session.add(new_comment)
+                video = cv2.VideoCapture(os.path.join(recording.path, file))
+                frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
+                fps = video.get(cv2.CAP_PROP_FPS)
+                new_comment.comment = f'duration: {plain_time.strftime("%M:%S", plain_time.gmtime(frame_count/fps))}'
+
+
+
         meta_info = {}
         if meta_info_file is not None:
             with open(meta_info_file) as json_file:
@@ -1394,6 +1422,7 @@ def update_recordings():
         if RecordingTag.query.filter_by(name='default').filter(RecordingTag.recordings.contains(recording)).first() is None:
             default_tag = RecordingTag.query.filter_by(name='default').first_or_404()
             recording.tags.append(default_tag)
+
 
     db.session.commit()
     return redirect(url_for('views.settings'))

@@ -761,3 +761,13 @@ class ManualPrediction(db.Model):
             os.mkdir(manual_plots_path)
         fig_name = os.path.join(manual_plots_path, f'manual_prediction_{self.id}.svg')
         return fig_name
+
+
+class RecordEntryComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    based_recording_id = db.Column(db.Integer, db.ForeignKey('recording.id'))
+    based_recording = db.relationship('Recording')
+
+    file_name = db.Column(db.String)
+    comment = db.Column(db.String)

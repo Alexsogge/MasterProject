@@ -22,6 +22,6 @@ onnxruntime
 scikit-learn
 tqdm
 pandas
-
+opencv-python
 
 git+https://gitlab.tf.uni-freiburg.de/henkela/handwashing_personalizer.git#subdirectory=src

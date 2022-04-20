@@ -175,40 +175,61 @@
         </h3>
     </div>
 
-    {% for file in files %}
-        <div class="row mt-1">
-            <div class="col"><a href="{{url_for('views.uploaded_recording_file', path=recording.base_name+'/'+file)}}">{{ file }}</a></div>
-            <div class="col"><a class="btn btn-danger" href="{{url_for('views.delete_recording_file', recording_id=recording.id, file_name=file)}}">Delete</a></div>
+    <td class="row mt-1">
+    <th class="col">
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">File</th>
+                <th scope="col">Comment</th>
+                <th scope="col">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for file in files %}
+                <tr>
+                    <th scope="row"><a href="{{url_for('views.uploaded_recording_file', path=recording.base_name+'/'+file)}}">{{ file }}</a></th>
+                    <td>
+                        {% if file in entry_comments %}
+                            {{ entry_comments[file].comment }}
+                        {% endif %}
+                    </td>
+                    <td><a class="btn btn-danger" href="{{url_for('views.delete_recording_file', recording_id=recording.id, file_name=file)}}">Delete</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
         </div>
-    {% endfor %}
 
 
-    <script>
-        function loadPlot(){
-            const button = document.getElementById("plot_button");
 
-            button.innerHTML = "Generating plot...";
-            window.location.href = '{{url_for('views.plot_recording', recording_id=recording.id)}}';
-        }
 
-        function update_stats(){
-            document.getElementById('button_update_stats').innerText = 'loading...';
-            document.location.href = "{{ url_for('views.update_recording_stats', recording_id=recording.id) }}";
-        }
+        <script>
+            function loadPlot(){
+                const button = document.getElementById("plot_button");
 
-        function calc_characteristics(){
-            document.getElementById('button_calc_characteristics').innerText = 'loading...';
-            document.location.href = "{{ url_for('views.calc_recording_characteristics', recording_id=recording.id) }}";
-        }
+                button.innerHTML = "Generating plot...";
+                window.location.href = '{{url_for('views.plot_recording', recording_id=recording.id)}}';
+            }
 
-        function filterRecordings(filter_arg, filter_val){
-            window.location.href = `{{url_for('views.list_recordings')}}?${filter_arg}=${filter_val}`;
-        }
+            function update_stats(){
+                document.getElementById('button_update_stats').innerText = 'loading...';
+                document.location.href = "{{ url_for('views.update_recording_stats', recording_id=recording.id) }}";
+            }
 
-        function toggle_tag(tag_id){
-            document.location.href = `{{ url_for('views.toggle_recording_tag', recording_id=recording.id) }}?tag_id=${tag_id}`;
-        }
+            function calc_characteristics(){
+                document.getElementById('button_calc_characteristics').innerText = 'loading...';
+                document.location.href = "{{ url_for('views.calc_recording_characteristics', recording_id=recording.id) }}";
+            }
 
-    </script>
+            function filterRecordings(filter_arg, filter_val){
+                window.location.href = `{{url_for('views.list_recordings')}}?${filter_arg}=${filter_val}`;
+            }
+
+            function toggle_tag(tag_id){
+                document.location.href = `{{ url_for('views.toggle_recording_tag', recording_id=recording.id) }}?tag_id=${tag_id}`;
+            }
+
+        </script>
 
 {% endblock %}
