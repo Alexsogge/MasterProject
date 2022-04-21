@@ -1,4 +1,5 @@
 import datetime
+import time
 import os
 import pathlib
 from typing import Union, Dict, List
@@ -199,6 +200,7 @@ class Participant(db.Model):
             personalization_pipe.create_personalization_pseudo_plot(dataset, fig_name)
 
     def run_personalization(self, target_filter='alldeepconv_correctbyconvlstm3filter6'):
+        start_time = time.time()
         current_personalization: Union[None, 'Personalization'] = None
         already_covered_recordings = []
         test_recordings = []
@@ -287,9 +289,12 @@ class Participant(db.Model):
         new_personalization.correct_diff_relative = best_model_settings[0][1][3]
 
         print('create plots')
-        db.session.commit()
         self.create_personalization_quality_test_plots(new_personalization, test_recordings_collection, general_model)
         self.create_personalization_pseudo_plots(new_personalization, collection)
+        end_time = time.time()
+        new_personalization.required_time = end_time - start_time
+
+        db.session.commit()
         print('finished')
 
 
@@ -303,7 +308,7 @@ class Participant(db.Model):
         general_model = find_newest_torch_file(full_path=True)
         personalization_pipe.create_manual_prediction(recording, personalization, general_model, fig_name)
         print('finished')
-        return fig_name
+        return manual_prediction
 
 
 
@@ -678,6 +683,7 @@ class Personalization(db.Model):
     false_diff_relative = db.Column(db.Float, default=0)
     correct_diff_relative = db.Column(db.Float, default=0)
     used_filter = db.Column(db.String, default='alldeepconv_correctbyconvlstm3filter6')
+    required_time = db.Column(db.Float, default=0)
 
     @property
     def model_base_path(self):

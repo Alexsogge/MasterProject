@@ -1,5 +1,6 @@
 import json
 import os
+import pathlib
 import re
 import traceback
 from datetime import datetime, timedelta, time
@@ -51,6 +52,13 @@ def render_is_checked(input):
     if bool(input):
         return 'checked'
     return ''
+
+@view.app_template_filter()
+def render_seconds_to_time(input):
+    if input:
+        return plain_time.strftime("%M:%S", plain_time.gmtime(input))
+    else:
+        return '00:00'
 
 
 @view.route('/')
@@ -1166,15 +1174,34 @@ def personalization_manual_prediction(participant_id, personalization_id, record
     print('Manual prediction of', participant, recording, personalization)
 
     existing_prediction = ManualPrediction.query.filter_by(based_personalization=personalization, based_recording=recording).first()
-    if existing_prediction:
-        print('found prediction')
-        return send_from_directory('./', path=existing_prediction.get_path())
-    else:
+    if not existing_prediction:
         print('create new prediction')
-        fig_name = participant.create_manual_prediction(recording, personalization)
-        return send_from_directory('./', path=fig_name)
+        existing_prediction = participant.create_manual_prediction(recording, personalization)
 
+    fig_name = existing_prediction.get_path()
 
+    msg = None
+    if not os.path.exists(fig_name):
+        msg = 'File does not exist'
+    else:
+        fig_name = pathlib.Path(fig_name)
+        fig_name = pathlib.Path(*fig_name.parts[2:])
+
+    return render_template('show_manual_prediction.html', prediction_plot=fig_name, msg=msg, prediction=existing_prediction)
+
+@view.route('/personalization/manual-prediction-delete/<int:prediction_id>/')
+@basic_auth.login_required
+def personalization_manual_prediction_delete(prediction_id):
+    existing_prediction = ManualPrediction.query.filter_by(id=prediction_id).first_or_404()
+    fig_name = existing_prediction.get_path()
+    if os.path.exists(fig_name):
+        os.remove(fig_name)
+
+    participant = ManualPrediction.query.filter_by(id=existing_prediction.based_personalization.participant_id).first_or_404()
+
+    db.session.delete(existing_prediction)
+    db.session.commit()
+    return redirect(url_for('views.get_participant', participant_id=participant.id))
 
 
 @view.route('/tag/list/')

@@ -124,7 +124,8 @@ def create_manual_prediction(recording: 'Recording', personalization: 'Personali
     dataset = record_reader.get_data_set(recording.base_name)
     fig = plot_quality_comparison(dataset, base_model_path, personalization.model_torch_path,
                                   kernel_size=personalization.mean_kernel_width,
-                                  kernel_threshold=personalization.mean_threshold)
+                                  kernel_threshold=personalization.mean_threshold,
+                                  add_predictions=True)
 
     fig.savefig(fig_name, format='svg', dpi=300)
 

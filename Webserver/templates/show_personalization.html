@@ -71,6 +71,9 @@
                                         <div class="row">
                                             pseudo label filter: {{ personalization.used_filter }}
                                         </div>
+                                        <div class="row">
+                                            required computation time: {{ personalization.required_time | render_seconds_to_time}}
+                                        </div>
                                     </div>
                                     <div class="col">
                                         {% for test_recording in test_recordings_per_personalization[loop.index0] %}

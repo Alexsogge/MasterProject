@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block content %}
+    <div class="row mb-1">
+        <h1>Manual prediction</h1>
+    </div>
+    <div class="row">
+        <div class="col">
+             <img src="{{url_for('views.uploaded_participant_file', path=prediction_plot)}}" id="plot" class="img-fluid" alt="Manual predictions plot" style="display: block; max-width: 100%;">
+        </div>
+    </div>
+    {% if msg %}
+    <div class="row">
+        <div class="col">
+            <h3>{{ msg }}</h3>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col"><a class="btn btn-danger" href="{{ url_for('views.personalization_manual_prediction_delete', prediction_id=prediction.id) }}">Delete Plot</a> </div>
+    </div>
+{% endblock %}
