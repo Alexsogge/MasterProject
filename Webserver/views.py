@@ -1124,6 +1124,17 @@ def participant_delete_personalization(participant_id, personalization_id):
     personalization = Personalization.query.filter_by(id=personalization_id).first_or_404()
 
     for recording in personalization.recordings:
+        fig_name = None
+        if recording.used_for_testing:
+            fig_name = os.path.join(participant.get_path(),
+                                    f'quality_plot_test_{personalization.id}_{recording.id}.svg')
+        if recording.used_for_training:
+            fig_name = os.path.join(participant.get_path(),
+                                    f'pseudo_labels_{personalization.id}_{recording.id}.svg')
+
+        if fig_name is not None and os.path.exists(fig_name):
+            os.remove(fig_name)
+
         db.session.delete(recording)
 
     db.session.delete(personalization)

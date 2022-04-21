@@ -288,13 +288,13 @@ class Participant(db.Model):
         new_personalization.false_diff_relative = best_model_settings[0][1][2]
         new_personalization.correct_diff_relative = best_model_settings[0][1][3]
 
+        end_time = time.time()
+        new_personalization.required_time = end_time - start_time
+        db.session.commit()
+
         print('create plots')
         self.create_personalization_quality_test_plots(new_personalization, test_recordings_collection, general_model)
         self.create_personalization_pseudo_plots(new_personalization, collection)
-        end_time = time.time()
-        new_personalization.required_time = end_time - start_time
-
-        db.session.commit()
         print('finished')
 
 
