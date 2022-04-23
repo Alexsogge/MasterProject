@@ -23,6 +23,15 @@
                     {% endfor %}
                 </ul>
             </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="useBestCheck">
+                <label class="form-check-label" for="useBestCheck">
+                    Base on best personalization
+                </label>
+            </div>
+        </div>
+        <div class="col">
+            <button type="button" class="btn btn-primary" onclick="rerun_tests()">Rerun tests</button>
         </div>
     </div>
 
@@ -59,7 +68,11 @@
                             <div class="col">
                                 <div class="row">
                                     <div class="col-1 border-end">
-                                        {{ personalization.version }}
+                                        <h3 {% if personalization == current_personalization %} class="text-success" {% endif %}>{{ personalization.version }}</h3>
+                                        {% if personalization.based_personalization %}
+                                            <h3 class="text-info">{{ personalization.based_personalization.version }}</h3>
+                                        {% endif %}
+
                                     </div>
                                     <div class="col border-end">
                                         <div class="row">
@@ -74,8 +87,18 @@
                                         <div class="row">
                                             required computation time: {{ personalization.required_time | render_seconds_to_time}}
                                         </div>
+                                        <div class="row">
+                                            sensitivity: {{ personalization.sensitivity}}
+                                        </div>
+                                        <div class="row">
+                                            precision: {{ personalization.precision}}
+                                        </div>
+                                        <div class="row">
+                                            f1: {{ personalization.f1}}
+                                        </div>
                                     </div>
                                     <div class="col">
+                                        <div class="row"><h6>Test sets:</h6></div>
                                         {% for test_recording in test_recordings_per_personalization[loop.index0] %}
                                             <div class="row"><a href="{{url_for('views.uploaded_participant_file', path=participant.id ~ '/quality_plot_test_' ~ personalization.id ~ '_' ~ test_recording.id ~ '.svg')}}">{{ test_recording.recording.get_name() }}</a></div>
                                         {% endfor %}
@@ -86,6 +109,7 @@
                                 </div>
                                 <div class="row border-top">
                                     <div class="col ms-2">
+                                        <h6>Train sets:</h6>
                                         {% for recording in personalization.recordings %}
                                             {% if recording.used_for_training %}
                                                 <a href="{{url_for('views.uploaded_participant_file', path=participant.id ~ '/pseudo_labels_' ~ personalization.id ~ '_' ~ recording.id ~ '.svg')}}">{{ recording.recording.get_name() }}</a> |
@@ -193,11 +217,33 @@
         }
 
         function start_personalization(target_filter=null){
+            const use_best = document.getElementById("useBestCheck").checked;
             let url_extend = '';
             if (target_filter !== null)
                 url_extend = '?filter=' + target_filter
+            if (use_best){
+                if (url_extend === '')
+                    url_extend = '?'
+                else
+                    url_extend += '&'
+                url_extend += 'use_best=' + use_best;
+            }
 
             fetch(`{{url_for('views.participant_start_personalization', participant_id=participant.id)}}${url_extend}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if (data.status == 'error'){
+                        output.textContent = data.msg;
+                    } else {
+                        get_log();
+                    }
+                });
+        }
+
+
+        function rerun_tests(){
+            fetch(`{{url_for('views.rerun_tests_on_personalizations', participant_id=participant.id)}}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);

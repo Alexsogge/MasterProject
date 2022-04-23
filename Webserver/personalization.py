@@ -85,7 +85,7 @@ def personalize_model(collection: Dict['RecordingForPersonalization', Dataset], 
     for dataset in collection.values():
         dataset.apply_pseudo_label_generators(pseudo_model_settings[target_filter])
 
-    personalizer.incremental_learn_series_pseudo(list(collection.values()), save_model_as=target_model_path, epochs=100)
+    personalizer.incremental_learn_series_pseudo(list(collection.values()), save_model_as=target_model_path, epochs=150)
 
 
 def convert_pytorch_to_onnx(model_path: str) -> str:
@@ -106,13 +106,16 @@ def convert_onnx_to_ort(model_path: str) -> str:
     return ort_model_path
 
 
-def calc_model_settings(test_collection: List[Dataset], base_model_path, new_model_path):
-    return calc_best_running_mean_settings(test_collection, base_model_path, new_model_path, 20, 0.59)
+def calc_model_settings(test_collection: List[Dataset], base_model_path, new_model_path, prediction_buffer=None):
+    return calc_best_running_mean_settings(test_collection, base_model_path, new_model_path, 20, 0.59, prediction_buffer=prediction_buffer)
 
 
-def create_personalization_quality_test_plot(dataset, base_model, inc_model, kernel_size, kernel_threshold, fig_name):
-    fig = plot_quality_comparison(dataset, base_model, inc_model, kernel_size, kernel_threshold)
+def create_personalization_quality_test_plot(dataset, base_model, inc_model, kernel_size, kernel_threshold, fig_name,
+                                             prediction_buffer=None):
+    fig, triggers = plot_quality_comparison(dataset, base_model, inc_model, kernel_size, kernel_threshold,
+                                            prediction_buffer=prediction_buffer)
     fig.savefig(fig_name, format='svg', dpi=300)
+    return triggers
 
 def create_personalization_pseudo_plot(dataset, fig_name):
     fig = plot_hw_feedback_areas(dataset)

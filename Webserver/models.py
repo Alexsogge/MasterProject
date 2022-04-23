@@ -173,33 +173,36 @@ class Participant(db.Model):
 
         return recordings_per_day
 
-    def get_current_personalization(self):
+    def get_best_personalization(self):
         current_personalization: Union[None, 'Personalization'] = None
         for personalization in self.personalizations:
-            if current_personalization is None or current_personalization.version < personalization.version:
+            if current_personalization is None or (current_personalization.f1 is not None and current_personalization.f1 < personalization.f1):
                 current_personalization = personalization
         return current_personalization
 
     def create_personalization_quality_test_plots(self, personalization: 'Personalization',
                                                   test_recordings: Dict['RecordingForPersonalization', 'Dataset'],
-                                                  base_model):
+                                                  base_model, prediction_buffer=None):
+        triggers = []
         participant_path = self.get_path()
         for recording, dataset in test_recordings.items():
             fig_name = os.path.join(participant_path, f'quality_plot_test_{personalization.id}_{recording.id}.svg')
-            personalization_pipe.create_personalization_quality_test_plot(dataset, base_model,
-                                                                          personalization.model_torch_path,
-                                                                          personalization.mean_kernel_width,
-                                                                          personalization.mean_threshold,
-                                                                          fig_name)
+            triggers.append(personalization_pipe.create_personalization_quality_test_plot(dataset, base_model,
+                                                                                          personalization.model_torch_path,
+                                                                                          personalization.mean_kernel_width,
+                                                                                          personalization.mean_threshold,
+                                                                                          fig_name,
+                                                                                          prediction_buffer=prediction_buffer))
+        return triggers
 
     def create_personalization_pseudo_plots(self, personalization: 'Personalization',
-                                                  recordings: Dict['RecordingForPersonalization', 'Dataset']):
+                                            recordings: Dict['RecordingForPersonalization', 'Dataset']):
         participant_path = self.get_path()
         for recording, dataset in recordings.items():
             fig_name = os.path.join(participant_path, f'pseudo_labels_{personalization.id}_{recording.id}.svg')
             personalization_pipe.create_personalization_pseudo_plot(dataset, fig_name)
 
-    def run_personalization(self, target_filter='alldeepconv_correctbyconvlstm3filter6'):
+    def run_personalization(self, target_filter='alldeepconv_correctbyconvlstm3filter6', use_best=False):
         start_time = time.time()
         current_personalization: Union[None, 'Personalization'] = None
         already_covered_recordings = []
@@ -220,7 +223,8 @@ class Participant(db.Model):
         exclude_tag = RecordingTag.query.filter_by(name='exclude personalization').first()
         evaluation_tag = RecordingTag.query.filter_by(name='use as evaluation').first()
         for recording in self.recordings:
-            if recording not in already_covered_recordings and (exclude_tag not in recording.tags or evaluation_tag in recording.tags):
+            if recording not in already_covered_recordings and (
+                    exclude_tag not in recording.tags or evaluation_tag in recording.tags):
                 print('add', recording)
                 uncovered_recordings.append(recording)
 
@@ -230,17 +234,25 @@ class Participant(db.Model):
 
         general_model = find_newest_torch_file(full_path=True)
         base_model = general_model
-        if current_personalization is not None:
-            base_model = current_personalization.model_torch_path
-            current_iteration = current_personalization.iteration
+        base_personalization = None
+        if use_best:
+            base_personalization = self.get_best_personalization()
+        else:
+            base_personalization = current_personalization
+        if base_personalization is not None:
+            base_model = base_personalization.model_torch_path
+            current_iteration = base_personalization.iteration
 
         if current_personalization is None:
             new_personalization = Personalization(version=0, iteration=0, participant=self)
         else:
             new_personalization = Personalization(version=current_personalization.version + 1,
-                                                  iteration=current_personalization.iteration,
+                                                  iteration=current_iteration,
                                                   participant=self)
         new_personalization.used_filter = target_filter
+
+        if base_personalization is not None:
+            new_personalization.based_personalization = base_personalization
 
         db.session.add(new_personalization)
         for recording in uncovered_recordings:
@@ -293,9 +305,94 @@ class Participant(db.Model):
         db.session.commit()
 
         print('create plots')
-        self.create_personalization_quality_test_plots(new_personalization, test_recordings_collection, general_model)
+        triggers = self.create_personalization_quality_test_plots(new_personalization, test_recordings_collection, general_model)
         self.create_personalization_pseudo_plots(new_personalization, collection)
+
+        print('create metrics')
+        sum_hand_washes = 0
+        sum_correct_hand_washes = 0
+        sum_false_hand_washes = 0
+        for dataset in test_recordings_collection.values():
+            sum_hand_washes += len(dataset.feedback_areas.labeled_regions_hw)
+
+        for trigger in triggers:
+            sum_correct_hand_washes += trigger[3]
+            sum_false_hand_washes += trigger[2]
+
+        sensitivity = sum_correct_hand_washes / sum_hand_washes
+        precision = sum_correct_hand_washes / (sum_false_hand_washes + sum_correct_hand_washes)
+
+        f1 = 2 * ((precision * sensitivity) / (precision + sensitivity))
+
+        print('sensitivity:\t', sensitivity)
+        print('precision:\t', precision)
+        print('f1:\t\t', f1)
+
+        new_personalization.sensitivity = sensitivity
+        new_personalization.precision = precision
+        new_personalization.f1 = f1
+
+        db.session.commit()
         print('finished')
+
+    def rerun_tests_on_personalization(self):
+        general_model = find_newest_torch_file(full_path=True)
+        test_recordings = []
+        for personalization in self.personalizations:
+            test_recordings += personalization.get_test_recordings()
+        test_recordings_collection: Dict[
+            'RecordingForPersonalization', 'Dataset'] = personalization_pipe.build_datasets_from_recordings(
+            test_recordings)
+
+        for recording in test_recordings_collection.keys():
+            self.personalizations[0].recordings.append(recording)
+
+        prediction_buffer = None
+        print('test recordings:', list(test_recordings_collection.keys()))
+        for personalization in self.personalizations:
+            print('Test:', personalization)
+
+            best_model_settings = personalization_pipe.calc_model_settings(list(test_recordings_collection.values()),
+                                                                           general_model,
+                                                                           personalization.model_torch_path,
+                                                                           prediction_buffer=prediction_buffer)
+
+            print('best setting', best_model_settings[0])
+            personalization.mean_kernel_width = best_model_settings[0][1][0]
+            personalization.mean_threshold = best_model_settings[0][1][1]
+            personalization.false_diff_relative = best_model_settings[0][1][2]
+            personalization.correct_diff_relative = best_model_settings[0][1][3]
+            triggers = self.create_personalization_quality_test_plots(personalization, test_recordings_collection,
+                                                                      general_model, prediction_buffer=prediction_buffer)
+            print('create metrics')
+            sum_hand_washes = 0
+            sum_correct_hand_washes = 0
+            sum_false_hand_washes = 0
+            for dataset in test_recordings_collection.values():
+                sum_hand_washes += len(dataset.feedback_areas.labeled_regions_hw)
+
+            for trigger in triggers:
+                sum_correct_hand_washes += trigger[3]
+                sum_false_hand_washes += trigger[2]
+
+            sensitivity = sum_correct_hand_washes / sum_hand_washes
+            precision = sum_correct_hand_washes / (sum_false_hand_washes + sum_correct_hand_washes)
+
+            f1 = 2 * ((precision * sensitivity) / (precision + sensitivity))
+
+            print('sensitivity:\t', sensitivity)
+            print('precision:\t', precision)
+            print('f1:\t\t', f1)
+
+            personalization.sensitivity = sensitivity
+            personalization.precision = precision
+            personalization.f1 = f1
+
+            db.session.commit()
+
+
+
+
 
 
     def create_manual_prediction(self, recording: 'Recording', personalization: 'Personalization'):
@@ -310,13 +407,8 @@ class Participant(db.Model):
         print('finished')
         return manual_prediction
 
-
-
     def get_personal_model(self):
-        if len(self.personalizations) == 0:
-            return None
-        else:
-            return self.personalizations[-1]
+        return self.get_best_personalization()
 
 
 class Recording(db.Model):
@@ -579,8 +671,9 @@ class ParticipantStats(db.Model):
 
     def get_metrics(self):
         sensitivity = self.count_evaluation_yes / (self.count_evaluation_yes + self.count_hand_washes_manual)
-        precision = self.count_evaluation_yes / (self.count_evaluation_yes + (self.count_hand_washes_detected_total - self.count_evaluation_yes))
-        f1 = 2 * ((precision * sensitivity)/(precision + sensitivity))
+        precision = self.count_evaluation_yes / (
+                    self.count_evaluation_yes + (self.count_hand_washes_detected_total - self.count_evaluation_yes))
+        f1 = 2 * ((precision * sensitivity) / (precision + sensitivity))
 
         return sensitivity, precision, f1
 
@@ -648,9 +741,9 @@ default_recording_tags = {'no data': {'icon_name': 'fas fa-exclamation', 'icon_c
                                                       'default_include_for_statistics': None,
                                                       'description': 'Do not use this dataset for personalization'},
                           'use as evaluation': {'icon_name': 'fa-solid fa-chart-line',
-                                                      'icon_color': 'blue',
-                                                      'default_include_for_statistics': None,
-                                                      'description': 'Just use for evaluation of personalization'}
+                                                'icon_color': 'blue',
+                                                'default_include_for_statistics': None,
+                                                'description': 'Just use for evaluation of personalization'}
                           }
 
 
@@ -684,6 +777,13 @@ class Personalization(db.Model):
     correct_diff_relative = db.Column(db.Float, default=0)
     used_filter = db.Column(db.String, default='alldeepconv_correctbyconvlstm3filter6')
     required_time = db.Column(db.Float, default=0)
+
+    sensitivity = db.Column(db.Float, default=0)
+    precision = db.Column(db.Float, default=0)
+    f1 = db.Column(db.Float, default=0)
+
+    based_personalization_id = db.Column(db.Integer, db.ForeignKey('personalization.id'))
+    based_personalization = db.relationship('Personalization', remote_side=[id])
 
     @property
     def model_base_path(self):
@@ -732,6 +832,15 @@ class Personalization(db.Model):
             if not recording.unusable:
                 usable_recordings.append(recording)
         return usable_recordings
+
+    def get_test_recordings(self):
+        test_recordings = []
+
+        for recording in self.recordings:
+            if recording.used_for_testing:
+                test_recordings.append(recording)
+
+        return test_recordings
 
 
 class RecordingForPersonalization(db.Model):

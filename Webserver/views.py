@@ -1085,6 +1085,30 @@ def participant_start_personalization(participant_id):
         script_parameters = ['python', 'manage.py', 'build_personalized_models', '-p' ,str(participant.id)]
         if request.args.get('filter'):
             script_parameters += ['-f', request.args.get('filter')]
+        print(request.args.get('use_best'))
+        if request.args.get('use_best') and bool(request.args.get('use_best')) != False:
+            script_parameters.append('-b')
+
+        print('run subprocess:', ' '.join(script_parameters))
+        subprocess.Popen(script_parameters,
+                         stdout=outfile, stderr=erroutput)
+    return jsonify({'status': 'success', 'msg': 'started process'})
+
+
+@view.route('/participant/rerun-tests/<int:participant_id>/')
+@basic_auth.login_required
+def rerun_tests_on_personalizations(participant_id):
+    participant = Participant.query.filter_by(id=participant_id).first_or_404()
+    log_file = os.path.join(participant.get_path(), 'personalization.log')
+    err_file = os.path.join(participant.get_path(), 'personalization.err')
+    if os.path.exists(log_file):
+        if os.path.getmtime(log_file) + 60 > plain_time.time():
+            # print('To many calls')
+            return jsonify({'status': 'error', 'msg': 'to many calls'})
+    # print('write log to', log_file)
+    with open(log_file, "w") as outfile, open(err_file, "w") as erroutput:
+        script_parameters = ['python', 'manage.py', 'rerun_tests', '-p', str(participant.id)]
+
         print('run subprocess:', ' '.join(script_parameters))
         subprocess.Popen(script_parameters,
                          stdout=outfile, stderr=erroutput)
@@ -1097,7 +1121,7 @@ def participant_start_personalization(participant_id):
 def personalization_of_participant(participant_id):
     participant = Participant.query.filter_by(id=participant_id).first_or_404()
 
-    current_personalization = participant.get_current_personalization()
+    current_personalization = participant.get_best_personalization()
 
     test_recordings_per_personalization = []
     for personalization in participant.personalizations:
@@ -1108,7 +1132,7 @@ def personalization_of_participant(participant_id):
         if len(test_recordings_per_personalization) > 0:
             test_recordings = test_recordings.union(test_recordings_per_personalization[-1])
         test_recordings_per_personalization.append(test_recordings)
-        print(test_recordings_per_personalization)
+
 
 
     return render_template('show_personalization.html', participant=participant,

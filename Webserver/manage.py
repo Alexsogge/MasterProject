@@ -12,12 +12,17 @@ arg_parser.add_argument('Action',
                         metavar='action_name',
                         type=str,
                         help='name of action',
-                        choices=['create_db', 'calc_characteristics', 'build_personalized_models'])
+                        choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests'])
 
 arg_parser.add_argument('-p', '--participants',
                         dest='participants',
                         nargs='+',
                         help='specify participants')
+
+arg_parser.add_argument('-b', '--best',
+                        dest='use_best',
+                        action='store_true',
+                        help='use best personalization as base')
 
 arg_parser.add_argument('-f', '--filter',
                         dest='filter',
@@ -67,7 +72,23 @@ def build_personalized_models():
         for participant in Participant.query.filter_by(is_active=True, enable_personalization=True):
             if observed_participants is None or participant.id in observed_participants:
                 print(participant.get_name())
-                participant.run_personalization(target_filter=args.filter)
+                participant.run_personalization(target_filter=args.filter, use_best=args.use_best)
+
+
+def rerun_tests_on_personalizations():
+    with app.app_context():
+        if args.participants:
+            observed_participants = args.participants
+            observed_participants = [int(part_id) for part_id in observed_participants]
+            print('Start rerun tests for ', observed_participants)
+        else:
+            observed_participants = None
+            print('Start rerun tests...')
+
+        for participant in Participant.query.filter_by(is_active=True, enable_personalization=True):
+            if observed_participants is None or participant.id in observed_participants:
+                print(participant.get_name())
+                participant.rerun_tests_on_personalization()
 
 
 
@@ -84,3 +105,6 @@ if __name__ == '__main__':
 
         if args.Action == 'build_personalized_models':
             build_personalized_models()
+
+        if args.Action == 'rerun_tests':
+            rerun_tests_on_personalizations()
