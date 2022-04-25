@@ -27,7 +27,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
                 status == BatteryManager.BATTERY_STATUS_FULL;
 
         int plugged = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
-        boolean bCharging= plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB;
+        boolean bCharging = plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB;
 
         int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
         int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
@@ -42,7 +42,7 @@ public class ChargeEventHandler extends BroadcastReceiver {
         else if((action.equals(Intent.ACTION_POWER_DISCONNECTED) && !isCharging && !bCharging) || (action.equals(Intent.ACTION_BATTERY_CHANGED) && !isCharging && !bCharging)) {
             // Do something when power disconnected
             // MainActivity.mainActivity.toggleStartRecording();
-            // Log.d("battery", "startRecording");
+            Log.d("battery", "charge trigger startRecording");
             if (!StaticDataProvider.getIsRunning() && batteryPct >= 20.0) {
                 Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
                 handwashIntent.setPackage(context.getPackageName());

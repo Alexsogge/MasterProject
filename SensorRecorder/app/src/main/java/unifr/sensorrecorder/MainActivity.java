@@ -169,7 +169,7 @@ public class MainActivity extends FragmentActivity
 
     public void toggleStopRecording(){
         if(sensorService != null)
-            sensorService.directlyStopRecording();
+            sensorService.directlyStopRecording(true);
         // sensorService.dataProcessor.backup_recording_files();
     }
 

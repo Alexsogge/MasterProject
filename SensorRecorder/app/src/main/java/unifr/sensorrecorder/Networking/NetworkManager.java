@@ -167,6 +167,7 @@ public class NetworkManager {
     }
 
     private void sendStartRecordingIntent(){
+        Log.e("networking", "send start recording");
         Intent handwashIntent = new Intent(context, SensorRecordingManager.class);
         handwashIntent.setPackage(context.getPackageName());
         handwashIntent.putExtra("trigger", "startRecording");

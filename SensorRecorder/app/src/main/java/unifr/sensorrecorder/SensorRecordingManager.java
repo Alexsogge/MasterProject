@@ -93,6 +93,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private PowerManager.WakeLock wakeLock;
     private BatteryEventHandler batteryEventHandler;
     private ChargeEventHandler chargeEventHandler;
+    private boolean stoppedManual = false;
 
     // sensor recording stuff
     private android.hardware.SensorManager sensorManager;
@@ -141,10 +142,12 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
             if (intent.getStringExtra("trigger").equals("startRecording")) {
                 Log.d("recmgr", "Received start recording" + isRunning + initialized);
                 if(!isRunning && initialized) {
-                    if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
-                        NetworkManager.checkForTFModelUpdate(getApplicationContext());
-                    Log.d("recmgr", "Execute start recording");
-                    startRecording();
+                    if (!stoppedManual || intent.getBooleanExtra("manual", false)){
+                        if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
+                            NetworkManager.checkForTFModelUpdate(getApplicationContext());
+                        Log.d("recmgr", "Execute start recording");
+                        startRecording();
+                    }
                 }
             }
 
@@ -364,6 +367,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      */
     public void startRecording(){
         wakeLock.acquire(5000*60*1000L /*5000 minutes*/);
+        stoppedManual = false;
         // show the foreground notification
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -425,6 +429,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
      * @param doSave
      */
     private void stopRecording(CountDownLatch stopLatch, boolean doSave){
+        stoppedManual = false;
         // if we're not recording we can simply  ignore this call
         if(!isRunning) {
             stopLatch.countDown();
@@ -458,6 +463,15 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     public void directlyStopRecording(){
         CountDownLatch stopLatch = new CountDownLatch(1);
         stopRecording(stopLatch, true);
+    }
+
+    /**
+     * Call stopRecoding and ignore save task signal. Save manual flag
+     */
+    public void directlyStopRecording(boolean manual){
+        CountDownLatch stopLatch = new CountDownLatch(1);
+        stopRecording(stopLatch, true);
+        stoppedManual = manual;
     }
 
     /**

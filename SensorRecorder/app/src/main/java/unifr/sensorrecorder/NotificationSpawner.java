@@ -65,6 +65,7 @@ public class NotificationSpawner {
     public static Notification createRecordingPausedNotification(Context context, Intent recordingServiceIntent){
         Intent handwashIntent = new Intent(recordingServiceIntent);
         handwashIntent.putExtra("trigger", "startRecording");
+        handwashIntent.putExtra("manual", true);
         PendingIntent pintHandWash = PendingIntent.getService(context, 580, handwashIntent,
                       PendingIntent.FLAG_UPDATE_CURRENT |
                       (android.os.Build.VERSION.SDK_INT >= 23 ?
