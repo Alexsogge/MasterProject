@@ -69,8 +69,7 @@
                     <td>
                         <a class="btn btn-primary"
                            href="{{ url_for('views.uploaded_recording_file', path=recording.get_zip_name()) }}">Download</a>
-                        <a class="btn btn-danger"
-                           href="{{ url_for('views.delete_recording', recording_id=recording.id) }}">Delete</a>
+                        <button type="button" class="btn btn-danger" onclick="show_single_delete_modal({{ recording.id }}, '{{ recording.get_name() }}')">Delete</button>
                         {% if participant %}
                             <div class="dropdown">
                                 <button class="btn btn-secondary dropdown-toggle" type="button" id="manualPredictionButton" data-bs-toggle="dropdown" aria-expanded="false">
@@ -110,8 +109,27 @@
     </div>
 </div>
 
+<div class="modal fade" id="single-delete-modal" tabindex="-1" aria-labelledby="singleDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure that you want do delete <b id="to-delete-recording"></b>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="single_delete()">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     let deletion_buffer = 0;
+    let tmp_delete_recording = null;
 
     function update_selection(box) {
         let selected_boxes = 0;
@@ -264,6 +282,21 @@
     function check_empty_deletion_buffer() {
         if (deletion_buffer === 0)
             location.reload();
+    }
+
+    function show_single_delete_modal(recording_id, recording_name){
+         document.getElementById("to-delete-recording").innerHTML = recording_name;
+         tmp_delete_recording = recording_id;
+         const myModal = new bootstrap.Modal(document.getElementById('single-delete-modal'));
+         myModal.show();
+    }
+
+    function single_delete(){
+        console.log("delete", tmp_delete_recording);
+        fetch(`{{url_for('views.delete_recording')}}${tmp_delete_recording}/?bulk=True`)
+                .then(function () {
+                    location.reload();
+                });
     }
 
 

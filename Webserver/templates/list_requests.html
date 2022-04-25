@@ -24,6 +24,7 @@
                         <td>
                             <a class="btn btn-primary" href="{{url_for('views.grant_auth_request', auth_id=auth_request.id)}}">Grant</a>
                             <a class="btn btn-primary" href="{{url_for('views.grant_create_auth_request', auth_id=auth_request.id)}}">Create as new</a>
+                            <a class="btn btn-danger" href="{{url_for('views.delete_auth_request', auth_id=auth_request.id)}}">Delete</a>
                         </td>
                     </tr>
                 {% endfor %}

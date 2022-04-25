@@ -116,6 +116,15 @@ def grant_auth_request(auth_id):
         db.session.commit()
     return redirect(url_for('views.get_open_auth_requests'))
 
+@view.route('/tokenauth/delete/<int:auth_id>/')
+@basic_auth.login_required
+def delete_auth_request(auth_id):
+    auth_request = AuthenticationRequest.query.filter_by(id=auth_id).first()
+    if auth_request is not None:
+        db.session.delete(auth_request)
+        db.session.commit()
+    return redirect(url_for('views.get_open_auth_requests'))
+
 @view.route('/tokenauth/grant-create/<int:auth_id>/')
 @basic_auth.login_required
 def grant_create_auth_request(auth_id):
