@@ -309,10 +309,12 @@ def list_recordings():
     else:
         recordings = all_recordings
 
+    all_tags = RecordingTag.query.all()
+
     # recording_directories = [x[0] for x in os.walk(RECORDINGS_FOLDER)]
 
     return render_template('list_recordings.html', recordings=recordings, sorting=None,
-                           current_filter=filter_args)
+                           current_filter=filter_args, all_tags=all_tags)
 
 @view.route('/recording/get/<int:recording_id>/')
 @basic_auth.login_required

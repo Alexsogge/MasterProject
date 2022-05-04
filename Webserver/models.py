@@ -676,10 +676,20 @@ class ParticipantStats(db.Model):
             self.amount_covered_days = 0
 
     def get_metrics(self):
-        sensitivity = self.count_evaluation_yes / (self.count_evaluation_yes + self.count_hand_washes_manual)
-        precision = self.count_evaluation_yes / (
-                    self.count_evaluation_yes + (self.count_hand_washes_detected_total - self.count_evaluation_yes))
-        f1 = 2 * ((precision * sensitivity) / (precision + sensitivity))
+        count_hw = self.count_evaluation_yes + self.count_hand_washes_manual
+        if count_hw > 0:
+            sensitivity = self.count_evaluation_yes / count_hw
+        else:
+            sensitivity = 0
+        count_pred = self.count_evaluation_yes + (self.count_hand_washes_detected_total - self.count_evaluation_yes)
+        if count_pred > 0:
+            precision = self.count_evaluation_yes / count_pred
+        else:
+            precision = 0
+        if (precision + sensitivity) != 0:
+            f1 = 2 * ((precision * sensitivity) / (precision + sensitivity))
+        else:
+            f1 = 0
 
         return sensitivity, precision, f1
 
