@@ -29,6 +29,13 @@ arg_parser.add_argument('-f', '--filter',
                         default='alldeepconv_correctbyconvlstm3filter6',
                         help='specify pseudo label filter setting')
 
+arg_parser.add_argument('-ur', '--use_regularization',
+                        dest='use_regularization',
+                        action='store_true',
+                        help='use L2-SP regularization')
+
+
+
 args = arg_parser.parse_args()
 
 def create_db():
@@ -72,7 +79,8 @@ def build_personalized_models():
         for participant in Participant.query.filter_by(is_active=True, enable_personalization=True):
             if observed_participants is None or participant.id in observed_participants:
                 print(participant.get_name())
-                participant.run_personalization(target_filter=args.filter, use_best=args.use_best)
+                participant.run_personalization(target_filter=args.filter, use_best=args.use_best,
+                                                use_regularization=args.use_regularization)
 
 
 def rerun_tests_on_personalizations():

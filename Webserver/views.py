@@ -60,6 +60,16 @@ def render_seconds_to_time(input):
     else:
         return '00:00'
 
+@view.app_context_processor
+def utility_processor():
+    def add_manual_prediction_info(recording, personalization):
+        manual_prediction = ManualPrediction.query.filter_by(based_personalization=personalization,
+                                                             based_recording=recording).first()
+        if manual_prediction:
+            return f'fd:{manual_prediction.false_diff_relative:.2f}  cd:{manual_prediction.correct_diff_relative:.2f}'
+        return '-----'
+    return dict(add_manual_prediction_info=add_manual_prediction_info)
+
 
 @view.route('/')
 def index():
@@ -1097,6 +1107,8 @@ def participant_start_personalization(participant_id):
         print(request.args.get('use_best'))
         if request.args.get('use_best') and bool(request.args.get('use_best')) != False:
             script_parameters.append('-b')
+        if request.args.get('use_regularization') and bool(request.args.get('use_regularization')) != False:
+            script_parameters.append('-ur')
 
         print('run subprocess:', ' '.join(script_parameters))
         subprocess.Popen(script_parameters,
@@ -1439,7 +1451,7 @@ def index_recordings():
             continue
         participant = None
         if 'android_id' in meta_info:
-            participant = Participant.query.filter_by(android_id=meta_info['android_id']).first()
+            participant = Participant.query.filter_by(android_id=meta_info['android_id'], is_active=True).first()
             if participant is None:
                 participant = Participant(android_id=meta_info['android_id'])
                 participant.check_for_set_active()

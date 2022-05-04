@@ -74,9 +74,11 @@ def process_collection(collection: List[Dataset], base_model_path: str):
         dataset.generate_feedback_areas(prediction=predictions[dataset.name])
 
 def personalize_model(collection: Dict['RecordingForPersonalization', Dataset], base_model_path: str,
-                      target_model_path: str, target_filter: str):
+                      target_model_path: str, target_filter: str, use_regularization=False, initial_model_path=None):
     personalizer = Personalizer()
     personalizer.initialize(base_model_path)
+    if use_regularization and initial_model_path is not None:
+        personalizer.learner_pipeline.set_initial_model(initial_model_path)
 
     for recording_entry in collection.keys():
         recording_entry.used_for_training = True
@@ -85,7 +87,9 @@ def personalize_model(collection: Dict['RecordingForPersonalization', Dataset], 
     for dataset in collection.values():
         dataset.apply_pseudo_label_generators(pseudo_model_settings[target_filter])
 
-    personalizer.incremental_learn_series_pseudo(list(collection.values()), save_model_as=target_model_path, epochs=150)
+    personalizer.incremental_learn_series_pseudo(list(collection.values()), save_model_as=target_model_path, epochs=100,
+                                                 use_regularization=use_regularization,
+                                                 freeze_feature_layers=not use_regularization)
 
 
 def convert_pytorch_to_onnx(model_path: str) -> str:
@@ -125,12 +129,22 @@ def create_manual_prediction(recording: 'Recording', personalization: 'Personali
     root_path = Path(recording.path).parent.absolute()
     record_reader = SensorRecorderDataReader(root_path)
     dataset = record_reader.get_data_set(recording.base_name)
-    fig, _ = plot_quality_comparison(dataset, base_model_path, personalization.model_torch_path,
-                                  kernel_size=personalization.mean_kernel_width,
-                                  kernel_threshold=personalization.mean_threshold,
-                                  add_predictions=True)
+    fig, triggers = plot_quality_comparison(dataset, base_model_path, personalization.model_torch_path,
+                                     kernel_size=personalization.mean_kernel_width,
+                                     kernel_threshold=personalization.mean_threshold,
+                                     add_predictions=True)
 
     fig.savefig(fig_name, format='svg', dpi=300)
+
+    false_diff = triggers[2] - triggers[0]
+    correct_diff = triggers[3] - triggers[1]
+
+    print('trriggers:', triggers)
+    false_diff_relative = false_diff / triggers[0]
+    correct_diff_relative = correct_diff / triggers[1]
+
+    return false_diff_relative, correct_diff_relative
+
 
 
 

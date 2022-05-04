@@ -19,7 +19,6 @@
                 <ul class="dropdown-menu">
                     {% for setting_name in pseudo_model_settings %}
                         <li><a class="dropdown-item" onclick="start_personalization('{{ setting_name }}')" title="{{ get_pseudo_label_filter_description(setting_name) }}">{{ setting_name }}</a></li>
-
                     {% endfor %}
                 </ul>
             </div>
@@ -27,6 +26,12 @@
                 <input class="form-check-input" type="checkbox" value="" id="useBestCheck">
                 <label class="form-check-label" for="useBestCheck">
                     Base on best personalization
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="useRegularizationCheck">
+                <label class="form-check-label" for="useRegularizationCheck">
+                    use L2-SP regularization
                 </label>
             </div>
         </div>
@@ -83,6 +88,9 @@
                                         </div>
                                         <div class="row">
                                             pseudo label filter: {{ personalization.used_filter }}
+                                        </div>
+                                        <div class="row">
+                                            used L2-SP: {{ personalization.used_regularization}}
                                         </div>
                                         <div class="row">
                                             required computation time: {{ personalization.required_time | render_seconds_to_time}}
@@ -218,6 +226,7 @@
 
         function start_personalization(target_filter=null){
             const use_best = document.getElementById("useBestCheck").checked;
+            const use_regularization = document.getElementById("useRegularizationCheck").checked;
             let url_extend = '';
             if (target_filter !== null)
                 url_extend = '?filter=' + target_filter
@@ -227,6 +236,13 @@
                 else
                     url_extend += '&'
                 url_extend += 'use_best=' + use_best;
+            }
+            if (use_regularization){
+                if (url_extend === '')
+                    url_extend = '?'
+                else
+                    url_extend += '&'
+                url_extend += 'use_regularization=' + use_regularization;
             }
 
             fetch(`{{url_for('views.participant_start_personalization', participant_id=participant.id)}}${url_extend}`)

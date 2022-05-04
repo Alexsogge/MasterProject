@@ -202,7 +202,8 @@ class Participant(db.Model):
             fig_name = os.path.join(participant_path, f'pseudo_labels_{personalization.id}_{recording.id}.svg')
             personalization_pipe.create_personalization_pseudo_plot(dataset, fig_name)
 
-    def run_personalization(self, target_filter='alldeepconv_correctbyconvlstm3filter6', use_best=False):
+    def run_personalization(self, target_filter='alldeepconv_correctbyconvlstm3filter6', use_best=False,
+                            use_regularization=False):
         start_time = time.time()
         current_personalization: Union[None, 'Personalization'] = None
         already_covered_recordings = []
@@ -250,6 +251,7 @@ class Participant(db.Model):
                                                   iteration=current_iteration,
                                                   participant=self)
         new_personalization.used_filter = target_filter
+        new_personalization.used_regularization = use_regularization
 
         if base_personalization is not None:
             new_personalization.based_personalization = base_personalization
@@ -284,7 +286,8 @@ class Participant(db.Model):
         print('train recordings:', list(collection.keys()))
 
         personalization_pipe.personalize_model(collection, base_model, new_personalization.model_torch_path,
-                                               target_filter=target_filter)
+                                               target_filter=target_filter, use_regularization=use_regularization,
+                                               initial_model_path=general_model)
         new_personalization.iteration += len(collection)
 
         personalization_pipe.convert_pytorch_to_onnx(new_personalization.model_torch_path)
@@ -389,10 +392,7 @@ class Participant(db.Model):
             personalization.f1 = f1
 
             db.session.commit()
-
-
-
-
+            print('finished')
 
 
     def create_manual_prediction(self, recording: 'Recording', personalization: 'Personalization'):
@@ -403,7 +403,13 @@ class Participant(db.Model):
 
         fig_name = manual_prediction.get_path()
         general_model = find_newest_torch_file(full_path=True)
-        personalization_pipe.create_manual_prediction(recording, personalization, general_model, fig_name)
+        false_diff_relative, correct_diff_relative = personalization_pipe.create_manual_prediction(recording,
+                                                                                                   personalization,
+                                                                                                   general_model,
+                                                                                                   fig_name)
+        manual_prediction.false_diff_relative = false_diff_relative
+        manual_prediction.correct_diff_relative = correct_diff_relative
+        db.session.commit()
         print('finished')
         return manual_prediction
 
@@ -784,6 +790,8 @@ class Personalization(db.Model):
 
     based_personalization_id = db.Column(db.Integer, db.ForeignKey('personalization.id'))
     based_personalization = db.relationship('Personalization', remote_side=[id])
+
+    used_regularization = db.Column(db.Boolean, default=False)
 
     @property
     def model_base_path(self):

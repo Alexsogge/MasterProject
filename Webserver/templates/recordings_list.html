@@ -77,7 +77,7 @@
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="manualPredictionButton">
                                     {% for personalization in participant.personalizations %}
-                                        <li><a class="dropdown-item" href="{{url_for('views.personalization_manual_prediction', participant_id=participant.id, personalization_id=personalization.id, recording_id=recording.id)}}">{{ personalization.version }}</a></li>
+                                        <li><a class="dropdown-item" href="{{url_for('views.personalization_manual_prediction', participant_id=participant.id, personalization_id=personalization.id, recording_id=recording.id)}}">[{{ personalization.version }}] {{ add_manual_prediction_info(recording, personalization) }}</a></li>
                                     {% endfor %}
                                 </ul>
                             </div>
