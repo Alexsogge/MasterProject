@@ -10,9 +10,9 @@
 
     <string name="toast_addedhandwash">Added hand wash</string>
     <string name="toast_addedmarker">Added marker</string>
+    <string name="toast_low_battery">Battery low</string>
 
-    <string name="toast_addedhandwash_sel">Added hand wash
-    </string>
+    <string name="toast_addedhandwash_sel">Added hand wash</string>
     <string name="toast_permission_den">Permission denied.</string>
     <string name="toast_couldnt_load_tf">Couldn\'t load TF model</string>
     <string name="toast_use_dl_tf">Use downloaded TF model:\n</string>

@@ -11,6 +11,8 @@
     </string>
     <string name="toast_permission_den">Keine Berechtigung.</string>
 
+    <string name="toast_low_battery">Batterie leer</string>
+
     <string name="btn_stopping">Stoppe...</string>
     <string name="toast_addedhandwash">Händewaschen hinzugefügt</string>
     <string name="toast_addedmarker">Marker gesetzt</string>

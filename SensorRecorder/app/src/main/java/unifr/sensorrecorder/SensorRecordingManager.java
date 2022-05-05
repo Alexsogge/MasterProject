@@ -146,7 +146,12 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
                         if(configs.getBoolean(getString(R.string.conf_check_for_tf_update), false) || configs.getBoolean(getString(R.string.conf_auto_update_tf),false))
                             NetworkManager.checkForTFModelUpdate(getApplicationContext());
                         Log.d("recmgr", "Execute start recording");
-                        startRecording();
+                        BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
+                        int batteryPct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                        if (batteryPct < 20.0)
+                            makeToast(getString(R.string.toast_low_battery));
+                        else
+                            startRecording();
                     }
                 }
             }
