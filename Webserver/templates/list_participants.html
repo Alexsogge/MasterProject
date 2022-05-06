@@ -16,12 +16,14 @@
      <div class="row">
          <div class="col"><p class="fs-3">Id</p></div>
          <div class="col"><p class="fs-3">Alias</p></div>
+         <div class="col"><p class="fs-3">Android ID</p></div>
          <div class="col"><p class="fs-3">Recordings</p></div>
      </div>
         {% for participant in participants %}
             <div class="row part-entry" onclick="location.href='{{url_for('views.get_participant', participant_id=participant.id)}}'">
                 <div class="col">{{ participant.id }}</div>
                 <div class="col" style="color: {{ participant.get_active_color() }}">{{ participant.get_name() }}</div>
+                <div class="col">{{ participant.android_id }}</div>
                 <div class="col">{{ participant.recordings|length }}</div>
             </div>
         {% endfor %}
