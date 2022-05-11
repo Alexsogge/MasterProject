@@ -4,6 +4,7 @@ import shutil
 import string
 import math
 import tempfile
+from datetime import timedelta
 from random import random
 from zipfile import ZipFile
 from typing import Dict
@@ -15,16 +16,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
+from data_factory import DataFactory
 from plot_data import PlotData
 from config import ALLOWED_EXTENSIONS, TFMODEL_FOLDER, RECORDINGS_FOLDER, PARTICIPANT_FOLDER, config
 from ort_helpers import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from models import Recording, Participant
+    from models import Recording, Participant, RecordingEvaluation, RecordingStats
 
 prepared_plot_data: Dict[int, PlotData] = dict()
-
+nano_sec = 0.000000001
 
 to_clean_files = ['.npy', '.png', '.svg']
 
@@ -321,6 +323,76 @@ def generate_recording_evaluations_plot(recording: 'Recording'):
     fig.legend()
     plt.gcf().autofmt_xdate()
     fig.savefig(os.path.join(recording.path, 'evaluation_graph.png'), dpi=400)
+
+
+def generate_recording_stats(recording, db):
+    from models import RecordingStats, RecordingEvaluation
+    print('Generate stats for recording:', recording.get_name())
+    rec_stats = RecordingStats()
+    recording.stats = rec_stats
+
+    for evaluation in recording.evaluations[:]:
+        recording.evaluations.remove(evaluation)
+        db.session.delete(evaluation)
+
+
+    data_factory = DataFactory(recording, init_all=False)
+    data_factory.read_stat_files()
+    duration = data_factory.data_processor.sensor_decoder.max_time_stamp - data_factory.data_processor.sensor_decoder.min_time_stamp
+    duration *= 0.000000001
+
+    evaluations = data_factory.get_evaluations()
+    manual_ts = data_factory.get_manual_hw_ts()
+
+    count_hand_washes_manual = manual_ts.shape[0]
+    count_hand_washes_detected_total = 0
+    count_evaluation_yes = 0
+    count_evaluation_no = 0
+
+    for i in range(evaluations.shape[0]):
+        skip = False
+        for manual in manual_ts:
+            if evaluations[i][0] == manual[0]:
+                skip = True
+                break
+        if skip:
+            continue
+        count_hand_washes_detected_total += 1
+        if evaluations[i][1] == 1:
+            count_evaluation_yes += 1
+            # if i > 1 and evaluations[i][0] - evaluations[i-1][0] < 25000000000 and evaluations[i-1][1] == 0:
+            #     count_hand_washes_detected_total -= 1
+        if evaluations[i][1] == 0:
+            count_evaluation_no += 1
+            # if i > 1 and evaluations[i][0] - evaluations[i - 1][0] < 25000000000 and evaluations[i-1][1] == 0:
+            #     count_hand_washes_detected_total -= 1
+
+    count_hand_washes_total = count_evaluation_yes + count_hand_washes_manual
+
+    rec_stats.duration = duration
+    rec_stats.count_hand_washes_total = count_hand_washes_total
+    rec_stats.count_hand_washes_manual = count_hand_washes_manual
+    rec_stats.count_hand_washes_detected_total = count_hand_washes_detected_total
+    rec_stats.count_evaluation_yes = count_evaluation_yes
+    rec_stats.count_evaluation_no = count_evaluation_no
+
+    for evaluation in evaluations:
+        if evaluation[1] == 1:
+            rec_evaluation = RecordingEvaluation()
+            rec_evaluation.compulsive = bool(evaluation[2])
+            rec_evaluation.tense = int(evaluation[3])
+            rec_evaluation.urge = int(evaluation[4])
+            timestamp = (recording.meta_info.start_time_stamp - evaluation[0]) * nano_sec
+            timestamp = recording.meta_info.date + timedelta(seconds=timestamp)
+            rec_evaluation.timestamp = timestamp
+            recording.evaluations.append(rec_evaluation)
+            db.session.add(rec_evaluation)
+
+    db.session.add(rec_stats)
+
+    generate_recording_evaluations_plot(recording)
+
+    return rec_stats
 
 if __name__ == '__main__':
     check_valid_ort_model('/tmp/model_trained_lstm_16_09_21___12_49_08.all.ort')

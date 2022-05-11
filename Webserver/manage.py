@@ -6,13 +6,16 @@ import numpy as np
 import sys
 import argparse
 
+from tools import generate_recording_stats
+
 arg_parser = argparse.ArgumentParser(description='Execute manual operations')
 
 arg_parser.add_argument('Action',
                         metavar='action_name',
                         type=str,
                         help='name of action',
-                        choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests'])
+                        choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests',
+                                 'recreate_stats'])
 
 arg_parser.add_argument('-p', '--participants',
                         dest='participants',
@@ -99,6 +102,16 @@ def rerun_tests_on_personalizations():
                 participant.rerun_tests_on_personalization()
 
 
+def recreate_recording_stats():
+    with app.app_context():
+        for recording in Recording.query.all():
+            if recording.stats is not None:
+                db.session.delete(recording.stats)
+                rec_stats = generate_recording_stats(recording, db)
+                recording.stats = rec_stats
+
+        db.session.commit()
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -116,3 +129,6 @@ if __name__ == '__main__':
 
         if args.Action == 'rerun_tests':
             rerun_tests_on_personalizations()
+
+        if args.Action == 'recreate_stats':
+            recreate_recording_stats()
