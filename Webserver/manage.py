@@ -2,11 +2,10 @@ from app import db, app
 from data_factory import DataFactory
 from models import Recording, RecordingCalculations, Participant
 import numpy as np
+from views import generate_recording_stats
 
 import sys
 import argparse
-
-from tools import generate_recording_stats
 
 arg_parser = argparse.ArgumentParser(description='Execute manual operations')
 
@@ -109,7 +108,6 @@ def recreate_recording_stats():
                 db.session.delete(recording.stats)
                 rec_stats = generate_recording_stats(recording, db)
                 recording.stats = rec_stats
-
         db.session.commit()
 
 
