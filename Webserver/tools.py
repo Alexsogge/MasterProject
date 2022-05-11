@@ -376,13 +376,17 @@ def generate_recording_stats(recording, db):
     rec_stats.count_evaluation_yes = count_evaluation_yes
     rec_stats.count_evaluation_no = count_evaluation_no
 
+    start_time_stamp = recording.meta_info.start_time_stamp
+
     for evaluation in evaluations:
         if evaluation[1] == 1:
+            if start_time_stamp is None:
+                start_time_stamp = evaluation[0]
             rec_evaluation = RecordingEvaluation()
             rec_evaluation.compulsive = bool(evaluation[2])
             rec_evaluation.tense = int(evaluation[3])
             rec_evaluation.urge = int(evaluation[4])
-            timestamp = (recording.meta_info.start_time_stamp - evaluation[0]) * nano_sec
+            timestamp = (start_time_stamp - evaluation[0]) * nano_sec
             timestamp = recording.meta_info.date + timedelta(seconds=timestamp)
             rec_evaluation.timestamp = timestamp
             recording.evaluations.append(rec_evaluation)
