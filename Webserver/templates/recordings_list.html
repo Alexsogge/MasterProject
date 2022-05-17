@@ -65,7 +65,7 @@
                         {% endfor %}
                     </td>
                     <td style="color: {{ recording.get_file_size_color() }}">{{ recording.get_file_size() }}</td>
-                    <td>{{ recording.get_last_changed() }}</td>
+                    <td>{{ recording.get_formatted_date() }}</td>
                     <td>
                         <a class="btn btn-primary"
                            href="{{ url_for('views.uploaded_recording_file', path=recording.get_zip_name()) }}">Download</a>

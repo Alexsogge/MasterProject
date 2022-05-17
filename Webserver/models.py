@@ -455,6 +455,9 @@ class Recording(db.Model):
             return self.meta_info.date
         return self.last_changed
 
+    def get_formatted_date(self):
+        return self.get_date.strftime('%d/%m/%Y, %H:%M:%S')
+
     def __repr__(self):
         return f'<Recording {self.id}> {self.base_name}'
 
