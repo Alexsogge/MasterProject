@@ -27,6 +27,7 @@ from authentication import basic_auth, token_auth, open_auth_requests
 from tools import *
 from personalization_tools.pseudo_model_settings import common_filters
 
+
 from models import db, AuthenticationRequest, Participant, Recording, RecordingStats, MetaInfo, ParticipantStats,\
     RecordingEvaluation, RecordingTag, ParticipantsTagSetting, default_recording_tags, RecordingCalculations,\
     Personalization, ManualPrediction, RecordEntryComment
@@ -931,7 +932,8 @@ def assign_recordings_to_participant(participant_id):
     end = datetime.combine(end, time.max)
 
     recordings = db.session.query(Recording).filter(
-        and_(Recording.last_changed >= start, Recording.last_changed <= end)
+        #and_(Recording.last_changed >= start, Recording.last_changed <= end)
+        and_(MetaInfo.date >= start, MetaInfo.date <= end)
     ).all()
 
     for recording in recordings:

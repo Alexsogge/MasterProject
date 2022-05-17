@@ -117,7 +117,7 @@
                                 </div>
                                 <div class="row border-top">
                                     <div class="col ms-2">
-                                        <h6>Train sets:</h6>
+                                        <h6>Training sets:</h6>
                                         {% for recording in personalization.recordings %}
                                             {% if recording.used_for_training %}
                                                 <a href="{{url_for('views.uploaded_participant_file', path=participant.id ~ '/pseudo_labels_' ~ personalization.id ~ '_' ~ recording.id ~ '.svg')}}">{{ recording.recording.get_name() }}</a> |

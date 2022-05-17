@@ -9,6 +9,7 @@ from dateutil import parser
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc
+from sqlalchemy.ext.hybrid import hybrid_property
 import json
 import personalization as personalization_pipe
 
@@ -447,6 +448,12 @@ class Recording(db.Model):
     @property
     def base_name(self) -> str:
         return os.path.basename(os.path.normpath(self.path))
+
+    @hybrid_property
+    def get_date(self) -> datetime:
+        if self.meta_info:
+            return self.meta_info.date
+        return self.last_changed
 
     def __repr__(self):
         return f'<Recording {self.id}> {self.base_name}'
