@@ -451,7 +451,7 @@ class Recording(db.Model):
 
     @hybrid_property
     def get_date(self) -> datetime:
-        if self.meta_info:
+        if self.meta_info and self.meta_info.date:
             return self.meta_info.date
         return self.last_changed
 
