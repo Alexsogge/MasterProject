@@ -931,10 +931,15 @@ def assign_recordings_to_participant(participant_id):
     end = datetime.strptime(end, '%d/%m/%Y')
     end = datetime.combine(end, time.max)
 
-    recordings = db.session.query(Recording).filter(
-        #and_(Recording.last_changed >= start, Recording.last_changed <= end)
-        and_(MetaInfo.date >= start, MetaInfo.date <= end)
-    ).all()
+
+    recordings = []
+    for recording in Recording.query.all():
+        if start <= recording.get_date <= end:
+            recordings.append(recording)
+    # recordings = db.session.query(Recording).filter(
+    #     #and_(Recording.last_changed >= start, Recording.last_changed <= end)
+    #     and_(MetaInfo.date >= start, MetaInfo.date <= end)
+    # ).all()
 
     for recording in recordings:
         if recording.meta_info is not None:
