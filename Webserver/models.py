@@ -515,6 +515,18 @@ class Recording(db.Model):
                 files.append(file)
         return files
 
+    def get_short_info(self):
+        info = ""
+        if self.stats:
+            stat_dict = self.stats.get_stats()
+            info += f"recorded hours:\t\t\t\t {stat_dict['recorded hours']}\n"
+            info += f"total hand washes:\t\t\t\t {stat_dict['total hand washes']}\n"
+            info += f"manual tagged hand washes:\t {stat_dict['manual tagged hand washes']}\n"
+            info += f"detected hand washes:\t\t\t {stat_dict['detected hand washes']}\n"
+            info += f"evaluated yes:\t\t\t\t\t {stat_dict['evaluated yes']}\n"
+            info += f"evaluated no:\t\t\t\t\t {stat_dict['evaluated no']}\n"
+        return info
+
 
 class RecordingStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)

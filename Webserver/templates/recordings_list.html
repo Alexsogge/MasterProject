@@ -50,7 +50,7 @@
             </thead>
             <tbody>
             {% for recording in recordings %}
-                <tr>
+                <tr title="{{ recording.get_short_info() }}">
                     <th scope="col"><input type="checkbox" autocomplete="off" class="form-check-input me-1"
                                            name="bulk_select" value="{{ recording.id }}"
                                            onclick="update_selection(this);"></th>
