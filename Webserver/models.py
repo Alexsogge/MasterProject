@@ -109,6 +109,7 @@ class Participant(db.Model):
     def get_sorted_recordings(self):
         records = Recording.query.filter(Recording.participants.contains(self)).order_by(
             desc(Recording.last_changed)).all()
+        records.sort(key=lambda recording: recording.get_date, reverse=True)
         return records
 
     def check_for_set_active(self):
@@ -457,6 +458,9 @@ class Recording(db.Model):
 
     def get_formatted_date(self):
         return self.get_date.strftime('%d/%m/%Y, %H:%M:%S')
+
+    def get_formatted_upload_date(self):
+        return self.last_changed.strftime('%d/%m/%Y, %H:%M:%S')
 
     def __repr__(self):
         return f'<Recording {self.id}> {self.base_name}'

@@ -1113,7 +1113,7 @@ def participant_start_personalization(participant_id):
         script_parameters = ['python', 'manage.py', 'build_personalized_models', '-p' ,str(participant.id)]
         if request.args.get('filter'):
             script_parameters += ['-f', request.args.get('filter')]
-        print(request.args.get('use_best'))
+        # print(request.args.get('use_best'))
         if request.args.get('use_best') and bool(request.args.get('use_best')) != False:
             script_parameters.append('-b')
         if request.args.get('use_regularization') and bool(request.args.get('use_regularization')) != False:
