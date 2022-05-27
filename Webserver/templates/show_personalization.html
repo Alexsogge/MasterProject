@@ -40,6 +40,31 @@
         </div>
     </div>
 
+    <div class="row">
+        <div class="col">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Train Set:</span>
+                </div>
+                <input type="text" value="{{ participant.format_train_set() }}" id="trainSetInput">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" onclick="copy_train_set()">copy</button>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Test Set:</span>
+                </div>
+                <input type="text" value="{{ participant.format_test_set() }}" id="testSetInput">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" onclick="copy_test_set()">copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row mb-4">
         <div class="col">
             <div class="row">
@@ -263,12 +288,28 @@
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    if (data.status == 'error'){
+                    if (data.status == 'testSetInput'){
                         output.textContent = data.msg;
                     } else {
                         get_log();
                     }
                 });
+        }
+
+        function copy_test_set(){
+            var copyText = document.getElementById("testSetInput");
+            copyText.focus();
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            document.execCommand('copy');
+        }
+
+        function copy_train_set(){
+            var copyText = document.getElementById("trainSetInput");
+            copyText.focus();
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            document.execCommand('copy');
         }
 
     </script>
