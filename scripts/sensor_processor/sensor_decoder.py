@@ -18,9 +18,7 @@ class SensorDecoder:
         self.min_time_stamp = np.inf
         self.time_stamps = np.zeros(0)
 
-
     def read_data(self, data_name, read_zips=False) -> np.ndarray:
-
         value_array = read_csvs_in_folder(self.folder_name, data_name, 4)
         self.find_new_min_max_time_stamp(value_array)
         self.add_time_stamps(value_array[:, 0])

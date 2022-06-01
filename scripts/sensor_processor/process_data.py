@@ -58,7 +58,7 @@ class DataProcessor:
             for entry in RecordingEntry:
                 self.read_entry(entry)
 
-    def read_entry(self, entry: RecordingEntry):
+    def read_entry(self, entry: RecordingEntry, use_numpy_caching=False):
         if entry == RecordingEntry.MICTIMESTAMPS:
             self.read_mic_ts()
         if entry == RecordingEntry.BATTERY:
@@ -74,24 +74,49 @@ class DataProcessor:
         if entry == RecordingEntry.BLUETOOTHBEACONS:
             self.read_bluetooth_beacons()
         if entry == RecordingEntry.ACCELERATION:
-            self.read_acceleration()
+            self.read_acceleration(use_numpy_caching=use_numpy_caching)
         if entry == RecordingEntry.GYROSCOPE:
-            self.read_gyroscope()
+            self.read_gyroscope(use_numpy_caching=use_numpy_caching)
 
     def __getitem__(self, key: RecordingEntry):
         if isinstance(key, RecordingEntry):
             return self.data_dict[key]
         return None
 
-    def read_acceleration(self):
-        self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.read_data('acc')
-        self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
-                                                     self.sensor_decoder.min_time_stamp)
+    def find_numpy_file_of(self, file_part):
+        for f in listdir(self.folder_name):
+            if f[0] == '.' and file_part in f and splitext(f)[1] == '.npy':
+                return f
+        return None
 
-    def read_gyroscope(self):
-        self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.read_data('gyro')
-        self.data_dict[RecordingEntry.GYROSCOPE] = align_array(self.data_dict[RecordingEntry.GYROSCOPE],
-                                                  self.sensor_decoder.min_time_stamp)
+    def read_acceleration(self, use_numpy_caching=False):
+        cached_numpy_file = None
+        if use_numpy_caching:
+                cached_numpy_file = self.find_numpy_file_of('acc')
+        if cached_numpy_file is not None:
+            self.data_dict[RecordingEntry.ACCELERATION] = np.load(cached_numpy_file)
+        else:
+            self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.read_data('acc')
+            self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
+                                                         self.sensor_decoder.min_time_stamp)
+            if use_numpy_caching:
+                cached_numpy_file = '.android_sensor_accelerometer_cache.npy'
+                np.save(cached_numpy_file, self.data_dict[RecordingEntry.ACCELERATION])
+
+    def read_gyroscope(self, use_numpy_caching=False):
+        cached_numpy_file = None
+        if use_numpy_caching:
+            cached_numpy_file = self.find_numpy_file_of('gyro')
+        if cached_numpy_file is not None:
+            self.data_dict[RecordingEntry.GYROSCOPE] = np.load(cached_numpy_file)
+        else:
+            self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.read_data('gyro')
+            self.data_dict[RecordingEntry.GYROSCOPE] = align_array(self.data_dict[RecordingEntry.GYROSCOPE],
+                                                                      self.sensor_decoder.min_time_stamp)
+            if use_numpy_caching:
+                cached_numpy_file = '.android_sensor_gyroscope_cache.npy'
+                np.save(cached_numpy_file, self.data_dict[RecordingEntry.GYROSCOPE])
+
 
     def read_mic_ts(self):
         self.data_dict[RecordingEntry.MICTIMESTAMPS] = MicDecoder.read_folder(self.folder_name)
