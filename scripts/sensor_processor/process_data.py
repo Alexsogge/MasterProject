@@ -86,7 +86,7 @@ class DataProcessor:
     def find_numpy_file_of(self, file_part):
         for f in listdir(self.folder_name):
             if f[0] == '.' and file_part in f and splitext(f)[1] == '.npy':
-                return f
+                return os.path.join(self.folder_name, f)
         return None
 
     def read_acceleration(self, use_numpy_caching=False):
@@ -101,6 +101,7 @@ class DataProcessor:
                                                          self.sensor_decoder.min_time_stamp)
             if use_numpy_caching:
                 cached_numpy_file = '.android_sensor_accelerometer_cache.npy'
+                cached_numpy_file = os.path.join(self.folder_name, cached_numpy_file)
                 np.save(cached_numpy_file, self.data_dict[RecordingEntry.ACCELERATION])
 
     def read_gyroscope(self, use_numpy_caching=False):
@@ -115,6 +116,7 @@ class DataProcessor:
                                                                       self.sensor_decoder.min_time_stamp)
             if use_numpy_caching:
                 cached_numpy_file = '.android_sensor_gyroscope_cache.npy'
+                cached_numpy_file = os.path.join(self.folder_name, cached_numpy_file)
                 np.save(cached_numpy_file, self.data_dict[RecordingEntry.GYROSCOPE])
 
 
