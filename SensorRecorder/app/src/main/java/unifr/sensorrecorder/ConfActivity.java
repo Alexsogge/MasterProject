@@ -4,8 +4,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -24,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import unifr.sensorrecorder.DataContainer.StaticDataProvider;
+import unifr.sensorrecorder.EventHandlers.OverallEvaluationReminderStarter;
 import unifr.sensorrecorder.Networking.NetworkManager;
 
 //import static android.Manifest.permission.RECORD_AUDIO;
@@ -47,6 +50,7 @@ public class ConfActivity extends WearableActivity {
     private Button downloadTFModelButton;
     private Button deleteTokenButton;
     private Button applyButton;
+    private Button debugOverallEvaluationButton;
     private NetworkManager networkManager;
 
 
@@ -79,6 +83,8 @@ public class ConfActivity extends WearableActivity {
 
         downloadTFModelButton = (Button)findViewById(R.id.buttonGetTFModel);
         deleteTokenButton = (Button)findViewById(R.id.buttonDeleteToken);
+
+        debugOverallEvaluationButton = (Button)findViewById(R.id.buttonDebugOverallEvaluation);
 
         TextView androidIdView = findViewById(R.id.textViewAndroidId);
         String androidId = Settings.Secure.getString( getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -241,6 +247,20 @@ public class ConfActivity extends WearableActivity {
                 configEditor.remove(getString(R.string.conf_serverToken));
                 configEditor.apply();
                 deleteTokenButton.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        debugOverallEvaluationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // NotificationSpawner.showOverallEvaluationNotification(getApplicationContext());
+                Intent reminderReceiver = new Intent(getApplicationContext(), OverallEvaluationReminderStarter.class);
+                PendingIntent reminderPint = PendingIntent.getBroadcast(getApplicationContext(), NotificationSpawner.DAILY_REMINDER_STARTER_REQUEST_CODE, reminderReceiver, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                try {
+                    reminderPint.send();
+                } catch (PendingIntent.CanceledException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
