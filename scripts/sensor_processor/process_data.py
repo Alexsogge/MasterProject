@@ -47,12 +47,17 @@ class RecordingEntry(Enum):
 
 class DataProcessor:
 
-    def __init__(self, folder_name, time_offset=0, init_all=True):
+    def __init__(self, folder_name, time_offset=0, init_all=True, use_numpy_caching=False):
         self.folder_name = folder_name
         self.time_offset = time_offset
         self.sensor_decoder = SensorDecoder(folder_name)
         self.data_dict: Dict[RecordingEntry, np.ndarray] = dict()
-        self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
+        if not use_numpy_caching:
+            self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
+        else:
+            cached_numpy_file = self.find_numpy_file_of('acc') or self.find_numpy_file_of('gyro')
+            if cached_numpy_file is None:
+                self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
 
         if init_all:
             for entry in RecordingEntry:
