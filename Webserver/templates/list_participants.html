@@ -22,7 +22,7 @@
         {% for participant in participants %}
             <div class="row part-entry" onclick="location.href='{{url_for('views.get_participant', participant_id=participant.id)}}'">
                 <div class="col">{{ participant.id }}</div>
-                <div class="col" style="color: {{ participant.get_active_color() }}">{{ participant.get_name() }}</div>
+                <div class="col" style="color: {{ participant.get_active_color() }}">{{ participant.get_name() }}{% if participant.enable_personalization %}<i class="fas fa-male"></i>{% endif %}</div>
                 <div class="col">{{ participant.android_id }}</div>
                 <div class="col">{{ participant.recordings|length }}</div>
             </div>

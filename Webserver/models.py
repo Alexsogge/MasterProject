@@ -418,23 +418,29 @@ class Participant(db.Model):
     def get_personal_model(self):
         return self.get_best_personalization()
 
-    def format_train_set(self):
+    def get_train_set(self):
         recording_set = []
         exclude_tag = RecordingTag.query.filter_by(name='exclude personalization').first()
         evaluation_tag = RecordingTag.query.filter_by(name='use as evaluation').first()
         for recording in self.recordings:
             if exclude_tag not in recording.tags and evaluation_tag not in recording.tags:
                 recording_set.append(recording.base_name)
+        return recording_set
 
+    def format_train_set(self):
+        recording_set = self.get_train_set()
         return json.dumps(recording_set)
 
-    def format_test_set(self):
+    def get_test_set(self):
         recording_set = []
         evaluation_tag = RecordingTag.query.filter_by(name='use as evaluation').first()
         for recording in self.recordings:
             if evaluation_tag in recording.tags:
                 recording_set.append(recording.base_name)
+        return recording_set
 
+    def format_test_set(self):
+        recording_set = self.get_test_set()
         return json.dumps(recording_set)
 
 

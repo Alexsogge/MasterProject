@@ -6,7 +6,7 @@ import math
 import tempfile
 from datetime import timedelta
 from random import random
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipfile
 from typing import Dict
 import csv
 import re
@@ -85,15 +85,18 @@ def get_tf_model_settings_file():
 
 
 def add_file_to_zip(file_name, directory, directory_uuid):
-    if not config.pack_mic_files and '.zip' in file_name and contains_mic_files(file_name, directory):
-        return
+    try:
+        if not config.pack_mic_files and '.zip' in file_name and contains_mic_files(file_name, directory):
+            return
 
-    zip_file_name = os.path.join(directory, '.' + directory_uuid + '.zip')
+        zip_file_name = os.path.join(directory, '.' + directory_uuid + '.zip')
 
-    with ZipFile(zip_file_name, 'a') as zip_file:
-        sub_file = os.path.join(directory, file_name)
-        zip_file.write(sub_file, file_name)
-        # print('added', file_name, ' to archive')
+        with ZipFile(zip_file_name, 'a') as zip_file:
+            sub_file = os.path.join(directory, file_name)
+            zip_file.write(sub_file, file_name)
+            # print('added', file_name, ' to archive')
+    except BadZipfile:
+        print('Err:', file_name, 'bad zipfile')
 
 def remove_file_from_zip(zip_path, *filenames):
     tempdir = tempfile.mkdtemp()

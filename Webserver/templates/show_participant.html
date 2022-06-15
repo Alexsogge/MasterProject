@@ -6,6 +6,8 @@
     <script src="{{ url_for('views.static', filename='bootstrap-datepicker.min.js') }}"></script>
 {% endblock %}
 
+{% block title %}<title>{{ participant.get_name() }}</title>{% endblock %}
+
 {% block content %}
     <div class="row mb-1">
         <h1>Participant: {{ participant.get_name() }}</h1>

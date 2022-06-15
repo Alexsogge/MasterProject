@@ -6,6 +6,12 @@ from views import generate_recording_stats
 
 import sys
 import argparse
+import yaml
+try:
+    import gtk
+    enable_clipboard = True
+except ModuleNotFoundError:
+    enable_clipboard = False
 
 arg_parser = argparse.ArgumentParser(description='Execute manual operations')
 
@@ -14,7 +20,7 @@ arg_parser.add_argument('Action',
                         type=str,
                         help='name of action',
                         choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests',
-                                 'recreate_stats'])
+                                 'recreate_stats', 'generate_personalization_config'])
 
 arg_parser.add_argument('-p', '--participants',
                         dest='participants',
@@ -110,6 +116,38 @@ def recreate_recording_stats():
                 recording.stats = rec_stats
         db.session.commit()
 
+def generate_personalization_config():
+    collection_settings = {'default': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': False},
+                           'inc': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': False, 'use_l2_sp': False},
+                           'l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': True},
+                           'all_noise': {'pseudo_filter': 'allnoise_correctbyconvlstm3filter', 'base_on_best': True, 'use_l2_sp': False},
+                           'deepconv2': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': False},
+                           'deepconv2_l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': True}}
+    tmp_configs = {'OCDetect_09': {'enforce': True}, 'OCDetect_11': {'enforce': True}, 'OCDetect_13': {'enforce': True}}
+    with app.app_context():
+        new_config = {}
+        entries = 0
+        for participant in Participant.query.filter_by(enable_personalization=True):
+            for setting_name, settings in collection_settings.items():
+                new_entry = {'name': participant.get_name() + '_' + setting_name, 'participant': participant.get_name(),
+                             'train_sets': participant.get_train_set(), 'test_sets': participant.get_test_set()}
+                new_entry.update(settings)
+                for tmp_config_key, tmp_config in tmp_configs.items():
+                    if tmp_config_key in new_entry['name']:
+                        new_entry.update(tmp_config)
+
+                new_config[f'{entries:03d}'] = new_entry
+                entries += 1
+
+        yaml_string = yaml.dump(new_config, sort_keys=False, default_flow_style=None)
+        print(yaml_string)
+        if enable_clipboard:
+            clipboard = gtk.clipboard_get()
+            clipboard.set_text(yaml_string)
+            clipboard.store()
+
+
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -130,3 +168,6 @@ if __name__ == '__main__':
 
         if args.Action == 'recreate_stats':
             recreate_recording_stats()
+
+        if args.Action == 'generate_personalization_config':
+            generate_personalization_config()

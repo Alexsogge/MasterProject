@@ -455,6 +455,7 @@ def new_recording():
             file.save(os.path.join(upload_path, filename))
             add_file_to_zip(filename, upload_path, request_uuid)
 
+
             recording = Recording.query.filter_by(path=upload_path).first()
             if recording is None:
                 print('new recording')
