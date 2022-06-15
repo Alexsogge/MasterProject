@@ -55,9 +55,14 @@ class DataProcessor:
         if not use_numpy_caching:
             self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
         else:
-            cached_numpy_file = self.find_numpy_file_of('acc') or self.find_numpy_file_of('gyro')
+            cached_numpy_file = self.find_numpy_file_of('acc')
             if cached_numpy_file is None:
                 self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
+            else:
+                self.sensor_decoder.find_min_max_cheap(['acc',] , numpy_cache=cached_numpy_file)
+                cached_numpy_file = self.find_numpy_file_of('gyro')
+                self.sensor_decoder.find_min_max_cheap(['gyro', ], numpy_cache=cached_numpy_file)
+                # self.sensor_decoder.find_min_max_cheap(['acc', 'gyro'])
 
         if init_all:
             for entry in RecordingEntry:
@@ -99,7 +104,7 @@ class DataProcessor:
         if use_numpy_caching:
                 cached_numpy_file = self.find_numpy_file_of('acc')
         if cached_numpy_file is not None:
-            self.data_dict[RecordingEntry.ACCELERATION] = np.load(cached_numpy_file)
+            self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.load_from_cache(cached_numpy_file)
         else:
             self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.read_data('acc')
             self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
@@ -114,7 +119,7 @@ class DataProcessor:
         if use_numpy_caching:
             cached_numpy_file = self.find_numpy_file_of('gyro')
         if cached_numpy_file is not None:
-            self.data_dict[RecordingEntry.GYROSCOPE] = np.load(cached_numpy_file)
+            self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.load_from_cache(cached_numpy_file)
         else:
             self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.read_data('gyro')
             self.data_dict[RecordingEntry.GYROSCOPE] = align_array(self.data_dict[RecordingEntry.GYROSCOPE],

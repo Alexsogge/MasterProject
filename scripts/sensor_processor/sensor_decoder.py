@@ -24,6 +24,12 @@ class SensorDecoder:
         self.add_time_stamps(value_array[:, 0])
         return value_array
 
+    def load_from_cache(self, numpy_cache):
+        value_array = np.load(numpy_cache)
+        self.find_new_min_max_time_stamp(value_array)
+        self.add_time_stamps(value_array[:, 0])
+        return value_array
+
     def find_new_min_max_time_stamp(self, data_array):
         if data_array.shape[0] < 2:
             self.max_time_stamp = 0
@@ -36,10 +42,16 @@ class SensorDecoder:
         if test_min < self.min_time_stamp:
             self.min_time_stamp = test_min
 
-    def find_min_max_cheap(self, data_names):
+    def find_min_max_cheap(self, data_names, numpy_cache=None):
         for data_name in data_names:
-            value_array = read_first_last_line(self.folder_name, data_name, 4)
-            self.find_new_min_max_time_stamp(value_array)
+            if numpy_cache is None:
+                value_array = read_first_last_line(self.folder_name, data_name, 4)
+                self.find_new_min_max_time_stamp(value_array)
+            else:
+                data = np.load(numpy_cache)
+                self.min_time_stamp = data[0, 0]
+                self.max_time_stamp = data[-1, 0]
+
 
     def add_time_stamps(self, new_data):
         self.time_stamps = np.union1d(self.time_stamps, new_data)

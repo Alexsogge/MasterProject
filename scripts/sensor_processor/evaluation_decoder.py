@@ -24,7 +24,6 @@ class EvaluationDecoder:
                         clean_evaluations[evaluation[0]] = evaluation
                 else:
                     clean_evaluations[evaluation[0]] = evaluation
-
             return np.asarray(list(clean_evaluations.values()), dtype=np.float)
         return evaluations
 
