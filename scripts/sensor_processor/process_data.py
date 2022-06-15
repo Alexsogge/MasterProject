@@ -107,12 +107,13 @@ class DataProcessor:
             self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.load_from_cache(cached_numpy_file)
         else:
             self.data_dict[RecordingEntry.ACCELERATION] = self.sensor_decoder.read_data('acc')
-            self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
-                                                         self.sensor_decoder.min_time_stamp)
             if use_numpy_caching:
                 cached_numpy_file = '.android_sensor_accelerometer_cache.npy'
                 cached_numpy_file = os.path.join(self.folder_name, cached_numpy_file)
                 np.save(cached_numpy_file, self.data_dict[RecordingEntry.ACCELERATION])
+
+        self.data_dict[RecordingEntry.ACCELERATION] = align_array(self.data_dict[RecordingEntry.ACCELERATION],
+                                                     self.sensor_decoder.min_time_stamp)
 
     def read_gyroscope(self, use_numpy_caching=False):
         cached_numpy_file = None
@@ -122,12 +123,12 @@ class DataProcessor:
             self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.load_from_cache(cached_numpy_file)
         else:
             self.data_dict[RecordingEntry.GYROSCOPE] = self.sensor_decoder.read_data('gyro')
-            self.data_dict[RecordingEntry.GYROSCOPE] = align_array(self.data_dict[RecordingEntry.GYROSCOPE],
-                                                                      self.sensor_decoder.min_time_stamp)
             if use_numpy_caching:
                 cached_numpy_file = '.android_sensor_gyroscope_cache.npy'
                 cached_numpy_file = os.path.join(self.folder_name, cached_numpy_file)
                 np.save(cached_numpy_file, self.data_dict[RecordingEntry.GYROSCOPE])
+        self.data_dict[RecordingEntry.GYROSCOPE] = align_array(self.data_dict[RecordingEntry.GYROSCOPE],
+                                                                  self.sensor_decoder.min_time_stamp)
 
 
     def read_mic_ts(self):
