@@ -20,30 +20,13 @@ class PlotData:
         self.path = recording.path
         self.last_access = time.time()
 
-        if os.path.exists(os.path.join(self.path, 'data_array_acc.npy')):
-            self.recording_data_array, self.hand_wash_time_stamps, self.marker_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.load_data_array()
-        else:
-            self.recording_data_array, self.hand_wash_time_stamps, self.marker_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.create_new_data_array()
+        self.recording_data_array, self.hand_wash_time_stamps, self.marker_time_stamps, self.predictions, self.evaluations, self.bluetooth = self.create_new_data_array()
         self.time_range = self.recording_data_array[-1, 0] - self.recording_data_array[0, 0]
         self.annotations, self.time_stamp_series = self.build_annotations()
 
-    def load_data_array(self):
-        recording_array = np.load(os.path.join(self.path, 'data_array_acc.npy'))
-        hand_wash_array = np.load(os.path.join(self.path, 'data_array_hand_wash.npy'))
-        marker_array = np.load(os.path.join(self.path, 'data_array_marker.npy'))
-        prediction_array = np.load(os.path.join(self.path, 'data_array_prediction.npy'))
-        evaluation_array = np.load(os.path.join(self.path, 'data_array_evaluation.npy'))
-        bluetooth_array = np.load(os.path.join(self.path, 'data_array_bluetooth.npy'))
-        return recording_array, hand_wash_array, marker_array, prediction_array, evaluation_array, bluetooth_array
 
     def create_new_data_array(self):
         recording_array, hand_wash_array, marker_array, prediction_array, evaluation_array, bluetooth_array = get_data_array(self.path)
-        np.save(os.path.join(self.path, 'data_array_acc.npy'), recording_array)
-        np.save(os.path.join(self.path, 'data_array_hand_wash.npy'), hand_wash_array)
-        np.save(os.path.join(self.path, 'data_array_marker.npy'), marker_array)
-        np.save(os.path.join(self.path, 'data_array_prediction.npy'), prediction_array)
-        np.save(os.path.join(self.path, 'data_array_evaluation.npy'), evaluation_array)
-        np.save(os.path.join(self.path, 'data_array_bluetooth.npy'), bluetooth_array)
         return recording_array, hand_wash_array, marker_array, prediction_array, evaluation_array, bluetooth_array
 
     @staticmethod

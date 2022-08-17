@@ -19,7 +19,7 @@ class DataFactory:
     @property
     def data_processor(self):
         if self._data_processor is None:
-            self._data_processor = DataProcessor(self.path, init_all=self.init_all)
+            self._data_processor = DataProcessor(self.path, init_all=self.init_all, use_numpy_caching=True)
         return self._data_processor
 
     def generate_np_sensor_data_file(self):
@@ -36,8 +36,8 @@ class DataFactory:
             np.save(f, data_array.flatten())
 
     def read_stat_files(self):
-        self.data_processor.read_entry(RecordingEntry.EVALUATIONS)
-        self.data_processor.read_entry(RecordingEntry.MANUALWHTS)
+        self.data_processor.read_entry(RecordingEntry.EVALUATIONS, use_numpy_caching=True)
+        self.data_processor.read_entry(RecordingEntry.MANUALWHTS, use_numpy_caching=True)
 
 
     def get_evaluations(self):
@@ -48,7 +48,7 @@ class DataFactory:
 
     def calc_variance(self):
         if RecordingEntry.ACCELERATION not in self.data_processor.data_dict:
-            self.data_processor.read_entry(RecordingEntry.ACCELERATION)
+            self.data_processor.read_entry(RecordingEntry.ACCELERATION, use_numpy_caching=True)
         acc_data = self.data_processor.data_dict[RecordingEntry.ACCELERATION]
         variance = np.var(acc_data[:, 1:], axis=0)
         return variance

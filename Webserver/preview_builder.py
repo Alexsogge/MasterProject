@@ -24,12 +24,12 @@ def generate_plot_data(folder_name):
             except json.JSONDecodeError as e:
                 print(e.__traceback__)
 
-    processor = DataProcessor(folder_name, time_offset=time_offset)
+    processor = DataProcessor(folder_name, time_offset=time_offset, use_numpy_caching=True)
     processor.plot_data(True)
 
 
 def get_data_array(folder_name):
-    processor = DataProcessor(folder_name)
+    processor = DataProcessor(folder_name, use_numpy_caching=True)
     data_array: np.ndarray = processor.get_acceleration_data()
     data_array[:, 0] /= 1000000
 
