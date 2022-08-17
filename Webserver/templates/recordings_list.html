@@ -36,7 +36,7 @@
 </div>
 <div class="row">
     <th class="col">
-        <table class="table  table-striped table-hover">
+        <table class="table  table-striped table-hover" id="recordings_table">
             <thead>
             <tr>
                 <th scope="col">#</th>
@@ -130,10 +130,28 @@
 <script>
     let deletion_buffer = 0;
     let tmp_delete_recording = null;
+    let last_clicked_selection = null;
 
     function update_selection(box) {
         let selected_boxes = 0;
         let checkboxes = document.getElementsByName('bulk_select');
+
+        if (event.shiftKey && last_clicked_selection != null) {
+            console.log('shift select');
+            let my_index = null;
+            let last_index = null;
+            for (var i = 0, n = checkboxes.length; i < n; i++) {
+                if (checkboxes[i] === box)
+                    my_index = i;
+                if (checkboxes[i] === last_clicked_selection)
+                    last_index = i;
+            }
+            console.log(my_index, last_index, Math.min(my_index, last_index),  Math.max(my_index, last_index));
+            for (var i = Math.min(my_index, last_index); i <= Math.max(my_index, last_index); i++){
+                checkboxes[i].checked = box.checked;
+            }
+        }
+
         for (var i = 0, n = checkboxes.length; i < n; i++) {
             if (checkboxes[i].checked)
                 selected_boxes++;
@@ -146,6 +164,8 @@
             document.getElementById("selected-count").innerText = selected_boxes;
             show_bulk_action(true);
         }
+
+        last_clicked_selection = box;
     }
 
     function select_all(box) {

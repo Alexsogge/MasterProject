@@ -20,7 +20,7 @@ arg_parser.add_argument('Action',
                         type=str,
                         help='name of action',
                         choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests',
-                                 'recreate_stats', 'generate_personalization_config'])
+                                 'recreate_stats', 'generate_personalization_config', 'calc_handwashs_per_hour'])
 
 arg_parser.add_argument('-p', '--participants',
                         dest='participants',
@@ -117,13 +117,25 @@ def recreate_recording_stats():
         db.session.commit()
 
 def generate_personalization_config():
-    collection_settings = {'default': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': False},
-                           'inc': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': False, 'use_l2_sp': False},
-                           'l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': True},
-                           'all_noise': {'pseudo_filter': 'allnoise_correctbyconvlstm3filter', 'base_on_best': True, 'use_l2_sp': False},
-                           'deepconv2': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': False},
-                           'deepconv2_l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': True}}
-    tmp_configs = {'OCDetect_09': {'enforce': True}, 'OCDetect_11': {'enforce': True}, 'OCDetect_13': {'enforce': True}}
+    collection_settings = {
+                            'default': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': False},
+                            'inc': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': False, 'use_l2_sp': False},
+                            'l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': True},
+                            'all_noise': {'pseudo_filter': 'allnoise_correctbyconvlstm3filter', 'base_on_best': True, 'use_l2_sp': False},
+                            'deepconv2': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': False},
+                            'deepconv2_l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': True},
+                            # 'no_manual': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': False, 'use_manuals': False},
+                            # 'score': {'pseudo_filter': 'allnoise_correctedscore', 'base_on_best': True,
+                            #               'use_l2_sp': False},
+                            # 'deepconv': {'pseudo_filter': 'allnoise_correctbydeepconvfilter', 'base_on_best': True,
+                            #               'use_l2_sp': False},
+                            # 'fcndae': {'pseudo_filter': 'allnoise_correctbyfcndaefilter', 'base_on_best': True,
+                            #               'use_l2_sp': False},
+                            # 'lstm': {'pseudo_filter': 'allnoise_correctbyconvlstmfilter', 'base_on_best': True,
+                            #            'use_l2_sp': False},
+                           }
+    # tmp_configs = {'OCDetect_09': {'enforce': True}, 'OCDetect_11': {'enforce': True}, 'OCDetect_13': {'enforce': True}}
+    tmp_configs = {}
     with app.app_context():
         new_config = {}
         entries = 0
@@ -146,7 +158,21 @@ def generate_personalization_config():
             clipboard.set_text(yaml_string)
             clipboard.store()
 
+def calc_handwashs_per_hour():
+    with app.app_context():
+        entries = {}
+        for participant in Participant.query.filter_by():
+            # print(participant.get_stat_entries().keys())
+            if 'recorded hours' not in participant.get_stat_entries() or 'total hand washes' not in participant.get_stat_entries() or len(participant.get_stat_entries()) == 0 or float(participant.get_stat_entries()['total hand washes'][0]) == 0:
+                continue
+            #print(participant.get_name(), float(participant.get_stat_entries()['recorded hours'][0]), float(participant.get_stat_entries()['total hand washes'][0]), float(participant.get_stat_entries()['recorded hours'][0])/float(participant.get_stat_entries()['total hand washes'][0]))
+            false_detections = float(participant.get_stat_entries()['detected hand washes'][0]) - float(participant.get_stat_entries()['evaluated yes'][0])
+            entries[participant.get_name()] = float(participant.get_stat_entries()['total hand washes'][0])/float(participant.get_stat_entries()['recorded hours'][0])
+            #entries[participant.get_name()] = false_detections
 
+        sorted_entries = {k: v for k, v in sorted(entries.items(), key=lambda item: item[1])}
+        for key, val in sorted_entries.items():
+            print(key, val)
 
 
 if __name__ == '__main__':
@@ -171,3 +197,6 @@ if __name__ == '__main__':
 
         if args.Action == 'generate_personalization_config':
             generate_personalization_config()
+
+        if args.Action == 'calc_handwashs_per_hour':
+            calc_handwashs_per_hour()
