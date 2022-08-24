@@ -342,8 +342,10 @@ def get_recording(recording_id):
 
     sensor_data_file = None
     sensor_data_flattened_file = None
+    complete_dataset_file = None
     generated_data_size = 0
     data_file = os.path.join(path, DataFactory.sensor_data_file_name)
+    complete_dataset_file_size = 0
     if os.path.exists(data_file):
         sensor_data_file = os.path.join(recording.base_name, DataFactory.sensor_data_file_name)
         generated_data_size += os.path.getsize(data_file)
@@ -352,8 +354,13 @@ def get_recording(recording_id):
         sensor_data_flattened_file = os.path.join(recording.base_name, DataFactory.sensor_data_flattened_file_name)
         generated_data_size += os.path.getsize(data_file)
 
+    if os.path.exists(os.path.join(path, DataFactory.complete_dataset_file_name + '.zip')):
+        complete_dataset_file = os.path.join(recording.base_name, DataFactory.complete_dataset_file_name + '.zip')
+        complete_dataset_file_size += os.path.getsize(os.path.join(path, DataFactory.complete_dataset_file_name + '.zip'))
+
     total_size = convert_size(total_size)
     generated_data_size = convert_size(generated_data_size)
+    complete_dataset_file_size = convert_size(complete_dataset_file_size)
 
     participants = recording.participants
 
@@ -374,7 +381,8 @@ def get_recording(recording_id):
                            sensor_data_flattened_file=sensor_data_flattened_file,
                            generated_data_size=generated_data_size, meta_info=meta_info,
                            participants=participants, all_tags=all_tags, evaluations_plot=evaluations_plot,
-                           entry_comments=comments)
+                           entry_comments=comments, pseudo_model_settings=common_filters,
+                           complete_dataset_file=complete_dataset_file, complete_dataset_file_size=complete_dataset_file_size)
 
 
 @view.route('/recording/plot/<int:recording_id>/')
@@ -679,6 +687,16 @@ def generate_numpy_data(recording_id):
     data_factory.generate_np_sensor_data_file()
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
+@view.route('/recording/cds/generate/<int:recording_id>/')
+def generate_complete_dataset_file(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    print('torch file:', find_newest_torch_file(full_path=True))
+    data_factory = DataFactory(recording, newest_torch_file=find_newest_torch_file(full_path=True))
+    pseudo_filter = None
+    if request.args.get('filter'):
+        pseudo_filter = request.args.get('filter')
+    data_factory.generate_complete_dataset_file(pseudo_filter)
+    return jsonify({'status': 'success'})
 
 @view.route('/recording/np/delete/<int:recording_id>/')
 def delete_numpy_data(recording_id):
@@ -686,6 +704,13 @@ def delete_numpy_data(recording_id):
     path = recording.path
     os.remove(os.path.join(path, DataFactory.sensor_data_file_name))
     os.remove(os.path.join(path, DataFactory.sensor_data_flattened_file_name))
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
+@view.route('/recording/cds/delete/<int:recording_id>/')
+def delete_complete_dataset_file(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    path = recording.path
+    os.remove(os.path.join(path, DataFactory.complete_dataset_file_name + '.zip'))
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 
