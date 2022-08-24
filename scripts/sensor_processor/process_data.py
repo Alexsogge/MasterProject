@@ -66,7 +66,7 @@ class DataProcessor:
 
         if init_all:
             for entry in RecordingEntry:
-                self.read_entry(entry)
+                self.read_entry(entry, use_numpy_caching=use_numpy_caching)
 
     def read_entry(self, entry: RecordingEntry, use_numpy_caching=False):
         if entry == RecordingEntry.MICTIMESTAMPS:
@@ -275,7 +275,7 @@ class DataProcessor:
         axs[0].xaxis.set_major_formatter(formatter)
         # plt.gcf().autofmt_xdate()
 
-        fig.legend()
+        # fig.legend()
         fig.tight_layout()
         if generate_image:
             fig.savefig(os.path.join(self.folder_name, "data_plot.png"), dpi=500)
