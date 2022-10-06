@@ -221,7 +221,9 @@ def generate_complete_dataset_files():
                         pseudo_filter = args.filter
                     try:
                         data_factory.generate_complete_dataset_file(pseudo_filter)
-                    except (zlib.error, IndexError) as e:
+                    except KeyboardInterrupt:
+                        raise KeyboardInterrupt
+                    except:
                         print('skip:', recording.get_name())
 
 if __name__ == '__main__':
