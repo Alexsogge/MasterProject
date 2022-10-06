@@ -1,8 +1,12 @@
+import os
+
 from app import db, app
 from data_factory import DataFactory
 from models import Recording, RecordingCalculations, Participant
 import numpy as np
 from views import generate_recording_stats
+import pandas as pd
+import zipfile
 
 import sys
 import argparse
@@ -20,7 +24,8 @@ arg_parser.add_argument('Action',
                         type=str,
                         help='name of action',
                         choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests',
-                                 'recreate_stats', 'generate_personalization_config', 'calc_handwashs_per_hour'])
+                                 'recreate_stats', 'generate_personalization_config', 'calc_handwashs_per_hour',
+                                 'clean_complete_dataset_files'])
 
 arg_parser.add_argument('-p', '--participants',
                         dest='participants',
@@ -124,9 +129,9 @@ def generate_personalization_config():
                             'all_noise': {'pseudo_filter': 'allnoise_correctbyconvlstm3filter', 'base_on_best': True, 'use_l2_sp': False},
                             'deepconv2': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': False},
                             'deepconv2_l2sp': {'pseudo_filter': 'alldeepconv_correctbyconvlstm2filter6', 'base_on_best': True, 'use_l2_sp': True},
-                            # 'no_manual': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': False, 'use_manuals': False},
-                            # 'score': {'pseudo_filter': 'allnoise_correctedscore', 'base_on_best': True,
-                            #               'use_l2_sp': False},
+                            'no_manual': {'pseudo_filter': 'alldeepconv_correctbyconvlstm3filter6', 'base_on_best': True, 'use_l2_sp': False, 'use_manuals': False},
+                            'score': {'pseudo_filter': 'allnoise_correctedscore', 'base_on_best': True,
+                                          'use_l2_sp': False},
                             # 'deepconv': {'pseudo_filter': 'allnoise_correctbydeepconvfilter', 'base_on_best': True,
                             #               'use_l2_sp': False},
                             # 'fcndae': {'pseudo_filter': 'allnoise_correctbyfcndaefilter', 'base_on_best': True,
@@ -174,6 +179,23 @@ def calc_handwashs_per_hour():
         for key, val in sorted_entries.items():
             print(key, val)
 
+def clean_complete_dataset_files():
+    with app.app_context():
+        entries = {}
+        for participant in Participant.query.filter_by():
+            for recording in participant.recordings:
+                path = recording.path
+                zip_file = os.path.join(path, DataFactory.complete_dataset_file_name + '.zip')
+                if os.path.exists(zip_file):
+                    zf = zipfile.ZipFile(zip_file)
+                    df = pd.read_csv(zf.open(DataFactory.complete_dataset_file_name + '.csv'), sep='\t')
+                    columns = list(df.columns)
+                    if 'pseudo null' in columns:
+                        target = zipfile.ZipFile(os.path.join(path, DataFactory.complete_dataset_file_name_labeled + '.zip'), 'w', zipfile.ZIP_DEFLATED)
+                        target.writestr(DataFactory.complete_dataset_file_name_labeled + '.csv', zf.read(DataFactory.complete_dataset_file_name + '.csv'))
+                        target.close()
+                        os.remove(zip_file)
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -200,3 +222,6 @@ if __name__ == '__main__':
 
         if args.Action == 'calc_handwashs_per_hour':
             calc_handwashs_per_hour()
+
+        if args.Action == 'clean_complete_dataset_files':
+            clean_complete_dataset_files()

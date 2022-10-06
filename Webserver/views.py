@@ -343,9 +343,11 @@ def get_recording(recording_id):
     sensor_data_file = None
     sensor_data_flattened_file = None
     complete_dataset_file = None
+    complete_dataset_file_labeled = None
     generated_data_size = 0
     data_file = os.path.join(path, DataFactory.sensor_data_file_name)
     complete_dataset_file_size = 0
+    complete_dataset_file_labeled_size = 0
     if os.path.exists(data_file):
         sensor_data_file = os.path.join(recording.base_name, DataFactory.sensor_data_file_name)
         generated_data_size += os.path.getsize(data_file)
@@ -358,9 +360,14 @@ def get_recording(recording_id):
         complete_dataset_file = os.path.join(recording.base_name, DataFactory.complete_dataset_file_name + '.zip')
         complete_dataset_file_size += os.path.getsize(os.path.join(path, DataFactory.complete_dataset_file_name + '.zip'))
 
+    if os.path.exists(os.path.join(path, DataFactory.complete_dataset_file_name_labeled + '.zip')):
+        complete_dataset_file_labeled = os.path.join(recording.base_name, DataFactory.complete_dataset_file_name_labeled  + '.zip')
+        complete_dataset_file_labeled_size += os.path.getsize(os.path.join(path, DataFactory.complete_dataset_file_name_labeled  + '.zip'))
+
     total_size = convert_size(total_size)
     generated_data_size = convert_size(generated_data_size)
     complete_dataset_file_size = convert_size(complete_dataset_file_size)
+    complete_dataset_file_labeled_size = convert_size(complete_dataset_file_labeled_size)
 
     participants = recording.participants
 
@@ -382,7 +389,8 @@ def get_recording(recording_id):
                            generated_data_size=generated_data_size, meta_info=meta_info,
                            participants=participants, all_tags=all_tags, evaluations_plot=evaluations_plot,
                            entry_comments=comments, pseudo_model_settings=common_filters,
-                           complete_dataset_file=complete_dataset_file, complete_dataset_file_size=complete_dataset_file_size)
+                           complete_dataset_file=complete_dataset_file, complete_dataset_file_size=complete_dataset_file_size,
+                           complete_dataset_file_labeled=complete_dataset_file_labeled, complete_dataset_file_labeled_size=complete_dataset_file_labeled_size)
 
 
 @view.route('/recording/plot/<int:recording_id>/')
@@ -711,6 +719,13 @@ def delete_complete_dataset_file(recording_id):
     recording = Recording.query.filter_by(id=recording_id).first_or_404()
     path = recording.path
     os.remove(os.path.join(path, DataFactory.complete_dataset_file_name + '.zip'))
+    return redirect(url_for('views.get_recording', recording_id=recording.id))
+
+@view.route('/recording/cdsl/delete/<int:recording_id>/')
+def delete_complete_dataset_file_labeled(recording_id):
+    recording = Recording.query.filter_by(id=recording_id).first_or_404()
+    path = recording.path
+    os.remove(os.path.join(path, DataFactory.complete_dataset_file_name_labeled + '.zip'))
     return redirect(url_for('views.get_recording', recording_id=recording.id))
 
 

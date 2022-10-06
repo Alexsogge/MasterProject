@@ -20,6 +20,7 @@ class DataFactory:
     sensor_data_file_name = 'sensor_data.npy'
     sensor_data_flattened_file_name = 'sensor_data_flattened.npy'
     complete_dataset_file_name = 'complete_dataset'
+    complete_dataset_file_name_labeled = 'complete_dataset_labeled'
 
     def __init__(self, recording: 'Recording', init_all=True, newest_torch_file=None):
         self.recording = recording
@@ -95,10 +96,15 @@ class DataFactory:
             df_pseudo = pd.DataFrame(pseudo_labels, columns=['pseudo null', 'pseudo hw'])
             df = pd.concat((df, df_pseudo), axis=1)
 
+            compression_opts = dict(method='zip', archive_name=self.complete_dataset_file_name_labeled + '.csv')
+            df[:-1].to_csv(os.path.join(self.path, self.complete_dataset_file_name_labeled + '.zip'), index=False, sep='\t',
+                           compression=compression_opts)
+
+        else:
         #print('\t'.join(header))
         # np.savetxt(os.path.join(self.path, self.complete_dataset_file_name), data_array, delimiter='\t', header='\t'.join(header))
-        compression_opts = dict(method='zip', archive_name=self.complete_dataset_file_name + '.csv')
-        df[:-1].to_csv(os.path.join(self.path, self.complete_dataset_file_name + '.zip'), index=False, sep='\t', compression=compression_opts)
+            compression_opts = dict(method='zip', archive_name=self.complete_dataset_file_name + '.csv')
+            df[:-1].to_csv(os.path.join(self.path, self.complete_dataset_file_name + '.zip'), index=False, sep='\t', compression=compression_opts)
 
     def read_stat_files(self):
         self.data_processor.read_entry(RecordingEntry.EVALUATIONS, use_numpy_caching=True)

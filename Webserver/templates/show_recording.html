@@ -167,35 +167,55 @@
                     </div>
                 </div>
             {% endif %}
-            {% if not complete_dataset_file %}
-                <div class="row">
-                    <div class="col-3">
-                        <button id="gen_comp_ds_btn" class="btn btn-primary" onclick="generate_complete_dataset_file()">Generate single dataset file</button>
-                    </div>
-                    <div class="col">
-                        <div class="btn-group">
-                            <button id="gen_comp_ds_pl_btn" type="button" class="btn btn-primary" onclick="generate_complete_dataset_file('allnoise_correctbyconvlstm3filter')" title="{{ get_pseudo_label_filter_description('allnoise_correctbyconvlstm3filter') }}">Generate single dataset file with pseudo labels</button>
-                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="visually-hidden">Toggle Dropdown</span>
-                            </button>
-                            <ul class="dropdown-menu">
-                                {% for setting_name in pseudo_model_settings %}
-                                    <li><a class="dropdown-item" onclick="generate_complete_dataset_file('{{ setting_name }}')" title="{{ get_pseudo_label_filter_description(setting_name) }}">{{ setting_name }}</a></li>
-                                {% endfor %}
-                            </ul>
+            <div class="row">
+                <div class="col">
+                    {% if not complete_dataset_file %}
+                        <div class="row">
+                            <div class="col">
+                                <button id="gen_comp_ds_btn" class="btn btn-primary" onclick="generate_complete_dataset_file()">Generate single dataset file</button>
+                            </div>
                         </div>
-                    </div>
+                    {% else %}
+                        <div class="row">
+                            <div class="col">
+                                <h4><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=complete_dataset_file)}}" data-toggle="tooltip" data-placement="top" title="All values in single csv">Complete dataset file</a></h4>
+                            </div>
+                            <div class="col">
+                                <h4><a class="btn btn-danger btn-sm" href="{{url_for('views.delete_complete_dataset_file', recording_id=recording.id)}}">Clean dataset file ({{ complete_dataset_file_size }})</a></h4>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="row">
-                    <div class="col-md-2">
-                        <h4><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=complete_dataset_file)}}" data-toggle="tooltip" data-placement="top" title="All values in single csv">Complete dataset file</a></h4>
-                    </div>
-                    <div class="col-md-3">
-                        <h4><a class="btn btn-danger btn-sm" href="{{url_for('views.delete_complete_dataset_file', recording_id=recording.id)}}">Clean dataset file ({{ complete_dataset_file_size }})</a></h4>
-                    </div>
+                <div class="col">
+                    {% if not complete_dataset_file_labeled %}
+                        <div class="row">
+                            <div class="col">
+                                <div class="btn-group">
+                                    <button id="gen_comp_ds_pl_btn" type="button" class="btn btn-primary" onclick="generate_complete_dataset_file('allnoise_correctbyconvlstm3filter')" title="{{ get_pseudo_label_filter_description('allnoise_correctbyconvlstm3filter') }}">Generate single dataset file with pseudo labels</button>
+                                    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="visually-hidden">Toggle Dropdown</span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% for setting_name in pseudo_model_settings %}
+                                            <li><a class="dropdown-item" onclick="generate_complete_dataset_file('{{ setting_name }}')" title="{{ get_pseudo_label_filter_description(setting_name) }}">{{ setting_name }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="row">
+                            <div class="col">
+                                <h4><a class="btn btn-primary" href="{{url_for('views.uploaded_recording_file', path=complete_dataset_file_labeled)}}" data-toggle="tooltip" data-placement="top" title="All values in single csv">Complete labeled dataset file</a></h4>
+                            </div>
+                            <div class="col">
+                                <h4><a class="btn btn-danger btn-sm" href="{{url_for('views.delete_complete_dataset_file_labeled', recording_id=recording.id)}}">Clean labled dataset file ({{ complete_dataset_file_labeled_size }})</a></h4>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
+
         </div>
     </div>
     <div class="row mt-2">
