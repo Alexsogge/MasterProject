@@ -51,6 +51,11 @@ arg_parser.add_argument('-ur', '--use_regularization',
                         action='store_true',
                         help='use L2-SP regularization')
 
+arg_parser.add_argument('-l', '--labeled',
+                        dest='labeled',
+                        action='store_true',
+                        help='generate data with labels')
+
 
 
 args = arg_parser.parse_args()
@@ -199,7 +204,7 @@ def clean_complete_dataset_files():
                         target.writestr(DataFactory.complete_dataset_file_name_labeled + '.csv', zf.read(DataFactory.complete_dataset_file_name + '.csv'))
                         target.close()
                         os.remove(zip_file)
-
+                    zf.close()
 
 def generate_complete_dataset_files():
     with app.app_context():
@@ -211,7 +216,12 @@ def generate_complete_dataset_files():
                     print('generate for ', recording.get_name())
                     data_factory = DataFactory(recording, newest_torch_file=find_newest_torch_file(full_path=True))
                     pseudo_filter = None
-                    data_factory.generate_complete_dataset_file(pseudo_filter)
+                    if args.labeled:
+                        pseudo_filter = args.filter
+                    try:
+                        data_factory.generate_complete_dataset_file(pseudo_filter)
+                    except:
+                        print('skip:', recording.get_name())
 
 
 
@@ -246,3 +256,5 @@ if __name__ == '__main__':
 
         if args.Action == 'generate_complete_dataset_files':
             generate_complete_dataset_files()
+
+        print('task finished')

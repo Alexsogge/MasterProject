@@ -3,6 +3,7 @@ import os
 import pathlib
 import re
 import traceback
+import zipfile
 from datetime import datetime, timedelta, time
 import time as plain_time
 from typing import List
@@ -704,6 +705,43 @@ def generate_complete_dataset_file(recording_id):
     if request.args.get('filter'):
         pseudo_filter = request.args.get('filter')
     data_factory.generate_complete_dataset_file(pseudo_filter)
+    return jsonify({'status': 'success'})
+
+@view.route('/recording/cds/get/bulk/', methods=['GET', 'POST'])
+def get_complete_dataset_files():
+    if request.method == 'POST':
+        content = request.json
+        tarfile_name = os.path.join('/tmp', 'complete_datasets.zip')
+        target_dataset_files = DataFactory.complete_dataset_file_name
+        if 'labeled' in content and content['labeled']:
+            target_dataset_files = DataFactory.complete_dataset_file_name_labeled
+        if content['participant']:
+            participant = Participant.query.filter_by(id=content['participant']).first_or_404()
+            tarfile_name = os.path.join('/tmp', participant.get_name().replace(' ', '_') + '.zip')
+
+        with zipfile.ZipFile(tarfile_name, 'w', zipfile.ZIP_DEFLATED) as target_zip:
+            for recording_id in content['recordings']:
+                recording = Recording.query.filter_by(id=recording_id).first_or_404()
+                path = recording.path
+                zip_file = os.path.join(path, target_dataset_files + '.zip')
+                if os.path.exists(zip_file):
+                    zf = zipfile.ZipFile(zip_file)
+                    target_zip.writestr(recording.get_name() + '.csv',
+                                    zf.read(target_dataset_files + '.csv'))
+                    zf.close()
+        p = pathlib.Path(tarfile_name)
+        response = {'status': 'success', 'target': os.path.join(*list(p.parts[2:]))}
+        return jsonify(response)
+
+    # return send_from_directory(TFMODEL_FOLDER, path)
+    return jsonify({'status': 'error'})
+
+@view.route('/recording/cds/clean/bulk/')
+@view.route('/recording/cds/clean/bulk/<string:file_name>')
+def clean_complete_dataset_files(file_name):
+    target_file = os.path.join('/tmp', file_name)
+    if os.path.exists(target_file):
+        os.remove(target_file)
     return jsonify({'status': 'success'})
 
 @view.route('/recording/np/delete/<int:recording_id>/')
@@ -1613,3 +1651,8 @@ def uploaded_participant_file(path):
 @view.route('/uploads/tf_models/<path:path>')
 def uploaded_tf_file(path):
     return send_from_directory(TFMODEL_FOLDER, path)
+
+@view.route('/gens/tmp/')
+@view.route('/gens/tmp/<path:path>')
+def generated_tmp_file(path):
+    return send_from_directory('/tmp', path)

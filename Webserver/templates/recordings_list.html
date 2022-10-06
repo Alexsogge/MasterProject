@@ -31,6 +31,13 @@
                 {% endfor %}
             </div>
 
+            <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" id="compdsTagDropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false"">
+                Complete dataset files
+            </button>
+            <div class="dropdown-menu" aria-labelledby="compdsTagDropdownMenuButton">
+                <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="complete_datasets_bulk(false)">Unlabeled</button>
+                <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="complete_datasets_bulk(true)">Labeled</button>
+            </div>
         </span>
     </div>
 </div>
@@ -305,18 +312,69 @@
     }
 
     function show_single_delete_modal(recording_id, recording_name){
-         document.getElementById("to-delete-recording").innerHTML = recording_name;
-         tmp_delete_recording = recording_id;
-         const myModal = new bootstrap.Modal(document.getElementById('single-delete-modal'));
-         myModal.show();
+        document.getElementById("to-delete-recording").innerHTML = recording_name;
+        tmp_delete_recording = recording_id;
+        const myModal = new bootstrap.Modal(document.getElementById('single-delete-modal'));
+        myModal.show();
     }
 
     function single_delete(){
         console.log("delete", tmp_delete_recording);
         fetch(`{{url_for('views.delete_recording')}}${tmp_delete_recording}/?bulk=True`)
-                .then(function () {
-                    location.reload();
-                });
+            .then(function () {
+                location.reload();
+            });
+    }
+
+    function complete_datasets_bulk(labeled) {
+        const dl_button = document.getElementById("compdsTagDropdownMenuButton");
+        dl_button.innerText = "packing files...";
+        let checkboxes = document.getElementsByName('bulk_select');
+        let include_recs = [];
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
+                include_recs.push(checkboxes[i].value);
+            }
+        }
+        const content = {'participant': null, 'recordings': include_recs}
+        {% if participant %}
+            content['participant'] = {{ participant.id }};
+        {% endif %}
+
+        if (labeled)
+            content['labeled'] = true;
+
+        fetch(`{{url_for('views.get_complete_dataset_files')}}`, {
+            method: 'POST', // or 'PUT'
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(content),
+        }).then((response) => response.json())
+            .then((data) => {
+                if(data['status'] === 'success') {
+                    console.log('Success:', data);
+                    dl_button.innerText = "downloading...";
+                    const file_name = data['target'];
+                    fetch(`{{url_for('views.generated_tmp_file')}}${file_name}`)
+                        .then((res) => {
+                            return res.blob();
+                        })
+                        .then((data) => {
+                            var a = document.createElement("a");
+                            a.href = window.URL.createObjectURL(data);
+                            a.download = file_name;
+                            a.click();
+                        }).then(() => {
+                        fetch(`{{url_for('views.clean_complete_dataset_files')}}${file_name}`)
+                            .then(() => {
+                                dl_button.innerText = "finished";
+                            });
+                    });
+                } else {
+                    dl_button.innerText = "error";
+                }
+            })
     }
 
 
