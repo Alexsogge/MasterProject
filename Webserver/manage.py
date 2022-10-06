@@ -1,4 +1,5 @@
 import os
+import zlib
 
 import pandas as pd
 import zipfile
@@ -220,10 +221,8 @@ def generate_complete_dataset_files():
                         pseudo_filter = args.filter
                     try:
                         data_factory.generate_complete_dataset_file(pseudo_filter)
-                    except:
+                    except (zlib.error, IndexError) as e:
                         print('skip:', recording.get_name())
-
-
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
