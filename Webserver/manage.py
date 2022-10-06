@@ -1,16 +1,19 @@
 import os
 
-from app import db, app
-from data_factory import DataFactory
-from models import Recording, RecordingCalculations, Participant
-import numpy as np
-from views import generate_recording_stats
 import pandas as pd
 import zipfile
-
 import sys
 import argparse
 import yaml
+import numpy as np
+
+from app import db, app
+from data_factory import DataFactory
+from models import Recording, RecordingCalculations, Participant
+from views import generate_recording_stats
+from tools import find_newest_torch_file
+
+
 try:
     import gtk
     enable_clipboard = True
@@ -25,7 +28,8 @@ arg_parser.add_argument('Action',
                         help='name of action',
                         choices=['create_db', 'calc_characteristics', 'build_personalized_models', 'rerun_tests',
                                  'recreate_stats', 'generate_personalization_config', 'calc_handwashs_per_hour',
-                                 'clean_complete_dataset_files'])
+                                 'clean_complete_dataset_files', 'generate_complete_dataset_files'])
+
 
 arg_parser.add_argument('-p', '--participants',
                         dest='participants',
@@ -179,9 +183,9 @@ def calc_handwashs_per_hour():
         for key, val in sorted_entries.items():
             print(key, val)
 
+
 def clean_complete_dataset_files():
     with app.app_context():
-        entries = {}
         for participant in Participant.query.filter_by():
             for recording in participant.recordings:
                 path = recording.path
@@ -195,6 +199,20 @@ def clean_complete_dataset_files():
                         target.writestr(DataFactory.complete_dataset_file_name_labeled + '.csv', zf.read(DataFactory.complete_dataset_file_name + '.csv'))
                         target.close()
                         os.remove(zip_file)
+
+
+def generate_complete_dataset_files():
+    with app.app_context():
+        for participant in Participant.query.filter_by():
+            for recording in participant.recordings:
+                path = recording.path
+                zip_file = os.path.join(path, DataFactory.complete_dataset_file_name + '.zip')
+                if not os.path.exists(zip_file):
+                    print('generate for ', recording.get_name())
+                    data_factory = DataFactory(recording, newest_torch_file=find_newest_torch_file(full_path=True))
+                    pseudo_filter = None
+                    data_factory.generate_complete_dataset_file(pseudo_filter)
+
 
 
 if __name__ == '__main__':
@@ -225,3 +243,6 @@ if __name__ == '__main__':
 
         if args.Action == 'clean_complete_dataset_files':
             clean_complete_dataset_files()
+
+        if args.Action == 'generate_complete_dataset_files':
+            generate_complete_dataset_files()
