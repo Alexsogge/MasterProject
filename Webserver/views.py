@@ -736,13 +736,24 @@ def get_complete_dataset_files():
     # return send_from_directory(TFMODEL_FOLDER, path)
     return jsonify({'status': 'error'})
 
-@view.route('/recording/cds/clean/bulk/')
+@view.route('/recording/cds/clean/bulk/', methods=['GET', 'POST'])
 @view.route('/recording/cds/clean/bulk/<string:file_name>')
-def clean_complete_dataset_files(file_name):
-    target_file = os.path.join('/tmp', file_name)
-    if os.path.exists(target_file):
-        os.remove(target_file)
-    return jsonify({'status': 'success'})
+def clean_complete_dataset_files(file_name=None):
+    if request.method == 'POST':
+        content = request.json
+        tarfile_name = os.path.join('/tmp', 'complete_datasets.zip')
+        if content['participant']:
+            participant = Participant.query.filter_by(id=content['participant']).first_or_404()
+            tarfile_name = os.path.join('/tmp', participant.get_name().replace(' ', '_') + '.zip')
+        if os.path.exists(tarfile_name):
+            os.remove(tarfile_name)
+        response = {'status': 'success'}
+        return jsonify(response)
+    else:
+        target_file = os.path.join('/tmp', file_name)
+        if os.path.exists(target_file):
+            os.remove(target_file)
+        return jsonify({'status': 'success'})
 
 @view.route('/recording/np/delete/<int:recording_id>/')
 def delete_numpy_data(recording_id):

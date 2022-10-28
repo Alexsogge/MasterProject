@@ -350,7 +350,13 @@
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(content),
-        }).then((response) => response.json())
+        }).then((response) => {
+            if (!response.ok) {
+                throw new Error("Can't create complete dataset: " + response.statusText);
+            }
+            return response;
+        })
+            .then((response) => response.json())
             .then((data) => {
                 if(data['status'] === 'success') {
                     console.log('Success:', data);
@@ -366,15 +372,36 @@
                             a.download = file_name;
                             a.click();
                         }).then(() => {
-                        fetch(`{{url_for('views.clean_complete_dataset_files')}}${file_name}`)
-                            .then(() => {
-                                dl_button.innerText = "finished";
-                            });
+                        clean_complete_dataset_by_name(file_name);
                     });
                 } else {
                     dl_button.innerText = "error";
                 }
-            })
+            }).catch(reason => {
+                dl_button.innerText = "error during build";
+                console.log(reason);
+                clean_complete_dataset_by_post(content);
+        })
+    }
+
+
+    function clean_complete_dataset_by_name(file_name){
+        const dl_button = document.getElementById("compdsTagDropdownMenuButton");
+        fetch(`{{url_for('views.clean_complete_dataset_files')}}${file_name}`)
+                            .then(() => {
+                                dl_button.innerText = "finished";
+                            });
+    }
+
+    function clean_complete_dataset_by_post(content){
+        const dl_button = document.getElementById("compdsTagDropdownMenuButton");
+        fetch(`{{url_for('views.clean_complete_dataset_files')}}`, {
+            method: 'POST', // or 'PUT'
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(content),
+        });
     }
 
 
