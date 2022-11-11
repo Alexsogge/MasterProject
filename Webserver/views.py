@@ -725,12 +725,43 @@ def get_complete_dataset_files():
                 path = recording.path
                 zip_file = os.path.join(path, target_dataset_files + '.zip')
                 if os.path.exists(zip_file):
-                    zf = zipfile.ZipFile(zip_file)
-                    target_zip.writestr(recording.get_name() + '.csv',
-                                    zf.read(target_dataset_files + '.csv'))
-                    zf.close()
+                    try:
+                        zf = zipfile.ZipFile(zip_file)
+                        target_zip.writestr(recording.get_name() + '.csv',
+                                        zf.read(target_dataset_files + '.csv'))
+                        zf.close()
+                    except zipfile.BadZipfile as e:
+                        print('Bad zipfile:', zip_file)
+
         p = pathlib.Path(tarfile_name)
         response = {'status': 'success', 'target': os.path.join(*list(p.parts[2:]))}
+        return jsonify(response)
+
+    # return send_from_directory(TFMODEL_FOLDER, path)
+    return jsonify({'status': 'error'})
+
+@view.route('/recording/cds/get/paths/', methods=['GET', 'POST'])
+def get_complete_dataset_file_paths():
+    if request.method == 'POST':
+        content = request.json
+        target_dataset_files = DataFactory.complete_dataset_file_name
+        if 'labeled' in content and content['labeled']:
+            target_dataset_files = DataFactory.complete_dataset_file_name_labeled
+
+        path_list = dict()
+
+        for recording_id in content['recordings']:
+            recording = Recording.query.filter_by(id=recording_id).first_or_404()
+            path = recording.path
+            zip_file = os.path.join(path, target_dataset_files + '.zip')
+            if os.path.exists(os.path.join(path, DataFactory.complete_dataset_file_name + '.zip')):
+                complete_dataset_file = os.path.join(recording.base_name,
+                                                     DataFactory.complete_dataset_file_name + '.zip')
+            if os.path.exists(zip_file):
+                download_path = os.path.join(recording.base_name, target_dataset_files + '.zip')
+                path_list[recording.get_name()] = url_for('views.uploaded_recording_file', path=download_path)
+
+        response = {'status': 'success', 'paths': path_list}
         return jsonify(response)
 
     # return send_from_directory(TFMODEL_FOLDER, path)

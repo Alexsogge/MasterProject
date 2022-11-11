@@ -76,8 +76,11 @@ class DataFactory:
             indexes.append(index)
             #print('evaluation index', index)
             data_array[index, 8:] = evaluation[1:]
-            df_eval.iloc[index] = evaluation[1:]
+            df_eval.iloc[[index]] = evaluation[1:]
+        #print(indexes, data_array[:, 0][indexes])
+        #print(df_eval[(df_eval.loc[:,['user yes/no']] == 0).any(axis=1)])
         df = pd.concat((df, df_eval), axis=1)
+        #print(df[(df.loc[:, ['user yes/no']] == 1).any(axis=1)])
 
         if pseudo_label_filter is not None:
             #print('newest torch file:', self.newest_torch_file)
@@ -103,8 +106,9 @@ class DataFactory:
         else:
         #print('\t'.join(header))
         # np.savetxt(os.path.join(self.path, self.complete_dataset_file_name), data_array, delimiter='\t', header='\t'.join(header))
+            print(df[(df.loc[:, ['user yes/no']] == 1).any(axis=1)])
             compression_opts = dict(method='zip', archive_name=self.complete_dataset_file_name + '.csv')
-            df[:-1].to_csv(os.path.join(self.path, self.complete_dataset_file_name + '.zip'), index=False, sep='\t', compression=compression_opts)
+            df.to_csv(os.path.join(self.path, self.complete_dataset_file_name + '.zip'), index=False, sep='\t', compression=compression_opts)
 
     def read_stat_files(self):
         self.data_processor.read_entry(RecordingEntry.EVALUATIONS, use_numpy_caching=True)
