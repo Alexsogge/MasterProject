@@ -37,6 +37,8 @@
             <div class="dropdown-menu" aria-labelledby="compdsTagDropdownMenuButton">
                 <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="complete_datasets_bulk(false)">Unlabeled</button>
                 <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="complete_datasets_bulk(true)">Labeled</button>
+                <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="complete_datasets_single(false)">Single files</button>
+                <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="complete_datasets_single(true)">Single files labeled</button>
             </div>
         </span>
     </div>
@@ -404,5 +406,49 @@
         });
     }
 
+
+    function complete_datasets_single(labeled){
+        const dl_button = document.getElementById("compdsTagDropdownMenuButton");
+        dl_button.innerText = "loading file paths...";
+        let checkboxes = document.getElementsByName('bulk_select');
+        let include_recs = [];
+        for (let i = 0, n = checkboxes.length; i < n; i++) {
+            if (checkboxes[i].checked) {
+                include_recs.push(checkboxes[i].value);
+            }
+        }
+        const content = {'recordings': include_recs}
+        if (labeled)
+            content['labeled'] = true;
+
+        fetch(`{{url_for('views.get_complete_dataset_file_paths')}}`, {
+            method: 'POST', // or 'PUT'
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(content),
+        }).then((response) => response.json())
+            .then((data) => {
+                if (data['status'] === 'success') {
+                    dl_button.innerText = "downloading files...";
+                    // console.log("Want to download", data['paths']);
+                    for(const [name, path] of Object.entries(data['paths'])){
+                        // console.log("download:", name);
+                        fetch(path)
+                            .then((res) => {
+                            return res.blob();
+                        })
+                        .then((data) => {
+                            var a = document.createElement("a");
+                            a.href = window.URL.createObjectURL(data);
+                            a.download = name + ".zip";
+                            a.click();
+                        })
+                    }
+                }
+            }).then(() => {
+                dl_button.innerText = "finished";
+            });
+    }
 
 </script>
