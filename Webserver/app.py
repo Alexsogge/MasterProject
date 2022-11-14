@@ -1,15 +1,18 @@
 import os
-from flask import Flask
+from flask import Flask, Response, redirect
 from flask_migrate import Migrate
 
 from views import view, db
 from config import UPLOAD_FOLDER, RECORDINGS_FOLDER, TFMODEL_FOLDER, PARTICIPANT_FOLDER, config
 from personalization_tools.pseudo_model_settings import pseudo_model_settings
 
+import admin
+
 app = Flask(__name__)
 app.register_blueprint(view, url_prefix=config.url_prefix)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_DATABASE_URI'] = config.database_uri
+app.secret_key = config.server_secret
 db.init_app(app)
 
 migrate = Migrate(app, db)
@@ -37,6 +40,8 @@ def utility_processor():
         return description
     return dict(get_pseudo_label_filter_description=get_pseudo_label_filter_description)
 
+
+admin.init(app, db)
 
 if __name__ == '__main__':
     app.run()

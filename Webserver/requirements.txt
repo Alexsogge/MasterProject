@@ -3,6 +3,8 @@ Flask-HTTPAuth
 Flask-SQLAlchemy
 Flask-Migrate
 Flask-APScheduler
+Flask-Admin
+Flask-BasicAuth
 
 PyYAML~=5.4.1
 gunicorn

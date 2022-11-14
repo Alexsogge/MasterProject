@@ -5,7 +5,7 @@ import random
 import string
 import os
 
-version = 1.7
+version = 1.8
 secret_key_iterations = 42
 
 ALLOWED_EXTENSIONS = {'zip', 'mkv', 'csv', '3gp', 'tflite', 'json', 'avi', 'ort', 'pt'}
@@ -22,7 +22,8 @@ config_values = {'version': version, 'upload_directory': 'uploads', 'url_prefix'
                  'available_optypes': ['Gather', 'Shape', 'Gemm', 'Unsqueeze', 'Concat', 'Reshape', 'FusedGemm',
                                        'Squeeze', 'Expand', 'Softmax', 'LSTM', 'Div', 'Sub', 'Add', 'MatMul',
                                        'Transpose', 'ReduceSum', 'Slice', 'ConstantOfShape', 'FusedConv'],
-                 'no_data_variance_threshold': 3.5}
+                 'no_data_variance_threshold': 3.5,
+                 'server_secret': 'secret token'}
 
 
 
@@ -33,6 +34,7 @@ class Config:
     upload_directory: str = None
     url_prefix: str = ''
     client_secret: str = None
+    server_secret: str = None
 
     user: str = None
     user_pw: str = None
@@ -91,7 +93,12 @@ class Config:
                                                                     string.ascii_lowercase +
                                                                     string.digits
                                                                     ) for _ in range(secret_key_iterations))
+            new_server_secret = ''.join(random.SystemRandom().choice(string.ascii_uppercase +
+                                                                    string.ascii_lowercase +
+                                                                    string.digits
+                                                                    ) for _ in range(secret_key_iterations))
             local_config['client_secret'] = new_secret_token
+            local_config['server_secret'] = new_server_secret
 
             for key, value in overwrite_values.items():
                 if key in local_config:
