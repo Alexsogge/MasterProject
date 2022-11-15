@@ -57,7 +57,7 @@ def init(app, db):
     app.config['BASIC_AUTH_PASSWORD'] = config.user_pw
     basic_auth = BasicAuth(app)
 
-    admin = Admin(app, name='Dashboard')
+    admin = Admin(app, name='Dashboard', url=config.url_prefix + '/admin')
     admin.add_view(RecordingView(Recording, db.session))
     admin.add_view(RecordingStatView(RecordingStats, db.session))
 
