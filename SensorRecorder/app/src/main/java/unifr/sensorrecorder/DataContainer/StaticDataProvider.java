@@ -1,7 +1,9 @@
 package unifr.sensorrecorder.DataContainer;
 
 import android.app.Application;
-import android.util.Log;
+import android.os.Environment;
+
+import java.io.File;
 
 import unifr.sensorrecorder.Networking.NetworkManager;
 
@@ -18,14 +20,13 @@ public class StaticDataProvider extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        dataProcessor = new DataProcessor();
+        dataProcessor = new DataProcessor(
+                new File(getExternalFilesDir(Environment.DIRECTORY_DCIM), "android_sensor_recorder"));
         networkManager = new NetworkManager();
         isRunning = false;
     }
 
-    public static DataProcessor getProcessor(){
-        return dataProcessor;
-    }
+    public static DataProcessor getProcessor() { return dataProcessor; }
     public static NetworkManager getNetworkManager(){
         return networkManager;
     }

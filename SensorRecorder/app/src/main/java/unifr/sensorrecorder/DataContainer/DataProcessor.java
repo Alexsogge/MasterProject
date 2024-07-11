@@ -11,13 +11,8 @@ import android.provider.Settings;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import unifr.sensorrecorder.DataContainer.DataContainer;
-import unifr.sensorrecorder.DataContainer.MultyEntryZipContainer;
-import unifr.sensorrecorder.DataContainer.OutputStreamContainer;
-import unifr.sensorrecorder.DataContainer.ZipContainer;
 import unifr.sensorrecorder.HandWashDetection;
 import unifr.sensorrecorder.R;
-import unifr.sensorrecorder.SensorListenerService;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,6 +30,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 
 public class DataProcessor {
+    public final File recordingDirectory;
     public HashMap<String, ZipContainer> sensorContainers;
     //public MultyEntryZipContainer sensorContainer;
     public DataContainer containerMKV;
@@ -61,10 +57,14 @@ public class DataProcessor {
     public int predictions = 0;
     public int handWashes = 0;
 
-    public DataProcessor(){
+    public DataProcessor(File outputDir){
         sensorContainers = new HashMap<>();
         allDataContainers = new ArrayList<DataContainer>();
         streamContainers = new ArrayList<OutputStreamContainer>();
+        recordingDirectory = outputDir;
+
+        if (!recordingDirectory.exists())
+            recordingDirectory.mkdirs();
     }
 
     public void loadDefaultContainers() throws IOException {
@@ -75,37 +75,37 @@ public class DataProcessor {
         //sensorContainer = new MultyEntryZipContainer("sensors", "csv");
         //streamContainers.add(sensorContainer);
 
-        containerMKV = new DataContainer("ffmpeg", "mkv");
+        containerMKV = new DataContainer(recordingDirectory,"ffmpeg", "mkv");
         allDataContainers.add(containerMKV);
 
-        containerHandWashTimeStamps = new OutputStreamContainer("hand_wash_time_stamps", "csv");
+        containerHandWashTimeStamps = new OutputStreamContainer(recordingDirectory,"hand_wash_time_stamps", "csv");
         streamContainers.add(containerHandWashTimeStamps);
 
-        containerMarkerTimeStamps = new OutputStreamContainer("marker_time_stamps", "csv");
+        containerMarkerTimeStamps = new OutputStreamContainer(recordingDirectory, "marker_time_stamps", "csv");
         streamContainers.add(containerMarkerTimeStamps);
 
-        containerMicTimeStamps = new OutputStreamContainer("mic_time_stamps", "csv");
+        containerMicTimeStamps = new OutputStreamContainer(recordingDirectory, "mic_time_stamps", "csv");
         streamContainers.add(containerMicTimeStamps);
 
-        containerMic = new ZipContainer("recording_mic", "zip");
+        containerMic = new ZipContainer(recordingDirectory,"recording_mic", "zip");
         allDataContainers.add(containerMic);
 
-        containerBattery = new OutputStreamContainer("battery", "csv");
+        containerBattery = new OutputStreamContainer(recordingDirectory, "battery", "csv");
         streamContainers.add(containerBattery);
 
-        containerPrediction = new OutputStreamContainer("prediction", "csv");
+        containerPrediction = new OutputStreamContainer(recordingDirectory, "prediction", "csv");
         streamContainers.add(containerPrediction);
 
-        containerEvaluation = new OutputStreamContainer("evaluation", "csv");
+        containerEvaluation = new OutputStreamContainer(recordingDirectory, "evaluation", "csv");
         streamContainers.add(containerEvaluation);
 
-        containerOverallEvaluation = new OutputStreamContainer("overallEvaluation", "csv");
+        containerOverallEvaluation = new OutputStreamContainer(recordingDirectory, "overallEvaluation", "csv");
         allDataContainers.add(containerOverallEvaluation);
 
-        containerBluetoothBeacons = new OutputStreamContainer("bluetoothBeacons", "csv");
+        containerBluetoothBeacons = new OutputStreamContainer(recordingDirectory, "bluetoothBeacons", "csv");
         streamContainers.add(containerBluetoothBeacons);
 
-        containerMetaInfo = new OutputStreamContainer("metaInfo", "json");
+        containerMetaInfo = new OutputStreamContainer(recordingDirectory, "metaInfo", "json");
         streamContainers.add(containerMetaInfo);
 
         // add stream containers to all
@@ -114,7 +114,7 @@ public class DataProcessor {
 
     public void addSensorContainer(String sensorName) throws IOException {
         String filename = sensorName.replace('.', '_');
-        ZipContainer sensorContainer = new ZipContainer(filename, "csv");
+        ZipContainer sensorContainer = new ZipContainer(recordingDirectory, filename, "csv");
         sensorContainers.put(sensorName, sensorContainer);
         streamContainers.add(sensorContainer);
         allDataContainers.add(sensorContainer);
@@ -295,7 +295,7 @@ public class DataProcessor {
         ZipOutputStream zipOut = new ZipOutputStream(fileOut);
 
         for (int i = 0; i < 9999; i++) {
-            File tmp_file = new File(containerMic.recordingFilePath, containerMic.name + "_" + i + ".3gp");
+            File tmp_file = new File(containerMic.recordingFile, containerMic.name + "_" + i + ".3gp");
             if (!tmp_file.exists())
                 continue;
             FileInputStream fis = new FileInputStream(tmp_file);
@@ -330,5 +330,4 @@ public class DataProcessor {
         }
         return files;
     }
-
 }

@@ -300,6 +300,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
     private void loadDataContainers(){
         try {
             dataProcessor.loadDefaultContainers();
+
             for(Sensor sensor: activeSensors){
                 dataProcessor.addSensorContainer(sensor.getStringType());
             }
@@ -516,7 +517,7 @@ public class SensorRecordingManager extends Service implements SensorManagerInte
         File new_recording_mic_file;
         try {
             // String file_name =  recording_file_mic.getName().replaceFirst("[.][^.]+$", "");
-            new_recording_mic_file = new File(dataProcessor.containerMic.recordingFilePath, dataProcessor.containerMic.name + "_" + micCounter + ".3gp");
+            new_recording_mic_file = new File(dataProcessor.containerMic.recordingFile, dataProcessor.containerMic.name + "_" + micCounter + ".3gp");
             new_recording_mic_file.createNewFile();
             micCounter++;
             mediaRecorder = new MediaRecorder();

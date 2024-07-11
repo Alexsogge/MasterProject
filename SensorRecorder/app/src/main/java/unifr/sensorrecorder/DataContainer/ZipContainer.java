@@ -1,5 +1,6 @@
 package unifr.sensorrecorder.DataContainer;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -8,8 +9,8 @@ public class ZipContainer extends OutputStreamContainer{
     public ZipOutputStream zipOutputStream;
     public String innerFileExtension;
 
-    public ZipContainer(String name, String extension) throws IOException {
-        super(name, "zip");
+    public ZipContainer(File dir, String name, String extension) throws IOException {
+        super(dir, name, "zip");
         innerFileExtension = extension;
     }
 

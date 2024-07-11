@@ -39,10 +39,6 @@ import unifr.sensorrecorder.Networking.NetworkManager;
 import unifr.sensorrecorder.Networking.ServerTokenObserver;
 import unifr.sensorrecorder.Networking.UploadObserver;
 
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.content.pm.PackageManager.PERMISSION_DENIED;
-
-
 
 public class MainActivity extends FragmentActivity
         implements AmbientModeSupport.AmbientCallbackProvider{

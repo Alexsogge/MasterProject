@@ -1,13 +1,8 @@
 package unifr.sensorrecorder.DataContainer;
 
-import android.icu.text.Edits;
-
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -16,8 +11,8 @@ public class MultyEntryZipContainer extends OutputStreamContainer{
     public HashMap<String, String> entryFileNames;
     public String innerFileExtension;
 
-    public MultyEntryZipContainer(String name, String extension) throws IOException {
-        super(name, "zip");
+    public MultyEntryZipContainer(File dir, String name, String extension) throws IOException {
+        super(dir, name, "zip");
         innerFileExtension = extension;
         zipOutputStreams = new HashMap<>();
         entryFileNames = new HashMap<>();

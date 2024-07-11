@@ -22,8 +22,6 @@ import unifr.sensorrecorder.R;
 import java.io.IOException;
 import java.util.HashMap;
 
-import javax.xml.datatype.Duration;
-
 public class HandwashEvaluation extends WearableActivity {
     private static final long autoCancelAfterMillis = 1000 * 60 * 2;
 

@@ -17,7 +17,6 @@ import java.util.Date;
 import java.util.TimeZone;
 
 public class DataContainer {
-    public static final File recordingFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/android_sensor_recorder/");
     public static final String recordSubDirectoryPrefix = "recording";
     public static String fileNameSuffix = "";
     public static int currentRun;
@@ -28,13 +27,12 @@ public class DataContainer {
     public File recordingFile;
     public boolean isActive = false;
 
-    public DataContainer(String name, String extension){
+    public DataContainer(File dir, String name, String extension){
         this.name = name;
         this.extension = extension;
         fileName = name + "." + extension;
-        initFilePath();
 
-        recordingFile = new File(recordingFilePath, fileName);
+        recordingFile = new File(dir, name);
     }
 
 
@@ -81,14 +79,9 @@ public class DataContainer {
         isActive = false;
     }
 
-    private void initFilePath(){
-        if(!recordingFilePath.exists())
-            recordingFilePath.mkdirs();
-    }
-
     public void backupFile(String subDirectory){
         // search next available index for file and rename current
-        File subPath = new File(recordingFilePath, subDirectory + "/");
+        File subPath = new File(recordingFile.getParentFile(), subDirectory + "/");
         if(!subPath.exists())
             subPath.mkdirs();
         if (isActive) {
@@ -105,34 +98,12 @@ public class DataContainer {
         }
     }
 
-    public ArrayList<File> getAllVariants(){
-        // search for all files which are created during backup process
-        ArrayList<File> variants = new ArrayList<File>();
-
-        for(File subdirectory: getAllSubdirectories()) {
-            variants.addAll(getAllVariantsInSubDirectory(subdirectory));
-        }
-        return variants;
-    }
-
-    public ArrayList<File> getAllVariantsInSubDirectory(File subdirectory){
-        // search for all files which are created during backup process
-        ArrayList<File> variants = new ArrayList<File>();
-        File tmp_file = null;
-        for (int i = 0; i < 999; i++) {
-            tmp_file = new File(subdirectory, name + "_" + i + "." + extension);
-            if (tmp_file.exists())
-                variants.add(tmp_file);
-        }
-
-        return variants;
-    }
-
     public static ArrayList<File> getAllSubdirectories(){
         ArrayList<File> subdirectories = new ArrayList<File>();
         File subdirectory;
         for (int i = 0; i < 999; i++){
-            subdirectory = new File(recordingFilePath, recordSubDirectoryPrefix + "_" + i + "/");
+            subdirectory = new File(StaticDataProvider.getProcessor().recordingDirectory,
+                               recordSubDirectoryPrefix + "_" + i + "/");
             if(subdirectory.exists() && subdirectory.list() != null){
                 if(subdirectory.list().length >= 2) {
                     subdirectories.add(subdirectory);
@@ -148,7 +119,8 @@ public class DataContainer {
         String subdirectory = "";
         for (int i = 0; i < 999; i++) {
             subdirectory = recordSubDirectoryPrefix + "_" + i;
-            File path = new File(DataContainer.recordingFilePath, subdirectory);
+            File path = new File(StaticDataProvider.getProcessor().recordingDirectory,
+                    subdirectory);
             if (!path.exists() || path.list().length == 0)
                 break;
         }
