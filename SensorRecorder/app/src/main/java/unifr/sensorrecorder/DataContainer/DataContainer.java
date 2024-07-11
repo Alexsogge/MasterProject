@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.Log;
 
 import unifr.sensorrecorder.R;
 
@@ -63,6 +64,7 @@ public class DataContainer {
 
     public void setActive() throws IOException {
         isActive = true;
+        Log.d("wtf", recordingFile.getAbsolutePath());
         recordingFile.createNewFile();
     }
 

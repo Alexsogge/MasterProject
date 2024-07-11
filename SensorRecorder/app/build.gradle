@@ -37,18 +37,18 @@ android {
 
     }
 
-    lintOptions {
-        abortOnError false
-    }
-
 
     // Specify tflite file should not be compressed for the app apk
-    aaptOptions {
-        noCompress "tflite"
-    }
 
     testOptions {
         unitTests.includeAndroidResources = true
+    }
+    namespace 'unifr.sensorrecorder'
+    androidResources {
+        noCompress 'tflite'
+    }
+    lint {
+        abortOnError false
     }
 
     /*
