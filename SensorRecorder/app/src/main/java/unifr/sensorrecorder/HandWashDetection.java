@@ -52,7 +52,7 @@ import unifr.sensorrecorder.MathLib.MathOperations;
 import static android.content.Context.VIBRATOR_SERVICE;
 
 public class HandWashDetection {
-    public static final File modelFilePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/hand_wash_prediction/");
+    public final File modelFilePath;
     public static final String modelName = "predictionModel";
     public static final String ortModelName = "predictionModel.ort";
     public static final String modelSettingsName = "predictionModel";
@@ -127,6 +127,10 @@ public class HandWashDetection {
         this.context = context;
         vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
         // initModel();
+
+        modelFilePath = new File(
+                context.getExternalFilesDir(Environment.DIRECTORY_DCIM),
+                "hand_wash_prediction");
 
         Log.d("Tensorflow", "Created a Tensorflow Lite");
     }
@@ -387,7 +391,7 @@ public class HandWashDetection {
 
 
     private void loadSettingsFromFile() throws IOException, JSONException {
-        JSONObject jsonObject = readModelSettingsFile();
+        JSONObject jsonObject = readModelSettingsFile(context);
         if (jsonObject == null)
             return;
         if(jsonObject.has("required_sensors")) {
@@ -414,8 +418,10 @@ public class HandWashDetection {
     }
 
 
-    public static JSONObject readModelSettingsFile()throws IOException, JSONException{
-            File path = modelFilePath;
+    public static JSONObject readModelSettingsFile(Context context)throws IOException, JSONException{
+            File path = new File(
+                            context.getExternalFilesDir(Environment.DIRECTORY_DCIM),
+                            "hand_wash_prediction");
             if(!path.exists())
                 return null;
             File settingsFile = new File(path, modelSettingsName + ".json");

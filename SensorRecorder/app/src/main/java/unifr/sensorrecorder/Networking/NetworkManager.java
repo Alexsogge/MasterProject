@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -286,7 +287,8 @@ public class NetworkManager {
                     fileName = contentDisposition.split("filename=")[1];
                     fileExtension = fileName.split("\\.(?=[^\\.]+$)")[1];
                 }
-                File path = HandWashDetection.modelFilePath;
+                File path = new File(context.getExternalFilesDir(Environment.DIRECTORY_DCIM),
+                               "hand_wash_prediction");
                 if (!path.exists())
                     path.mkdirs();
                 File tfFile = new File(path, targetFilename + '.' + fileExtension);

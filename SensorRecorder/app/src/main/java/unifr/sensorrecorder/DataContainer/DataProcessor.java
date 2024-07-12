@@ -258,7 +258,7 @@ public class DataProcessor {
         JSONObject metaInfo = new JSONObject();
         try {
             metaInfo.put("tf_model", configs.getString(context.getApplicationContext().getString(R.string.val_current_tf_model), "default.tflite"));
-            JSONObject tfSettings = HandWashDetection.readModelSettingsFile();
+            JSONObject tfSettings = HandWashDetection.readModelSettingsFile(context);
             if (tfSettings != null)
                 metaInfo.put("tf_settings", tfSettings.toString());
 
