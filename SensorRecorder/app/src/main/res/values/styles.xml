@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="RatingBar"
+        parent="android:style/Widget.Material.RatingBar.Indicator">
+        <item name="colorControlNormal">@color/primary_text_light</item>
+        <item name="android:progressTint">@color/primary_text_dark</item>
+    </style>
+
+    <style name="RatingBarRectangular"
         parent="android:style/Widget.Material.RatingBar.Small">
         <item name="colorControlNormal">@color/primary_text_light</item>
-        <item name="colorControlActivated">@color/primary_text_dark</item>
+        <item name="android:progressTint">@color/primary_text_dark</item>
     </style>
 
     <style name="RatingTheme" parent="@android:style/Theme.DeviceDefault">

@@ -96,7 +96,7 @@
 
             <RatingBar
                 android:id="@+id/answerRatingBar2"
-                style="@style/Widget.AppCompat.RatingBar.Indicator"
+                style="@style/RatingBar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:isIndicator="false"
