@@ -4,6 +4,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorEventListener2;
+import android.util.Log;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -17,8 +18,8 @@ import unifr.sensorrecorder.DataContainer.DataProcessor;
 public class SensorListenerService implements SensorEventListener, SensorEventListener2 {
     private final Executor executor = Executors.newSingleThreadExecutor();
     public boolean flushed = false;
-    public boolean closed = false;
-    private  boolean stopped = false;
+    public volatile boolean closed = false;
+    private volatile boolean stopped = false;
 
     private SensorManagerInterface managerInterface;
     private Sensor mySensor;
@@ -64,9 +65,11 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
 
     public void close(){
         stopped = true;
+        onSensorChanged(null);
     }
 
     private void callFlushBuffer(){
+        Log.d("wtf", "scheduling flusshing " + mySensor.getName());
         executor.execute(new FlushBufferTask());
     }
 
@@ -76,12 +79,18 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        // reject old sensor events
-        if(event.timestamp < sensorStartTime)
+        if (event == null) {
+            callFlushBuffer();
             return;
+        }
+
         if(stopped && flushed){
             return;
         }
+
+        // reject old sensor events
+        if(event.timestamp < sensorStartTime)
+            return;
 
         // write new values to buffer
         // determine offset between previous and current event
@@ -190,12 +199,15 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
          */
         @Override
         public void run() {
+            Log.d("wtf", "flusshing " + mySensor.getName() + " stopped: " + stopped);
             try {
                 writeSensorData();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
+            Log.d("wtf", "written " + mySensor.getName() + " stopped: " + stopped);
+            if (!flushed)
+                managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
             if(stopped)
                 closed = true;
         }
