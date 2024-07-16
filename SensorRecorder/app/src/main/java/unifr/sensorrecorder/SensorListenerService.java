@@ -206,10 +206,12 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
                 e.printStackTrace();
             }
             Log.d("wtf", "written " + mySensor.getName() + " stopped: " + stopped);
-            if (!flushed)
-                managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
+
             if(stopped)
                 closed = true;
+
+            if (!flushed)
+                managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
         }
 
         /**
