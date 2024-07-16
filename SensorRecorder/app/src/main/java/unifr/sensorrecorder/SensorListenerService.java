@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import unifr.sensorrecorder.DataContainer.DataProcessor;
 
 public class SensorListenerService implements SensorEventListener, SensorEventListener2 {
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final Executor executor = Executors.newCachedThreadPool();
     public boolean flushed = false;
     public volatile boolean closed = false;
     private volatile boolean stopped = false;
