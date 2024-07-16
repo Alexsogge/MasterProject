@@ -550,7 +550,7 @@ public class HandWashDetection {
         long ts = -1;
         long lastTruePrediction = -1;
         boolean foundHandWash = false;
-        for(int i = frameSize + 1; i < sensorTimeStamps[0].length; i+=frameSize/2){
+        for(int i = frameSize + 1; i < sensorTimeStamps[0].length; i+=Math.max(1, frameSize/2)){
             for (int sensorIndex = 0; sensorIndex < sensorTimeStamps.length; sensorIndex++){
                 ts = possibleHandWash(sensorIndex, i);
                 if (ts > -1) {
