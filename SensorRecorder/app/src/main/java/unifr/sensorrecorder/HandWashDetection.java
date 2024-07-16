@@ -282,6 +282,9 @@ public class HandWashDetection {
         ByteBuffer frameBuffer = ByteBuffer.allocateDirect(inputBufferShape);
         frameBuffer.order(ByteOrder.nativeOrder());
 
+        // XXX quickfix might lead to wrong predictions
+        int n = Math.min(frameSize, inputBufferShape);
+
         // since model needs sensor values we probably don't have,
         // we have to fill the frameBuffer with dummy values for these sensors
         for(int x = 0; x < frameSize; x++) {
