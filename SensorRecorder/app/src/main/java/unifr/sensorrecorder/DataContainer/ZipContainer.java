@@ -33,6 +33,7 @@ public class ZipContainer extends OutputStreamContainer{
     }
 
     public void close() throws IOException {
+        zipOutputStream.flush();
         zipOutputStream.closeEntry();
         zipOutputStream.close();
         outputStream.close();
