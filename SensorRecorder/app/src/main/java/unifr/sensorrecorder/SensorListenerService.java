@@ -210,8 +210,7 @@ public class SensorListenerService implements SensorEventListener, SensorEventLi
             if(stopped)
                 closed = true;
 
-            if (!flushed)
-                managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
+            managerInterface.flushBuffer(sensorIndex, bufferValues, timestamps);
         }
 
         /**
