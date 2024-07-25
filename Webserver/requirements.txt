@@ -18,7 +18,7 @@ flatbuffers~=2.0
 python-dateutil~=2.8.2
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==1.11.0
+torch==2.2.0
 onnx
 onnxruntime
 scikit-learn
